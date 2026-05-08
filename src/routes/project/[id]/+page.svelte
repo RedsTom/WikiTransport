@@ -14,13 +14,11 @@
 	import RightPanel from '$lib/components/editor/RightPanel.svelte';
 	import ToolBar from '$lib/components/editor/ToolBar.svelte';
 	import PlanView from '$lib/components/schematic/PlanView.svelte';
-	import PreviewPanel from '$lib/components/editor/PreviewPanel.svelte';
 
 	import { CircularProgress, IconButton, Dialog, Button, TextField } from '$lib/components/ui';
 
 	let projectId = $derived(Number(page.params.id));
 	let isLoading = $state(true);
-	let showPreview = $state(false);
 	let viewDialogOpen = $state(false);
 	let newViewName = $state('');
 
@@ -114,10 +112,8 @@
 	<div class="flex h-screen w-full items-center justify-center">
 		<CircularProgress indeterminate />
 	</div>
-{:else if showPreview}
-	<PreviewPanel onclose={() => (showPreview = false)} />
 {:else}
-	<div class="flex h-screen w-full flex-col overflow-hidden">
+<div class="flex h-screen w-full flex-col overflow-hidden">
 		<!-- Top Bar -->
 		<header
 			class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface-variant px-4"
@@ -241,7 +237,6 @@
 				<ToolBar
 					onaddstation={handleTogglePlacement}
 					onaddanchor={handleToggleAnchor}
-					onpreview={() => (showPreview = true)}
 				/>
 			</main>
 
