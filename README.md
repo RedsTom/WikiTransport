@@ -12,7 +12,6 @@ transport network diagrams directly in your browser — no server needed.
 - **Transit types** — Group lines by mode (Metro, Tram, Bus, etc.) with distinct icon shapes
 - **Anchor points** — Add curve control points on lines for fine-tuned routing
 - **Views** — Create named views with per-view station positions and visibility toggles
-- **Preview & export** — Full-network preview with legend at configurable scale
 - **i18n** — English and French interface
 - **Offline-first** — All data stored locally in IndexedDB via Dexie
 
@@ -68,7 +67,6 @@ Dexie. No backend or API required.
 5. **Build routes** — Drag stations onto a line's route list in the left panel
 6. **Style the map** — Adjust station positions, label directions, line z-order
 7. **Create views** — Make named variants with hidden lines and repositioned stations
-8. **Preview** — Open the preview panel for a clean exportable view
 
 ### Keyboard shortcuts
 

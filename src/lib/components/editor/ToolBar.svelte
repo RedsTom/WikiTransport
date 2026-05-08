@@ -7,12 +7,10 @@
 
 	let {
 		onaddstation = () => {},
-		onaddanchor = () => {},
-		onpreview = () => {}
+		onaddanchor = () => {}
 	}: {
 		onaddstation: () => void;
 		onaddanchor: () => void;
-		onpreview: () => void;
 	} = $props();
 
 	const {
@@ -224,9 +222,4 @@
 		</IconButton>
 	</Tooltip>
 
-	<Tooltip text={m.preview()}>
-		<IconButton onclick={onpreview} class="shrink-0">
-			<span class="material-symbols-outlined">visibility</span>
-		</IconButton>
-	</Tooltip>
 </div>
