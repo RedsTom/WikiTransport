@@ -38,7 +38,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	headers.set('Cookie', cookies.join('; '));
 	event.request = new Request(event.request, { headers });
 
-	event.cookies.set(cookieName, detectedLocale, { path: '/' });
+	event.cookies.set(cookieName, detectedLocale, { path: '/', httpOnly: false });
 
 	return handleParaglide({ event, resolve });
 };
