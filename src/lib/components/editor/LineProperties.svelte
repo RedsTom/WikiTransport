@@ -1,0 +1,212 @@
+<script lang="ts">
+	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { flip } from 'svelte/animate';
+	import * as m from '$lib/paraglide/messages.js';
+	import { editorState } from '$lib/store/editor.svelte';
+	import { LineService } from '$lib/services/LineService';
+	import { StationService } from '$lib/services/StationService';
+	import { AnchorPointService } from '$lib/services/AnchorPointService';
+	import type { Line } from '$lib/types/models';
+	import { db } from '$lib/services/Database';
+
+	import { Button, IconButton, TextField, Dialog, Slider } from '$lib/components/ui';
+
+	let lineName = $state('');
+	let lineColor = $state('#000000');
+	let lineStrokeWidth = $state(6);
+	let lineDashPattern = $state('');
+
+	let selectedLine = $derived(editorState.lines.find((l) => l.id === editorState.selectedLineId));
+
+	$effect(() => {
+		if (selectedLine) {
+			lineName = selectedLine.name;
+			lineColor = selectedLine.color;
+			lineStrokeWidth = selectedLine.strokeWidth ?? 6;
+			lineDashPattern = selectedLine.dashPattern ?? '';
+		}
+	});
+
+	let lineStations = $derived.by(() => {
+		if (!selectedLine?.id) return [];
+		return editorState.routePoints
+			.filter((rp) => rp.lineId === selectedLine.id)
+			.sort((a, b) => a.order - b.order)
+			.map((rp) => {
+				const s = editorState.stations.find((st) => st.id === rp.stationId);
+				return { ...rp, id: rp.id!, stationName: s?.name || 'Unknown' };
+			});
+	});
+
+	let lineAnchors = $derived(
+		editorState.anchorPoints
+			.filter((ap) => ap.lineId === selectedLine?.id)
+			.sort((a, b) => a.order - b.order)
+	);
+
+	let dndItems = $state<any[]>([]);
+	let isDragging = $state(false);
+
+	let deleteConfirmOpen = $state(false);
+
+	$effect(() => {
+		if (!isDragging) {
+			dndItems = lineStations;
+		}
+	});
+
+	const flipDurationMs = 200;
+
+	async function updateLine(changes: Partial<Line>) {
+		if (selectedLine?.id) {
+			await LineService.updateLine(selectedLine.id, changes);
+			await editorState.loadLines();
+		}
+	}
+
+	async function handleDndConsider(e: CustomEvent<DndEvent<any>>) {
+		isDragging = true;
+		dndItems = e.detail.items;
+	}
+
+	async function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
+		dndItems = e.detail.items;
+		for (let i = 0; i < dndItems.length; i++) {
+			await db.routePoints.update(dndItems[i].id, { order: i });
+		}
+		await editorState.loadRoutePoints();
+		isDragging = false;
+	}
+
+	async function removeStationFromLine(rpId: number) {
+		await db.routePoints.delete(rpId);
+		await editorState.loadRoutePoints();
+	}
+
+	async function handleDeleteLine() {
+		if (selectedLine?.id) {
+			await LineService.deleteLine(selectedLine.id);
+			editorState.selectedLineId = null;
+			await editorState.loadLines();
+			await editorState.loadRoutePoints();
+		}
+	}
+</script>
+
+<div class="flex flex-col gap-4">
+	<h3 class="text-sm font-bold text-primary">{m.line_name()}</h3>
+
+	<TextField
+		label={m.line_name()}
+		bind:value={lineName}
+		onchange={() => updateLine({ name: lineName })}
+	/>
+
+	<div class="flex flex-col gap-2">
+		<label class="text-sm text-on-surface-variant" for="color-picker">{m.color()}</label>
+		<input
+			id="color-picker"
+			type="color"
+			bind:value={lineColor}
+			onchange={() => updateLine({ color: lineColor })}
+			class="h-9 w-full cursor-pointer rounded-md border border-outline/20 bg-transparent p-0.5"
+		/>
+	</div>
+
+	<div class="flex flex-col gap-2">
+		<label class="text-sm text-on-surface-variant" for="stroke-width-slider">Stroke width</label>
+		<div class="flex items-center gap-3">
+			<Slider
+				bind:value={lineStrokeWidth}
+				min={2}
+				max={16}
+				step={1}
+				onchange={() => updateLine({ strokeWidth: lineStrokeWidth })}
+			/>
+			<span class="w-5 text-center text-xs text-on-surface-variant">{lineStrokeWidth}</span>
+		</div>
+	</div>
+
+	<div class="flex flex-col gap-2">
+		<label class="text-sm text-on-surface-variant" for="dash-pattern-select">Dash pattern</label>
+		<select
+			id="dash-pattern-select"
+			bind:value={lineDashPattern}
+			onchange={() => updateLine({ dashPattern: lineDashPattern })}
+			class="rounded-md border border-outline/20 bg-transparent px-3 py-1.5 text-sm"
+		>
+			<option value="">Solid</option>
+			<option value="4,4">Dashed (4,4)</option>
+			<option value="8,4">Dashed (8,4)</option>
+			<option value="2,4">Dotted (2,4)</option>
+			<option value="8,4,2,4">Dash-dot (8,4,2,4)</option>
+		</select>
+	</div>
+
+	<h3 class="mt-4 text-sm font-bold text-primary">{m.stations()}</h3>
+	<div
+		use:dndzone={{ items: dndItems, flipDurationMs }}
+		onconsider={handleDndConsider}
+		onfinalize={handleDndFinalize}
+		class="flex min-h-8 flex-col gap-0.5"
+	>
+		{#each dndItems as rp (rp.id)}
+			<div
+				animate:flip={{ duration: flipDurationMs }}
+				class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5"
+			>
+				<span class="material-symbols-outlined cursor-grab text-sm text-outline"
+					>drag_indicator</span
+				>
+				<span class="material-symbols-outlined text-sm text-on-surface-variant">location_on</span>
+				<span class="flex-1 truncate text-sm">{rp.stationName}</span>
+				<IconButton class="!h-6 !w-6" onclick={() => removeStationFromLine(rp.id)}>
+					<span class="material-symbols-outlined text-sm">remove</span>
+				</IconButton>
+			</div>
+		{/each}
+	</div>
+
+	{#if lineAnchors.length > 0}
+		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">Anchors</h4>
+		<div class="flex flex-col gap-0.5">
+			{#each lineAnchors as ap (ap.id)}
+				<div class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5">
+					<span class="material-symbols-outlined text-sm text-on-surface-variant">anchor</span>
+					<span class="flex-1 truncate text-sm">Anchor ({ap.schematicX}, {ap.schematicY})</span>
+					<IconButton
+						class="!h-6 !w-6"
+						onclick={async () => {
+							await AnchorPointService.delete(ap.id!);
+							await editorState.loadAnchorPoints();
+						}}
+					>
+						<span class="material-symbols-outlined text-sm">remove</span>
+					</IconButton>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	<Button variant="filled" onclick={() => (deleteConfirmOpen = true)}>
+		<span class="material-symbols-outlined">delete</span>
+		{m.delete()}
+	</Button>
+
+	<Dialog bind:open={deleteConfirmOpen}>
+		{#snippet title()}{m.delete()}{/snippet}
+		<p>{m.delete()} ?</p>
+		{#snippet actions()}
+			<Button variant="text" onclick={() => (deleteConfirmOpen = false)}>{m.cancel()}</Button>
+			<Button
+				variant="filled"
+				onclick={async () => {
+					await handleDeleteLine();
+					deleteConfirmOpen = false;
+				}}
+			>
+				{m.delete()}
+			</Button>
+		{/snippet}
+	</Dialog>
+</div>
