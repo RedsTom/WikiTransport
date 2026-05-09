@@ -10,4 +10,5 @@ export { default as CircularProgress } from './CircularProgress.svelte';
 export { default as Slider } from './Slider.svelte';
 export { default as NativeSelect } from './NativeSelect.svelte';
 export { default as Tooltip } from './Tooltip.svelte';
+export { default as NumberInput } from './NumberInput.svelte';
 export { default as StationSelector } from './StationSelector.svelte';

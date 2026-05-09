@@ -14,6 +14,7 @@ import { TransitTypeService } from '../services/TransitTypeService';
 import { AnchorPointService } from '../services/AnchorPointService';
 import { ViewService } from '../services/ViewService';
 import { ViewStationService } from '../services/ViewStationService';
+import { EditorService } from '../services/EditorService';
 
 export class EditorState {
 	project = $state<Project | null>(null);
@@ -118,21 +119,24 @@ export class EditorState {
 	}
 
 	stationAnchorDx(station: Station): number {
-		if (this.isGlobalView) return station.anchorDx ?? 14;
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		if (vs) return vs.anchorDx ?? station.anchorDx ?? 14;
-		return station.anchorDx ?? 14;
+		return this._stationAnchorValue(station, 'anchorDx', 14);
 	}
 
 	stationAnchorDy(station: Station): number {
-		if (this.isGlobalView) return station.anchorDy ?? 14;
+		return this._stationAnchorValue(station, 'anchorDy', 14);
+	}
+
+	private _stationAnchorValue(
+		station: Station,
+		field: 'anchorDx' | 'anchorDy',
+		defaultValue: number
+	): number {
+		if (this.isGlobalView) return station[field] ?? defaultValue;
 		const vs = this.viewStations.find(
 			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
 		);
-		if (vs) return vs.anchorDy ?? station.anchorDy ?? 14;
-		return station.anchorDy ?? 14;
+		if (vs) return vs[field] ?? station[field] ?? defaultValue;
+		return station[field] ?? defaultValue;
 	}
 
 	toggleStationVisibility(id: number) {
@@ -146,149 +150,11 @@ export class EditorState {
 		ViewService.update(view.id!, { hiddenStationIds: ids });
 	}
 
-	toggleLineVisibility(id: number) {
-		if (this.isGlobalView) {
-			const next = new Set(this.hiddenLineIds);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			this.hiddenLineIds = next;
-		} else {
-			const view = this.activeView;
-			if (!view) return;
-			const ids = view.hiddenLineIds.includes(id)
-				? view.hiddenLineIds.filter((x) => x !== id)
-				: [...view.hiddenLineIds, id];
-			view.hiddenLineIds = ids;
-			ViewService.update(view.id!, { hiddenLineIds: ids });
-		}
-	}
-
 	toggleTypeVisibility(id: number) {
 		const next = new Set(this.hiddenTypeIds);
 		if (next.has(id)) next.delete(id);
 		else next.add(id);
 		this.hiddenTypeIds = next;
-	}
-
-	async switchToView(viewId: number | null) {
-		this.activeViewId = viewId;
-		if (viewId !== null) {
-			this.viewStations = await ViewStationService.getForView(viewId);
-		} else {
-			this.viewStations = [];
-		}
-		await this.loadAnchorPoints(viewId ?? undefined);
-	}
-
-	async createView(name: string) {
-		if (!this.project?.id) return;
-		const hiddenLineIds = [...this.effectiveHiddenLineIds];
-		const hiddenStationIds: number[] = [];
-		const viewId = await ViewService.create(this.project.id, name, hiddenLineIds, hiddenStationIds);
-		const stIds = this.stations.map((s) => s.id!).filter(Boolean);
-		for (const stId of stIds) {
-			const s = this.stations.find((st) => st.id === stId);
-			if (s) {
-				await ViewStationService.setPosition(
-					viewId,
-					stId,
-					s.schematicX,
-					s.schematicY,
-					s.labelDirection,
-					s.labelAnchor,
-					s.subtitleAlign,
-					s.anchorDx,
-					s.anchorDy
-				);
-			}
-		}
-		const globalAnchors = await AnchorPointService.getAllForView();
-		for (const ap of globalAnchors) {
-			await AnchorPointService.create(ap.lineId, ap.schematicX, ap.schematicY, ap.order, viewId);
-		}
-		await this.loadViews();
-		await this.switchToView(viewId);
-	}
-
-	async deleteView(viewId: number) {
-		await AnchorPointService.deleteForView(viewId);
-		await ViewService.delete(viewId);
-		if (this.activeViewId === viewId) {
-			this.activeViewId = null;
-			this.viewStations = [];
-		}
-		await this.loadViews();
-	}
-
-	async updateViewStationPosition(
-		stationId: number,
-		schematicX: number,
-		schematicY: number,
-		labelDirection?: string,
-		labelAnchor?: string,
-		subtitleAlign?: string,
-		anchorDx?: number,
-		anchorDy?: number
-	) {
-		if (this.isGlobalView) {
-			const changes: Record<string, unknown> = { schematicX, schematicY };
-			if (labelDirection !== undefined) changes.labelDirection = labelDirection;
-			if (labelAnchor !== undefined) changes.labelAnchor = labelAnchor;
-			if (subtitleAlign !== undefined) changes.subtitleAlign = subtitleAlign;
-			if (anchorDx !== undefined) changes.anchorDx = anchorDx;
-			if (anchorDy !== undefined) changes.anchorDy = anchorDy;
-			await StationService.updateStation(stationId, changes);
-			const st = this.stations.find((s) => s.id === stationId);
-			if (st) {
-				st.schematicX = schematicX;
-				st.schematicY = schematicY;
-				if (labelDirection !== undefined) st.labelDirection = labelDirection;
-				if (labelAnchor !== undefined) st.labelAnchor = labelAnchor;
-				if (subtitleAlign !== undefined) st.subtitleAlign = subtitleAlign;
-				if (anchorDx !== undefined) st.anchorDx = anchorDx;
-				if (anchorDy !== undefined) st.anchorDy = anchorDy;
-			}
-		} else if (this.activeViewId !== null) {
-			await ViewStationService.setPosition(
-				this.activeViewId,
-				stationId,
-				schematicX,
-				schematicY,
-				labelDirection,
-				labelAnchor,
-				subtitleAlign,
-				anchorDx,
-				anchorDy
-			);
-			const existing = this.viewStations.find(
-				(vs) => vs.viewId === this.activeViewId && vs.stationId === stationId
-			);
-			if (existing) {
-				existing.schematicX = schematicX;
-				existing.schematicY = schematicY;
-				if (labelDirection !== undefined) existing.labelDirection = labelDirection;
-				if (labelAnchor !== undefined) existing.labelAnchor = labelAnchor;
-				if (subtitleAlign !== undefined) existing.subtitleAlign = subtitleAlign;
-				if (anchorDx !== undefined) existing.anchorDx = anchorDx;
-				if (anchorDy !== undefined) existing.anchorDy = anchorDy;
-			} else {
-				this.viewStations = [
-					...this.viewStations,
-					{
-						id: undefined,
-						viewId: this.activeViewId,
-						stationId,
-						schematicX,
-						schematicY,
-						labelDirection,
-						labelAnchor,
-						subtitleAlign,
-						anchorDx,
-						anchorDy
-					} as ViewStation
-				];
-			}
-		}
 	}
 
 	reset() {
@@ -311,7 +177,6 @@ export class EditorState {
 		this.anchorLineClicked = false;
 		this.hiddenLineIds = new Set();
 		this.hiddenTypeIds = new Set();
-
 		this.stationToDelete = null;
 		this.lineToDelete = null;
 		this.anchorToDelete = null;
@@ -364,15 +229,6 @@ export class EditorState {
 		if (this.project?.id) {
 			this.views = await ViewService.getForProject(this.project.id);
 		}
-	}
-
-	async reloadAll() {
-		await this.loadTransitTypes();
-		await this.loadLines();
-		await this.loadStations();
-		await this.loadRoutePoints();
-		await this.loadAnchorPoints();
-		await this.loadViews();
 	}
 }
 

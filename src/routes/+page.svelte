@@ -56,6 +56,7 @@
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
+						data-sveltekit-reload
 						class="text-sm font-bold uppercase transition-colors hover:text-primary {page.url.pathname.includes(
 							`/${locale}`
 						) ||

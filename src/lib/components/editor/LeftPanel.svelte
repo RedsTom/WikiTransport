@@ -3,9 +3,10 @@
 	import { flip } from 'svelte/animate';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
-	import { LineService } from '$lib/services/LineService';
-	import { TransitTypeService } from '$lib/services/TransitTypeService';
-	import type { Line, TransitType } from '$lib/types/models';
+import { LineService } from '$lib/services/LineService';
+import { TransitTypeService } from '$lib/services/TransitTypeService';
+import { EditorService } from '$lib/services/EditorService';
+import type { Line, TransitType } from '$lib/types/models';
 
 	import {
 		Button,
@@ -61,7 +62,7 @@
 
 	async function handleAddType() {
 		if (editorState.project?.id) {
-			const newTypeId = await TransitTypeService.createType(editorState.project.id, `New Type`);
+			const newTypeId = await TransitTypeService.createType(editorState.project.id, m.new_type());
 			await editorState.loadTransitTypes();
 			editorState.selectedTransitTypeId = newTypeId;
 			editorState.selectedLineId = null;
@@ -140,7 +141,7 @@
 		}
 		for (const a of editorState.anchorPoints) {
 			if (a.id) {
-				const label = `Anchor #${a.id}`;
+				const label = `${m.anchor()} #${a.id}`;
 				if (label.toLowerCase().includes(q) || !q) {
 					result.push({ kind: 'anchor', id: a.id, label });
 				}
@@ -173,7 +174,7 @@
 				<div
 					class="flex items-center justify-center p-6 text-center text-sm text-on-surface-variant opacity-70"
 				>
-					Create a line type first.
+					{m.create_line_type_first()}
 				</div>
 			{/if}
 
@@ -239,7 +240,7 @@
 							role="none"
 							onclick={(e: MouseEvent) => e.stopPropagation()}
 						>
-							<Tooltip text={editorState.hiddenTypeIds.has(type.id!) ? 'Show type' : 'Hide type'}>
+							<Tooltip text={editorState.hiddenTypeIds.has(type.id!) ? m.show_type() : m.hide_type()}>
 								<IconButton onclick={() => editorState.toggleTypeVisibility(type.id!)}>
 									<span class="material-symbols-outlined text-sm">
 										{editorState.hiddenTypeIds.has(type.id!) ? 'visibility_off' : 'visibility'}
@@ -318,9 +319,9 @@
 										>
 											<div class="flex items-center gap-0.5">
 												<Tooltip
-													text={editorState.hiddenLineIds.has(line.id!) ? 'Show line' : 'Hide line'}
+													text={editorState.hiddenLineIds.has(line.id!) ? m.show_line() : m.hide_line()}
 												>
-													<IconButton onclick={() => editorState.toggleLineVisibility(line.id!)}>
+													<IconButton onclick={() => EditorService.toggleLineVisibility(editorState, line.id!)}>
 														<span class="material-symbols-outlined text-sm">
 															{editorState.hiddenLineIds.has(line.id!)
 																? 'visibility_off'
@@ -362,7 +363,7 @@
 													<span class="material-symbols-outlined text-sm text-on-surface-variant"
 														>location_on</span
 													>
-													<span class="flex-1 truncate">{st?.name || 'Unknown'}</span>
+													<span class="flex-1 truncate">{st?.name || m.unknown_station()}</span>
 													<div onclick={(e: MouseEvent) => e.stopPropagation()} role="none">
 														<IconButton
 															class="!h-6 !w-6"
@@ -375,7 +376,7 @@
 											{/each}
 										<div class="w-full px-1 pt-0.5">
 											<StationSelector
-												label="Add station"
+												label={m.add_station()}
 												variant="outlined"
 												class="w-full"
 												excludeIds={lineRps
@@ -396,7 +397,7 @@
 			<div class="mb-2 flex justify-end">
 				<Button variant="filled" onclick={handleAddType}>
 					<span class="material-symbols-outlined">add</span>
-					New Type
+					{m.new_type()}
 				</Button>
 			</div>
 
@@ -421,7 +422,7 @@
 			{/each}
 		{:else if editorState.leftTab === 'stations'}
 			<div class="mb-2">
-				<TextField label="Search stations" bind:value={stationSearch} />
+				<TextField label={m.search_stations()} bind:value={stationSearch} />
 			</div>
 			{#each allEntries as entry (entry.id)}
 				{#if entry.kind === 'station'}
@@ -474,7 +475,7 @@
 				<div
 					class="flex items-center justify-center p-6 text-center text-sm text-on-surface-variant opacity-70"
 				>
-					{stationSearch ? 'Nothing matches your search.' : 'No stations or anchors yet.'}
+					{stationSearch ? m.nothing_matches() : m.no_stations_or_anchors()}
 				</div>
 			{/if}
 		{/if}

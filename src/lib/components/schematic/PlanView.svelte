@@ -1,15 +1,27 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
+	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
 	import { ContextMenu } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
-	import type { Station } from '$lib/types/models';
+	import { onMount } from 'svelte';
 	import { measureText } from '$lib/utils/textMeasure';
-
-	const GRID_SIZE = 40;
-	const POINT_RADIUS = 8;
-	const LINE_WIDTH = 6;
+	import {
+		screenToSvg,
+		distToSegment,
+		scaleDashPattern,
+		getLabelLayout,
+		createOctilinearPath
+	} from '$lib/utils/schematic';
+	import {
+		GRID_SIZE,
+		POINT_RADIUS,
+		LINE_WIDTH,
+		LINE_SPACING,
+		DIR_CFG
+	} from '$lib/constants/schematic';
 
 	let viewBoxX = $state(0);
 	let viewBoxY = $state(0);
@@ -22,37 +34,67 @@
 
 	let draggedStationId = $state<number | null>(null);
 	let draggedAnchorId = $state<number | null>(null);
+	let didDragStation = false;
+	let dragStartScreenX = 0;
+	let dragStartScreenY = 0;
 
 	let ctxMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+	let svgEl = $state<SVGSVGElement | null>(null);
 
-	function screenToSvg(e: MouseEvent): { x: number; y: number } {
-		const svg = e.currentTarget as SVGSVGElement;
-		const pt = svg.createSVGPoint();
-		pt.x = e.clientX;
-		pt.y = e.clientY;
-		const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-		return {
-			x: Math.round(svgP.x / GRID_SIZE) * GRID_SIZE,
-			y: Math.round(svgP.y / GRID_SIZE) * GRID_SIZE
-		};
+	let allContentPoints = $derived.by(() => {
+		const points: { x: number; y: number }[] = [];
+		for (const s of editorState.stations) {
+			if (!editorState.isGlobalView && editorState.effectiveHiddenStationIds.has(s.id!)) continue;
+			points.push(editorState.stationPosition(s));
+		}
+		for (const a of editorState.anchorPoints) {
+			points.push({ x: a.schematicX, y: a.schematicY });
+		}
+		return points;
+	});
+
+	let isTooFar = $derived.by(() => {
+		if (allContentPoints.length === 0) return false;
+		const vx = viewBoxX, vy = viewBoxY;
+		const vw = viewBoxWidth, vh = viewBoxHeight;
+		return !allContentPoints.some(
+			(p) => p.x >= vx && p.x <= vx + vw && p.y >= vy && p.y <= vy + vh
+		);
+	});
+
+	function fitContent() {
+		if (!svgEl) return;
+		if (allContentPoints.length === 0) {
+			viewBoxX = 0;
+			viewBoxY = 0;
+			viewBoxWidth = 1000;
+			viewBoxHeight = 1000;
+			return;
+		}
+		const minX = Math.min(...allContentPoints.map((p) => p.x));
+		const maxX = Math.max(...allContentPoints.map((p) => p.x));
+		const minY = Math.min(...allContentPoints.map((p) => p.y));
+		const maxY = Math.max(...allContentPoints.map((p) => p.y));
+		const padding = 200;
+		const cx = (minX + maxX) / 2;
+		const cy = (minY + maxY) / 2;
+		let cw = Math.max(maxX - minX + padding * 2, 200);
+		let ch = Math.max(maxY - minY + padding * 2, 200);
+		const ar = svgEl.clientWidth / svgEl.clientHeight;
+		if (cw / ch > ar) {
+			ch = cw / ar;
+		} else {
+			cw = ch * ar;
+		}
+		viewBoxX = cx - cw / 2;
+		viewBoxY = cy - ch / 2;
+		viewBoxWidth = cw;
+		viewBoxHeight = ch;
 	}
 
-	function distToSegment(
-		px: number,
-		py: number,
-		ax: number,
-		ay: number,
-		bx: number,
-		by: number
-	): number {
-		const dx = bx - ax,
-			dy = by - ay;
-		const lenSq = dx * dx + dy * dy;
-		if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-		let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
-		t = Math.max(0, Math.min(1, t));
-		return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-	}
+	onMount(() => {
+		requestAnimationFrame(() => fitContent());
+	});
 
 	function handleMouseDown(e: MouseEvent) {
 		const target = e.target as SVGElement;
@@ -98,7 +140,7 @@
 
 	async function placeAnchorAtClick(e: MouseEvent) {
 		if (!editorState.selectedLineId) return;
-		const pos = screenToSvg(e);
+		const pos = screenToSvg(e, e.currentTarget as SVGSVGElement);
 
 		const rps = editorState.routePoints
 			.filter((rp) => rp.lineId === editorState.selectedLineId)
@@ -135,10 +177,10 @@
 
 	async function placeStationAtClick(e: MouseEvent) {
 		if (!editorState.project?.id) return;
-		const pos = screenToSvg(e);
+		const pos = screenToSvg(e, e.currentTarget as SVGSVGElement);
 		const stationId = await StationService.createStation(
 			editorState.project.id,
-			`Station ${editorState.stations.length + 1}`,
+			m.new_station({ n: editorState.stations.length + 1 }),
 			0,
 			0,
 			pos.x,
@@ -152,9 +194,49 @@
 				existingPoints.length > 0 ? Math.max(...existingPoints.map((rp) => rp.order)) : 0;
 			await StationService.addStationToLine(editorState.selectedLineId, stationId, maxOrder + 1);
 		}
-		await editorState.reloadAll();
+		await EditorService.reloadAll(editorState);
 		editorState.selectedStationId = stationId;
 		editorState.placementMode = null;
+	}
+
+	function buildStationContextMenu(stationId: number): ContextMenuItem[] {
+		const items: ContextMenuItem[] = [
+			{
+				label: m.edit_station(),
+				icon: 'edit',
+				action: () => {
+					editorState.selectedStationId = stationId;
+				}
+			},
+			{
+				label: m.delete_station(),
+				icon: 'delete',
+				action: () => {
+					editorState.stationToDelete = stationId;
+					editorState.deleteStationOpen = true;
+				}
+			},
+			{ separator: true, label: '', action: () => {} }
+		];
+
+		for (const line of editorState.lines) {
+			const alreadyOnLine = editorState.routePoints.some(
+				(rp) => rp.lineId === line.id && rp.stationId === stationId
+			);
+			if (!alreadyOnLine) {
+				items.push({
+					label: m.add_to_line({ lineName: line.name }),
+					action: async () => {
+						const maxOrder = editorState.routePoints
+							.filter((rp) => rp.lineId === line.id)
+							.reduce((max, rp) => Math.max(max, rp.order), 0);
+						await StationService.addStationToLine(line.id!, stationId, maxOrder + 1);
+						await EditorService.reloadAll(editorState);
+					}
+				});
+			}
+		}
+		return items;
 	}
 
 	function handleContextMenu(e: MouseEvent) {
@@ -172,7 +254,7 @@
 				y: e.clientY,
 				items: [
 					{
-						label: 'Edit anchor',
+						label: m.edit_anchor(),
 						icon: 'edit',
 						action: () => {
 							editorState.selectedAnchorId = anchorId;
@@ -180,7 +262,7 @@
 					},
 					{ separator: true, label: '', action: () => {} },
 					{
-						label: 'Delete anchor',
+						label: m.delete_anchor(),
 						icon: 'delete',
 						action: () => {
 							editorState.anchorToDelete = anchorId;
@@ -196,45 +278,7 @@
 			const stationId = Number(target.getAttribute('data-station-id'));
 			const station = editorState.stations.find((s) => s.id === stationId);
 			if (!station) return;
-
-			const items: ContextMenuItem[] = [
-				{
-					label: 'Edit station',
-					icon: 'edit',
-					action: () => {
-						editorState.selectedStationId = stationId;
-					}
-				},
-				{
-					label: 'Delete station',
-					icon: 'delete',
-					action: () => {
-						editorState.stationToDelete = stationId;
-						editorState.deleteStationOpen = true;
-					}
-				},
-				{ separator: true, label: '', action: () => {} }
-			];
-
-			for (const line of editorState.lines) {
-				const alreadyOnLine = editorState.routePoints.some(
-					(rp) => rp.lineId === line.id && rp.stationId === stationId
-				);
-				if (!alreadyOnLine) {
-					items.push({
-						label: `Add to ${line.name}`,
-						action: async () => {
-							const maxOrder = editorState.routePoints
-								.filter((rp) => rp.lineId === line.id)
-								.reduce((max, rp) => Math.max(max, rp.order), 0);
-							await StationService.addStationToLine(line.id!, stationId, maxOrder + 1);
-							await editorState.reloadAll();
-						}
-					});
-				}
-			}
-
-			ctxMenu = { x: e.clientX, y: e.clientY, items };
+			ctxMenu = { x: e.clientX, y: e.clientY, items: buildStationContextMenu(stationId) };
 		} else if (target.tagName === 'path' && target.closest('[data-line]')) {
 			const lineEl = target.closest('[data-line]') as SVGElement;
 			const lineId = Number(lineEl.getAttribute('data-line'));
@@ -243,10 +287,10 @@
 				x: e.clientX,
 				y: e.clientY,
 				items: [
-					{ label: 'Edit line', icon: 'edit', action: () => {} },
+					{ label: m.edit_line(), icon: 'edit', action: () => {} },
 					{ separator: true, label: '', action: () => {} },
 					{
-						label: 'Delete line',
+						label: m.delete_line(),
 						icon: 'delete',
 						action: () => {
 							editorState.lineToDelete = lineId;
@@ -261,14 +305,9 @@
 				y: e.clientY,
 				items: [
 					{
-						label: 'Deselect all',
+						label: m.deselect_all(),
 						icon: 'close',
-						action: () => {
-							editorState.selectedLineId = null;
-							editorState.selectedStationId = null;
-							editorState.selectedAnchorId = null;
-							editorState.selectedTransitTypeId = null;
-						}
+						action: () => EditorService.deselectAll(editorState)
 					}
 				]
 			};
@@ -276,35 +315,30 @@
 	}
 
 	function handleMouseMove(e: MouseEvent) {
+		const svg = e.currentTarget as SVGSVGElement;
 		if (draggedStationId !== null) {
+			if (!didDragStation) {
+				const dx = e.clientX - dragStartScreenX;
+				const dy = e.clientY - dragStartScreenY;
+				if (dx * dx + dy * dy < 16) return;
+				didDragStation = true;
+			}
 			const station = editorState.stations.find((s) => s.id === draggedStationId);
 			if (station) {
-				const svg = e.currentTarget as SVGSVGElement;
-				const pt = svg.createSVGPoint();
-				pt.x = e.clientX;
-				pt.y = e.clientY;
-				const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-				const snapX = Math.round(svgP.x / GRID_SIZE) * GRID_SIZE;
-				const snapY = Math.round(svgP.y / GRID_SIZE) * GRID_SIZE;
-				editorState.updateViewStationPosition(station.id!, snapX, snapY);
+				const pos = screenToSvg(e, svg);
+				EditorService.updateViewStationPosition(editorState, station.id!, pos.x, pos.y);
 			}
 		} else if (draggedAnchorId !== null) {
 			const anchor = editorState.anchorPoints.find((a) => a.id === draggedAnchorId);
 			if (anchor) {
-				const svg = e.currentTarget as SVGSVGElement;
-				const pt = svg.createSVGPoint();
-				pt.x = e.clientX;
-				pt.y = e.clientY;
-				const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-				const snapX = Math.round(svgP.x / GRID_SIZE) * GRID_SIZE;
-				const snapY = Math.round(svgP.y / GRID_SIZE) * GRID_SIZE;
-				anchor.schematicX = snapX;
-				anchor.schematicY = snapY;
+				const pos = screenToSvg(e, svg);
+				anchor.schematicX = pos.x;
+				anchor.schematicY = pos.y;
 			}
 		} else if (isDraggingPan) {
 			const dx = e.clientX - lastMouseX;
 			const dy = e.clientY - lastMouseY;
-			const scale = viewBoxWidth / (e.currentTarget as SVGSVGElement).clientWidth;
+			const scale = viewBoxWidth / svg.clientWidth;
 			viewBoxX -= dx * scale;
 			viewBoxY -= dy * scale;
 			lastMouseX = e.clientX;
@@ -315,12 +349,14 @@
 	async function handleMouseUp(e: MouseEvent) {
 		isDraggingPan = false;
 		if (draggedStationId !== null) {
-			const station = editorState.stations.find((s) => s.id === draggedStationId);
-			if (station && editorState.isGlobalView) {
-				await StationService.updateStation(station.id!, {
-					schematicX: station.schematicX,
-					schematicY: station.schematicY
-				});
+			if (didDragStation) {
+				const station = editorState.stations.find((s) => s.id === draggedStationId);
+				if (station && editorState.isGlobalView) {
+					await StationService.updateStation(station.id!, {
+						schematicX: station.schematicX,
+						schematicY: station.schematicY
+					});
+				}
 			}
 			draggedStationId = null;
 		}
@@ -348,36 +384,26 @@
 		pt.y = e.clientY;
 		const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
 
-		const newWidth = viewBoxWidth * zoomFactor;
-		const newHeight = viewBoxHeight * zoomFactor;
-
 		viewBoxX = svgP.x - (svgP.x - viewBoxX) * zoomFactor;
 		viewBoxY = svgP.y - (svgP.y - viewBoxY) * zoomFactor;
-		viewBoxWidth = newWidth;
-		viewBoxHeight = newHeight;
+		viewBoxWidth *= zoomFactor;
+		viewBoxHeight *= zoomFactor;
 	}
 
 	function startDragStation(e: MouseEvent, id: number) {
 		e.stopPropagation();
 		draggedStationId = id;
+		didDragStation = false;
+		dragStartScreenX = e.clientX;
+		dragStartScreenY = e.clientY;
 		editorState.selectedStationId = id;
 		editorState.selectedAnchorId = null;
 		editorState.selectedTransitTypeId = null;
 	}
 
-	function scaleDashPattern(pattern: string | undefined, strokeWidth: number): string | undefined {
-		if (!pattern) return undefined;
-		const refWidth = 6;
-		const scale = strokeWidth / refWidth;
-		return pattern
-			.split(',')
-			.map((v) => String(Math.round(Number(v) * scale)))
-			.join(',');
-	}
+	type SegOffsetMap = Map<number, Map<string, { x: number; y: number }>>;
 
-	const LINE_SPACING = 12;
-
-	let lineOffsets = $derived.by(() => {
+	let lineOffsets: SegOffsetMap = $derived.by(() => {
 		const segMap = new Map<string, { dx: number; dy: number; lineIds: number[] }>();
 
 		for (const line of editorState.lines) {
@@ -412,7 +438,7 @@
 			});
 		}
 
-		const result = new Map<number, Map<string, { x: number; y: number }>>();
+		const result: SegOffsetMap = new Map();
 		for (const line of editorState.lines) {
 			if (line.id && !editorState.effectiveHiddenLineIds.has(line.id)) {
 				result.set(line.id, new Map());
@@ -429,106 +455,37 @@
 			for (let idx = 0; idx < lineIds.length; idx++) {
 				const lineId = lineIds[idx];
 				const off = (idx - (lineIds.length - 1) / 2) * LINE_SPACING;
-				const segMap = result.get(lineId);
-				if (!segMap) continue;
-				segMap.set(key, { x: perpX * off, y: perpY * off });
+				const lineSegMap = result.get(lineId);
+				if (!lineSegMap) continue;
+				lineSegMap.set(key, { x: perpX * off, y: perpY * off });
 			}
 		}
 
 		return result;
 	});
-
-	const DIR_CFG: Record<string, { anchor: string; rotation: number }> = {
-		N: { anchor: 'middle', rotation: 0 },
-		NE: { anchor: 'start', rotation: -45 },
-		E: { anchor: 'start', rotation: 0 },
-		SE: { anchor: 'start', rotation: 45 },
-		S: { anchor: 'middle', rotation: 0 },
-		SW: { anchor: 'end', rotation: -45 },
-		W: { anchor: 'end', rotation: 0 },
-		NW: { anchor: 'end', rotation: 45 }
-	};
-
-	function getLabelLayout(
-		anchor: string,
-		dx: number,
-		dy: number,
-		sx: number,
-		sy: number
-	): { x: number; y: number; subtitleY: number } {
-		const anchorX =
-			(
-				{
-					N: sx,
-					NE: sx + dx,
-					E: sx + dx,
-					SE: sx + dx,
-					S: sx,
-					SW: sx - dx,
-					W: sx - dx,
-					NW: sx - dx
-				} as Record<string, number>
-			)[anchor] ?? sx + dx;
-		const anchorY =
-			(
-				{
-					N: sy - dy,
-					NE: sy - dy,
-					E: sy,
-					SE: sy + dy,
-					S: sy + dy,
-					SW: sy + dy,
-					W: sy,
-					NW: sy - dy
-				} as Record<string, number>
-			)[anchor] ?? sy;
-
-		let titleY: number;
-		if (anchor === 'N' || anchor === 'NE' || anchor === 'NW') {
-			titleY = anchorY - 3;
-		} else if (anchor === 'S' || anchor === 'SE' || anchor === 'SW') {
-			titleY = anchorY + 9;
-		} else {
-			titleY = anchorY + 3;
-		}
-
-		return { x: anchorX, y: titleY, subtitleY: titleY + 13 };
-	}
-
-	function createOctilinearPath(coords: { x: number; y: number }[]): string {
-		if (coords.length === 0) return '';
-		let path = `M ${coords[0].x} ${coords[0].y}`;
-		for (let i = 1; i < coords.length; i++) {
-			const p1 = coords[i - 1];
-			const p2 = coords[i];
-
-			const dx = p2.x - p1.x;
-			const dy = p2.y - p1.y;
-
-			const adx = Math.abs(dx);
-			const ady = Math.abs(dy);
-
-			const minD = Math.min(adx, ady);
-
-			if (minD > 0) {
-				const midX = p1.x + Math.sign(dx) * minD;
-				const midY = p1.y + Math.sign(dy) * minD;
-				path += ` L ${midX} ${midY}`;
-
-				if (adx !== ady) {
-					path += ` L ${p2.x} ${p2.y}`;
-				}
-			} else {
-				path += ` L ${p2.x} ${p2.y}`;
-			}
-		}
-		return path;
-	}
 </script>
 
-<div class="h-full w-full overflow-hidden [background:var(--color-surface-variant)]">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+		role="application"
+		class="relative h-full w-full overflow-hidden [background:var(--color-surface-variant)]"
+		tabindex="-1"
+		onkeydown={(e) => {
+			if (e.key === ' ' || e.key === 'Space') {
+				e.preventDefault();
+				e.stopPropagation();
+				fitContent();
+			}
+		}}
+		onmousedown={(e) => {
+			if (e.target === e.currentTarget || (e.target as HTMLElement).closest('svg')) {
+				e.currentTarget.focus();
+			}
+		}}
+	>
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<svg
+		bind:this={svgEl}
 		class="h-full w-full {editorState.placementMode === 'station'
 			? 'cursor-crosshair'
 			: editorState.placementMode === 'anchor'
@@ -734,6 +691,19 @@
 			/>
 		{/each}
 	</svg>
+
+	{#if isTooFar}
+		<div class="pointer-events-none absolute inset-0 z-30 flex items-start justify-center pt-8">
+			<div
+				class="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-500 shadow-lg"
+			>
+				<span class="material-symbols-outlined align-middle text-sm">explore</span>
+				{m.too_far()}
+				<kbd class="rounded bg-blue-500/20 px-1.5 py-0.5 text-xs">Espace</kbd>
+				{m.press_space_to_recenter()}
+			</div>
+		</div>
+	{/if}
 
 	{#if ctxMenu}
 		<ContextMenu
