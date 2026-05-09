@@ -2,6 +2,8 @@
 	import { createDropdownMenu } from '@melt-ui/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
+	import { StationService } from '$lib/services/StationService';
+	import { EditorService } from '$lib/services/EditorService';
 
 	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
 
@@ -12,6 +14,81 @@
 		onaddstation: () => void;
 		onaddanchor: () => void;
 	} = $props();
+
+	let stationOnLine = $derived(
+		editorState.selectedLineId !== null &&
+			editorState.selectedStationId !== null &&
+			editorState.routePoints.some(
+				(rp) =>
+					rp.lineId === editorState.selectedLineId && rp.stationId === editorState.selectedStationId
+			)
+	);
+
+	let addToLineVisible = $derived(
+		editorState.selectedLineId !== null && editorState.selectedStationId !== null && !stationOnLine
+	);
+
+	let beforeAfterVisible = $derived(
+		editorState.selectedLineId !== null && editorState.selectedStationId !== null && stationOnLine
+	);
+
+	async function handleAddToLine() {
+		if (editorState.selectedLineId === null || editorState.selectedStationId === null) return;
+		const existing = editorState.routePoints.filter(
+			(rp) => rp.lineId === editorState.selectedLineId
+		);
+		const maxOrder = existing.length > 0 ? Math.max(...existing.map((rp) => rp.order)) : 0;
+		await StationService.addStationToLine(
+			editorState.selectedLineId,
+			editorState.selectedStationId,
+			maxOrder + 1
+		);
+		await editorState.loadRoutePoints();
+	}
+
+	async function handleAddBefore() {
+		if (editorState.selectedLineId === null || editorState.selectedStationId === null) return;
+		const rp = editorState.routePoints.find(
+			(r) =>
+				r.lineId === editorState.selectedLineId && r.stationId === editorState.selectedStationId
+		);
+		if (!rp) return;
+		const name = m.new_station({ n: editorState.stations.length + 1 });
+		const station = editorState.stations.find((s) => s.id === editorState.selectedStationId);
+		const id = await StationService.createStation(
+			editorState.project!.id,
+			name,
+			0,
+			0,
+			station?.schematicX ?? 0,
+			station?.schematicY ?? 0
+		);
+		await StationService.addStationToLine(editorState.selectedLineId, id, rp.order - 0.5);
+		await EditorService.reloadAll(editorState);
+		editorState.selectedStationId = id;
+	}
+
+	async function handleAddAfter() {
+		if (editorState.selectedLineId === null || editorState.selectedStationId === null) return;
+		const rp = editorState.routePoints.find(
+			(r) =>
+				r.lineId === editorState.selectedLineId && r.stationId === editorState.selectedStationId
+		);
+		if (!rp) return;
+		const name = m.new_station({ n: editorState.stations.length + 1 });
+		const station = editorState.stations.find((s) => s.id === editorState.selectedStationId);
+		const id = await StationService.createStation(
+			editorState.project!.id,
+			name,
+			0,
+			0,
+			station?.schematicX ?? 0,
+			station?.schematicY ?? 0
+		);
+		await StationService.addStationToLine(editorState.selectedLineId, id, rp.order + 0.5);
+		await EditorService.reloadAll(editorState);
+		editorState.selectedStationId = id;
+	}
 
 	const {
 		elements: { trigger: lineTrigger, menu: lineMenuEl, item: lineItem }
@@ -90,7 +167,7 @@
 			<span class="material-symbols-outlined ml-1 shrink-0 text-sm">unfold_more</span>
 		</button>
 		{#if selectedLineChip}
-			<Tooltip text="Deselect (D)">
+			<Tooltip text={`${m.deselect_line()} (D)`}>
 				<IconButton
 					class="!h-6 !w-6 shrink-0"
 					onclick={() => {
@@ -107,7 +184,7 @@
 				<span class="material-symbols-outlined m3-menu__search-icon">search</span>
 				<input
 					type="text"
-					placeholder="Search lines…"
+					placeholder={m.search_lines()}
 					bind:value={lineSearch}
 					onclick={stopProp}
 					onkeydown={stopProp}
@@ -141,7 +218,7 @@
 					{/each}
 				{/each}
 				{#if filteredLineGroups.uncategorized.length}
-					<div class="m3-menu__group-label">Other</div>
+					<div class="m3-menu__group-label">{m.other_lines()}</div>
 					{#each filteredLineGroups.uncategorized as line}
 						<button
 							type="button"
@@ -161,13 +238,13 @@
 					{/each}
 				{/if}
 				{#if filteredLineGroups.groups.length === 0 && filteredLineGroups.uncategorized.length === 0}
-					<div class="m3-menu__empty">No lines found</div>
+					<div class="m3-menu__empty">{m.no_lines_found()}</div>
 				{/if}
 			</div>
 		</div>
 	</div>
 
-	<div class="h-5 w-px shrink-0 bg-outline/20"></div>
+	<div class="h-5 w-px shrink-0 bg-outline/40"></div>
 
 	<!-- Station selector -->
 	<div class="relative flex shrink items-center gap-1">
@@ -176,13 +253,14 @@
 		>
 		<StationSelector
 			selectedId={editorState.selectedStationId}
-			label="No station selected"
+			label={m.no_station_selected()}
 			onSelect={(id) => {
 				editorState.selectedStationId = id;
 			}}
+			includeIcon={false}
 		/>
 		{#if editorState.selectedStationId !== null}
-			<Tooltip text="Deselect station">
+			<Tooltip text={m.deselect_station()}>
 				<IconButton
 					class="!h-6 !w-6 shrink-0"
 					onclick={() => {
@@ -195,23 +273,46 @@
 		{/if}
 	</div>
 
-	<div class="h-5 w-px shrink-0 bg-outline/20"></div>
+	<div class="h-5 w-px shrink-0 bg-outline/40"></div>
 
 	<!-- Action buttons -->
-	<Tooltip
-		text={editorState.placementMode === 'station' ? 'Cancel (Esc)' : `${m.add_station()} (S)`}
-	>
-		<IconButton
-			class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
-			onclick={onaddstation}
+	{#if addToLineVisible}
+		<Tooltip text={m.add_station_to_line()}>
+			<IconButton class="shrink-0 !text-primary" onclick={handleAddToLine}>
+				<span class="material-symbols-outlined">add_circle</span>
+			</IconButton>
+		</Tooltip>
+	{:else if beforeAfterVisible}
+		<Tooltip text={`${m.add_before()} (⇧+S)`}>
+			<IconButton class="!h-6 !w-6 shrink-0" onclick={handleAddBefore}>
+				<span class="material-symbols-outlined -scale-x-[100%] text-sm">new_label</span>
+			</IconButton>
+		</Tooltip>
+		<Tooltip text={`${m.add_after()} (S)`}>
+			<IconButton class="!h-6 !w-6 shrink-0" onclick={handleAddAfter}>
+				<span class="material-symbols-outlined text-sm">new_label</span>
+			</IconButton>
+		</Tooltip>
+	{:else}
+		<Tooltip
+			text={editorState.placementMode === 'station'
+				? `${m.cancel()} (Esc)`
+				: `${m.add_station()} (S)`}
 		>
-			<span class="material-symbols-outlined"
-				>{editorState.placementMode === 'station' ? 'close' : 'add'}</span
+			<IconButton
+				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
+				onclick={onaddstation}
 			>
-		</IconButton>
-	</Tooltip>
+				<span class="material-symbols-outlined"
+					>{editorState.placementMode === 'station' ? 'close' : 'add_location'}</span
+				>
+			</IconButton>
+		</Tooltip>
+	{/if}
 
-	<Tooltip text={editorState.placementMode === 'anchor' ? 'Cancel (Esc)' : 'Add anchor (A)'}>
+	<Tooltip
+		text={editorState.placementMode === 'anchor' ? `${m.cancel()} (Esc)` : `${m.add_anchor()} (A)`}
+	>
 		<IconButton
 			class="shrink-0 {editorState.placementMode === 'anchor' ? '!bg-error !text-on-error' : ''}"
 			onclick={onaddanchor}
@@ -221,5 +322,4 @@
 			>
 		</IconButton>
 	</Tooltip>
-
 </div>

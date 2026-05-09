@@ -4,7 +4,8 @@
 	import { TransitTypeService } from '$lib/services/TransitTypeService';
 	import type { TransitType } from '$lib/types/models';
 
-	import { Button, TextField, Select, Dialog } from '$lib/components/ui';
+	import { EditorService } from '$lib/services/EditorService';
+import { Button, TextField, Select, Dialog, Tooltip } from '$lib/components/ui';
 	import type { IconShape } from '$lib/types/models';
 
 	const ICON_OPTIONS = [
@@ -21,9 +22,30 @@
 		'directions_car',
 		'airline_seat_flat',
 		'directions_walk',
-		'ski_lift',
+		'downhill_skiing',
 		'cable'
-	];
+	] as const;
+
+	function iconLabel(icon: string): string {
+		const labels: Record<string, () => string> = {
+			directions_bus: m.icon_bus,
+			train: m.icon_train,
+			subway: m.icon_subway,
+			tram: m.icon_tram,
+			directions_railway: m.icon_railway,
+			directions_boat: m.icon_boat,
+			flight: m.icon_flight,
+			pedal_bike: m.icon_bike,
+			electric_scooter: m.icon_scooter,
+			local_taxi: m.icon_taxi,
+			directions_car: m.icon_car,
+			airline_seat_flat: m.icon_sleeper,
+			directions_walk: m.icon_walk,
+			downhill_skiing: m.icon_ski,
+			cable: m.icon_cable
+		};
+		return labels[icon]?.() ?? icon;
+	}
 
 	let typeName = $state('');
 	let typeShape = $state<IconShape>('circle');
@@ -54,30 +76,31 @@
 		if (selectedType?.id) {
 			await TransitTypeService.deleteType(selectedType.id);
 			editorState.selectedTransitTypeId = null;
-			await editorState.reloadAll();
+			await EditorService.reloadAll(editorState);
 		}
 	}
 </script>
 
 <div class="flex flex-col gap-4">
-	<h3 class="text-sm font-bold text-primary">Type</h3>
+	<h3 class="text-sm font-bold text-primary">{m.type_heading()}</h3>
 
-	<TextField label="Name" bind:value={typeName} onchange={() => updateType({ name: typeName })} />
+	<TextField label={m.name()} bind:value={typeName} onchange={() => updateType({ name: typeName })} />
 
 	<div class="flex flex-col gap-2">
-		<span class="text-sm text-on-surface-variant">Icon</span>
+		<span class="text-sm text-on-surface-variant">{m.icon()}</span>
 		<div class="grid grid-cols-5 gap-1">
 			{#each ICON_OPTIONS as iconName}
-				<button
-					class="flex items-center justify-center rounded-md border p-2 text-lg transition-colors {typeIcon ===
-					iconName
-						? 'border-primary bg-primary-container text-primary'
-						: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-					onclick={() => updateType({ icon: typeIcon === iconName ? '' : iconName })}
-					title={iconName}
-				>
-					<span class="material-symbols-outlined">{iconName}</span>
-				</button>
+				<Tooltip text={iconLabel(iconName)}>
+					<button
+						class="flex items-center justify-center rounded-md border p-2 text-lg transition-colors {typeIcon ===
+						iconName
+							? 'border-primary bg-primary-container text-primary'
+							: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
+						onclick={() => updateType({ icon: typeIcon === iconName ? '' : iconName })}
+					>
+						<span class="material-symbols-outlined">{iconName}</span>
+					</button>
+				</Tooltip>
 			{/each}
 		</div>
 	</div>
@@ -102,7 +125,7 @@
 
 	<Dialog bind:open={deleteConfirmOpen}>
 		{#snippet title()}{m.delete()}{/snippet}
-		<p>{m.delete()} ?</p>
+		<p>{m.delete_type_confirm()}</p>
 		{#snippet actions()}
 			<Button variant="text" onclick={() => (deleteConfirmOpen = false)}>{m.cancel()}</Button>
 			<Button

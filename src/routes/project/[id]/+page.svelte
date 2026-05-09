@@ -3,24 +3,34 @@
 	import type { Pathname } from '$app/types';
 	import { resolve } from '$app/paths';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import * as m from '$lib/paraglide/messages.js';
 	import { onMount } from 'svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { goto } from '$app/navigation';
-	import { StationService } from '$lib/services/StationService';
-	import { LineService } from '$lib/services/LineService';
-	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
+import { StationService } from '$lib/services/StationService';
+import { LineService } from '$lib/services/LineService';
+import { AnchorPointService } from '$lib/services/AnchorPointService';
+import { ViewService } from '$lib/services/ViewService';
+import { EditorService } from '$lib/services/EditorService';
+import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 	import RightPanel from '$lib/components/editor/RightPanel.svelte';
 	import ToolBar from '$lib/components/editor/ToolBar.svelte';
 	import PlanView from '$lib/components/schematic/PlanView.svelte';
 
-	import { CircularProgress, IconButton, Dialog, Button, TextField } from '$lib/components/ui';
+	import { CircularProgress, IconButton, Dialog, Button, TextField, ContextMenu } from '$lib/components/ui';
 
 	let projectId = $derived(Number(page.params.id));
 	let isLoading = $state(true);
 	let viewDialogOpen = $state(false);
 	let newViewName = $state('');
+
+	let viewContextMenu = $state<{ x: number; y: number; viewId: number } | null>(null);
+	let viewDeleteId = $state<number | null>(null);
+	let viewDeleteOpen = $state(false);
+	let viewRenameId = $state<number | null>(null);
+	let viewRenameName = $state('');
+	let viewRenameOpen = $state(false);
 
 	function handleTogglePlacement() {
 		if (editorState.placementMode === 'station') {
@@ -57,6 +67,30 @@
 				editorState.selectedTransitTypeId = null;
 			}
 		}
+		if (e.key === 'Tab' && editorState.selectedStationId) {
+			e.preventDefault();
+			let lineId = editorState.selectedLineId;
+			if (lineId === null) {
+				const rp = editorState.routePoints.find(
+					(rp) => rp.stationId === editorState.selectedStationId
+				);
+				if (rp) lineId = rp.lineId;
+			}
+			if (lineId !== null) {
+				const lineRps = [...editorState.routePoints]
+					.filter((rp) => rp.lineId === lineId)
+					.sort((a, b) => a.order - b.order);
+				const idx = lineRps.findIndex((rp) => rp.stationId === editorState.selectedStationId);
+				if (idx !== -1) {
+					const next = e.shiftKey
+						? (idx - 1 + lineRps.length) % lineRps.length
+						: (idx + 1) % lineRps.length;
+					editorState.selectedStationId = lineRps[next].stationId;
+					editorState.selectedLineId = lineId;
+					editorState.rightTab = 'station';
+				}
+			}
+		}
 		if (e.key === 's' || e.key === 'S') {
 			e.preventDefault();
 			handleTogglePlacement();
@@ -74,10 +108,6 @@
 				e.preventDefault();
 				editorState.anchorToDelete = editorState.selectedAnchorId;
 				editorState.deleteAnchorOpen = true;
-			} else if (editorState.selectedLineId) {
-				e.preventDefault();
-				editorState.lineToDelete = editorState.selectedLineId;
-				editorState.deleteLineOpen = true;
 			}
 		}
 		if (e.key === 'd' || e.key === 'D') {
@@ -91,9 +121,23 @@
 
 	async function handleCreateView() {
 		if (!newViewName.trim()) return;
-		await editorState.createView(newViewName.trim());
+		await EditorService.createView(editorState, newViewName.trim());
 		newViewName = '';
 		viewDialogOpen = false;
+	}
+
+	async function handleRenameView() {
+		if (viewRenameId === null || !viewRenameName.trim()) return;
+		await ViewService.update(viewRenameId, { name: viewRenameName.trim() });
+		await editorState.loadViews();
+		viewRenameId = null;
+	}
+
+	async function handleDeleteView() {
+		if (viewDeleteId === null) return;
+		await EditorService.deleteView(editorState, viewDeleteId);
+		viewDeleteId = null;
+		viewDeleteOpen = false;
 	}
 
 	onMount(async () => {
@@ -103,7 +147,7 @@
 			return;
 		}
 		editorState.project = project;
-		await editorState.reloadAll();
+		await EditorService.reloadAll(editorState);
 		isLoading = false;
 	});
 </script>
@@ -131,38 +175,23 @@
 						null
 							? 'bg-primary/20 text-primary'
 							: 'text-on-surface-variant hover:text-on-surface'}"
-						onclick={() => editorState.switchToView(null)}
+						onclick={() => EditorService.switchToView(editorState, null)}
 					>
-						Global
+						{m.global_view()}
 					</button>
 					{#each editorState.views as view (view.id)}
 						<button
-							class="group flex items-center gap-1 rounded-md px-3 py-1 text-xs font-bold transition-colors {editorState.activeViewId ===
+							class="rounded-md px-3 py-1 text-xs font-bold transition-colors {editorState.activeViewId ===
 							view.id
 								? 'bg-primary/20 text-primary'
 								: 'text-on-surface-variant hover:text-on-surface'}"
-							onclick={() => editorState.switchToView(view.id!)}
+							onclick={() => EditorService.switchToView(editorState, view.id!)}
+							oncontextmenu={(e) => {
+								e.preventDefault();
+								viewContextMenu = { x: e.clientX, y: e.clientY, viewId: view.id! };
+							}}
 						>
 							{view.name}
-							{#if editorState.views.length > 1}
-								<span
-									role="button"
-									tabindex="0"
-									class="material-symbols-outlined ml-0.5 text-[10px] opacity-0 transition-opacity group-hover:opacity-60"
-									onclick={(e) => {
-										e.stopPropagation();
-										editorState.deleteView(view.id!);
-									}}
-									onkeydown={(e) => {
-										if (e.key === 'Enter') {
-											e.stopPropagation();
-											editorState.deleteView(view.id!);
-										}
-									}}
-								>
-									close
-								</span>
-							{/if}
 						</button>
 					{/each}
 					<button
@@ -172,7 +201,7 @@
 							viewDialogOpen = true;
 						}}
 					>
-						+ New View
+						+ {m.new_view()}
 					</button>
 				</div>
 			</div>
@@ -181,6 +210,7 @@
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
+						data-sveltekit-reload
 						class="text-sm font-bold uppercase transition-colors hover:text-primary {page.url.pathname.includes(
 							`/${locale}`
 						) ||
@@ -212,8 +242,8 @@
 							class="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-lg"
 						>
 							<span class="material-symbols-outlined align-middle text-sm">add_location</span>
-							Click on the plan to place a station —
-							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> to cancel
+							{m.click_to_place_station()}
+							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> {m.esc_to_cancel()}
 						</div>
 					</div>
 				{:else if editorState.placementMode === 'anchor'}
@@ -225,11 +255,11 @@
 						>
 							<span class="material-symbols-outlined align-middle text-sm">anchor</span>
 							{#if editorState.anchorLineClicked}
-								Click on the map to place the anchor point —
+								{m.click_to_place_anchor()}
 							{:else}
-								Click on a line to select it, then click to place the anchor —
+								{m.click_to_select_line_then_place_anchor()}
 							{/if}
-							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> to cancel
+							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> {m.esc_to_cancel()}
 						</div>
 					</div>
 				{/if}
@@ -246,95 +276,152 @@
 
 	<!-- Delete station confirmation -->
 	<Dialog bind:open={editorState.deleteStationOpen}>
-		{#snippet title()}Delete station{/snippet}
-		<p>Delete this station?</p>
+		{#snippet title()}{m.delete_station()}{/snippet}
+		<p>{m.delete_station_confirm()}</p>
 		{#snippet actions()}
 			<Button
 				variant="text"
 				onclick={() => {
 					editorState.deleteStationOpen = false;
 					editorState.stationToDelete = null;
-				}}>Cancel</Button
+				}}>{m.cancel()}</Button
 			>
 			<Button
 				variant="filled"
 				onclick={async () => {
 					if (editorState.stationToDelete !== null) {
 						await StationService.deleteStation(editorState.stationToDelete);
-						await editorState.reloadAll();
+						await EditorService.reloadAll(editorState);
 						editorState.stationToDelete = null;
 						editorState.deleteStationOpen = false;
 					}
-				}}>Delete</Button
+				}}>{m.delete()}</Button
 			>
 		{/snippet}
 	</Dialog>
 
 	<!-- Delete line confirmation -->
 	<Dialog bind:open={editorState.deleteLineOpen}>
-		{#snippet title()}Delete line{/snippet}
-		<p>Delete this line?</p>
+		{#snippet title()}{m.delete_line()}{/snippet}
+		<p>{m.delete_line_confirm()}</p>
 		{#snippet actions()}
 			<Button
 				variant="text"
 				onclick={() => {
 					editorState.deleteLineOpen = false;
 					editorState.lineToDelete = null;
-				}}>Cancel</Button
+				}}>{m.cancel()}</Button
 			>
 			<Button
 				variant="filled"
 				onclick={async () => {
 					if (editorState.lineToDelete !== null) {
 						await LineService.deleteLine(editorState.lineToDelete);
-						await editorState.reloadAll();
+						await EditorService.reloadAll(editorState);
 						editorState.lineToDelete = null;
 						editorState.deleteLineOpen = false;
 					}
-				}}>Delete</Button
+				}}>{m.delete()}</Button
 			>
 		{/snippet}
 	</Dialog>
 
 	<!-- Delete anchor confirmation -->
 	<Dialog bind:open={editorState.deleteAnchorOpen}>
-		{#snippet title()}Delete anchor{/snippet}
-		<p>Delete this anchor point?</p>
+		{#snippet title()}{m.delete_anchor()}{/snippet}
+		<p>{m.delete_anchor_confirm()}</p>
 		{#snippet actions()}
 			<Button
 				variant="text"
 				onclick={() => {
 					editorState.deleteAnchorOpen = false;
 					editorState.anchorToDelete = null;
-				}}>Cancel</Button
+				}}>{m.cancel()}</Button
 			>
 			<Button
 				variant="filled"
 				onclick={async () => {
 					if (editorState.anchorToDelete !== null) {
 						await AnchorPointService.delete(editorState.anchorToDelete);
-						await editorState.reloadAll();
+						await EditorService.reloadAll(editorState);
 						editorState.anchorToDelete = null;
 						editorState.deleteAnchorOpen = false;
 					}
-				}}>Delete</Button
+				}}>{m.delete()}</Button
 			>
+		{/snippet}
+	</Dialog>
+
+	<!-- View context menu -->
+	{#if viewContextMenu}
+		<ContextMenu
+			x={viewContextMenu.x}
+			y={viewContextMenu.y}
+			items={[
+				{
+					label: m.rename_view(),
+					icon: 'edit',
+					action: () => {
+						const v = editorState.views.find((v) => v.id === viewContextMenu!.viewId);
+						if (v) {
+							viewRenameName = v.name;
+							viewRenameId = v.id!;
+							viewRenameOpen = true;
+						}
+					}
+				},
+				{
+					label: m.delete_view_confirm(),
+					icon: 'delete',
+					action: () => {
+						viewDeleteId = viewContextMenu!.viewId;
+						viewDeleteOpen = true;
+					}
+				}
+			]}
+			onclose={() => (viewContextMenu = null)}
+		/>
+	{/if}
+
+	<!-- Rename view dialog -->
+	<Dialog bind:open={viewRenameOpen}>
+		{#snippet title()}{m.rename_view_title({ name: editorState.views.find((v) => v.id === viewRenameId)?.name ?? '' })}{/snippet}
+		<TextField
+			label={m.view_name()}
+			bind:value={viewRenameName}
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.key === 'Enter') handleRenameView();
+			}}
+		/>
+		{#snippet actions()}
+			<Button variant="text" onclick={() => { viewRenameOpen = false; viewRenameId = null; }}>{m.cancel()}</Button>
+			<Button variant="filled" onclick={handleRenameView}>{m.rename()}</Button>
+		{/snippet}
+	</Dialog>
+
+	<!-- Delete view confirmation -->
+	<Dialog bind:open={viewDeleteOpen}>
+		{#snippet title()}{m.delete()}{/snippet}
+		<p>{m.delete_view_confirm()}</p>
+		{#snippet actions()}
+			<Button variant="text" onclick={() => { viewDeleteOpen = false; viewDeleteId = null; }}>{m.cancel()}</Button>
+			<Button variant="filled" onclick={handleDeleteView}>{m.delete()}</Button>
 		{/snippet}
 	</Dialog>
 
 	<!-- New View dialog -->
 	<Dialog bind:open={viewDialogOpen}>
-		{#snippet title()}New View{/snippet}
+		{#snippet title()}{m.new_view()}{/snippet}
 		<TextField
-			label="View name"
+			label={m.view_name()}
 			bind:value={newViewName}
 			onkeydown={(e: KeyboardEvent) => {
 				if (e.key === 'Enter') handleCreateView();
 			}}
 		/>
 		{#snippet actions()}
-			<Button variant="text" onclick={() => (viewDialogOpen = false)}>Cancel</Button>
-			<Button variant="filled" onclick={handleCreateView}>Create</Button>
+			<Button variant="text" onclick={() => (viewDialogOpen = false)}>{m.cancel()}</Button>
+			<Button variant="filled" onclick={handleCreateView}>{m.create()}</Button>
 		{/snippet}
 	</Dialog>
 {/if}

@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { createDropdownMenu } from '@melt-ui/svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 
 	let {
 		onSelect = (id: number) => {},
 		excludeIds = [] as number[],
-		label = 'Select station',
+		label = m.select_station(),
 		variant = 'outlined' as 'outlined' | 'text',
 		selectedId = null as number | null,
-		class: className = ''
+		class: className = '',
+		includeIcon = true
 	}: {
 		onSelect: (id: number) => void;
 		excludeIds?: number[];
@@ -16,6 +18,7 @@
 		variant?: 'outlined' | 'text';
 		selectedId?: number | null;
 		class?: string;
+		includeIcon: boolean;
 	} = $props();
 
 	const {
@@ -33,9 +36,7 @@
 		[...editorState.stations]
 			.filter(
 				(s) =>
-					s.id &&
-					!excludeIds.includes(s.id) &&
-					s.name.toLowerCase().includes(search.toLowerCase())
+					s.id && !excludeIds.includes(s.id) && s.name.toLowerCase().includes(search.toLowerCase())
 			)
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
@@ -59,7 +60,9 @@
 			? 'border border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'
 			: 'text-on-surface-variant hover:text-on-surface'}"
 	>
-		<span class="material-symbols-outlined text-sm">location_on</span>
+		{#if includeIcon}
+			<span class="material-symbols-outlined text-sm">location_on</span>
+		{/if}
 		<span class="truncate">{selectedStation?.name ?? label}</span>
 		<span class="material-symbols-outlined text-sm">unfold_more</span>
 	</button>
@@ -77,7 +80,7 @@
 		>
 		<input
 			type="text"
-			placeholder="Search stations..."
+			placeholder={m.search_stations()}
 			bind:value={search}
 			onclick={(e) => e.stopPropagation()}
 			class="w-full rounded-md border border-outline/20 bg-transparent py-1.5 pr-2 pl-8 text-sm outline-none focus:border-primary"
@@ -98,7 +101,7 @@
 		{/each}
 		{#if filtered.length === 0}
 			<div class="p-2 text-center text-xs text-on-surface-variant opacity-70">
-				{search ? 'No stations match' : 'No stations available'}
+				{search ? m.no_stations_match() : m.no_stations_available()}
 			</div>
 		{/if}
 	</div>

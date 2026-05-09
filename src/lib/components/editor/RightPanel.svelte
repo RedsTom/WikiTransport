@@ -62,7 +62,7 @@
 				: 'text-on-surface-variant hover:text-on-surface'}"
 			onclick={selectGeneral}
 		>
-			General
+			{m.general()}
 		</button>
 		<button
 			role="tab"

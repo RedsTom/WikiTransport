@@ -34,7 +34,7 @@
 			.sort((a, b) => a.order - b.order)
 			.map((rp) => {
 				const s = editorState.stations.find((st) => st.id === rp.stationId);
-				return { ...rp, id: rp.id!, stationName: s?.name || 'Unknown' };
+				return { ...rp, id: rp.id!, stationName: s?.name || m.unknown_station() };
 			});
 	});
 
@@ -114,7 +114,7 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<label class="text-sm text-on-surface-variant" for="stroke-width-slider">Stroke width</label>
+		<label class="text-sm text-on-surface-variant" for="stroke-width-slider">{m.stroke_width()}</label>
 		<div class="flex items-center gap-3">
 			<Slider
 				bind:value={lineStrokeWidth}
@@ -128,18 +128,18 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<label class="text-sm text-on-surface-variant" for="dash-pattern-select">Dash pattern</label>
+		<label class="text-sm text-on-surface-variant" for="dash-pattern-select">{m.dash_pattern()}</label>
 		<select
 			id="dash-pattern-select"
 			bind:value={lineDashPattern}
 			onchange={() => updateLine({ dashPattern: lineDashPattern })}
 			class="rounded-md border border-outline/20 bg-transparent px-3 py-1.5 text-sm"
 		>
-			<option value="">Solid</option>
-			<option value="4,4">Dashed (4,4)</option>
-			<option value="8,4">Dashed (8,4)</option>
-			<option value="2,4">Dotted (2,4)</option>
-			<option value="8,4,2,4">Dash-dot (8,4,2,4)</option>
+			<option value="">{m.solid()}</option>
+			<option value="4,4">{m.dashed_short()}</option>
+			<option value="8,4">{m.dashed_long()}</option>
+			<option value="2,4">{m.dotted()}</option>
+			<option value="8,4,2,4">{m.dash_dot()}</option>
 		</select>
 	</div>
 
@@ -168,17 +168,17 @@
 	</div>
 
 	{#if lineAnchors.length > 0}
-		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">Anchors</h4>
+		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">{m.anchors()}</h4>
 		<div class="flex flex-col gap-0.5">
 			{#each lineAnchors as ap (ap.id)}
 				<div class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5">
 					<span class="material-symbols-outlined text-sm text-on-surface-variant">anchor</span>
-					<span class="flex-1 truncate text-sm">Anchor ({ap.schematicX}, {ap.schematicY})</span>
+					<span class="flex-1 truncate text-sm">{m.anchor_coords({x: ap.schematicX, y: ap.schematicY})}</span>
 					<IconButton
 						class="!h-6 !w-6"
 						onclick={async () => {
 							await AnchorPointService.delete(ap.id!);
-							await editorState.loadAnchorPoints();
+							await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
 						}}
 					>
 						<span class="material-symbols-outlined text-sm">remove</span>
@@ -195,7 +195,7 @@
 
 	<Dialog bind:open={deleteConfirmOpen}>
 		{#snippet title()}{m.delete()}{/snippet}
-		<p>{m.delete()} ?</p>
+		<p>{m.delete_line_confirm()}</p>
 		{#snippet actions()}
 			<Button variant="text" onclick={() => (deleteConfirmOpen = false)}>{m.cancel()}</Button>
 			<Button
