@@ -29,7 +29,10 @@ export function distToSegment(
 	return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-export function scaleDashPattern(pattern: string | undefined, strokeWidth: number): string | undefined {
+export function scaleDashPattern(
+	pattern: string | undefined,
+	strokeWidth: number
+): string | undefined {
 	if (!pattern) return undefined;
 	const refWidth = 6;
 	const scale = strokeWidth / refWidth;

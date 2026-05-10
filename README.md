@@ -17,16 +17,16 @@ transport network diagrams directly in your browser — no server needed.
 
 ## Tech stack
 
-| Tool | Purpose |
-|---|---|
-| [Svelte 5](https://svelte.dev) + [Kit](https://kit.svelte.dev) | UI framework (runes, snippets) |
-| [TypeScript](https://www.typescriptlang.org) | Type safety |
-| [Tailwind CSS v4](https://tailwindcss.com) | Styling |
-| [Dexie.js](https://dexie.org) | IndexedDB wrapper (client-side storage) |
-| [Melt UI](https://melt-ui.com) | Accessible UI primitives (dropdowns, popovers) |
-| [Paraglide JS](https://inlang.com/paraglide) | i18n |
-| [svelte-dnd-action](https://github.com/isaacHagoel/svelte-dnd-action) | Drag & drop reordering |
-| [Material Icons](https://fonts.google.com/icons) | Iconography |
+| Tool                                                                  | Purpose                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------- |
+| [Svelte 5](https://svelte.dev) + [Kit](https://kit.svelte.dev)        | UI framework (runes, snippets)                 |
+| [TypeScript](https://www.typescriptlang.org)                          | Type safety                                    |
+| [Tailwind CSS v4](https://tailwindcss.com)                            | Styling                                        |
+| [Dexie.js](https://dexie.org)                                         | IndexedDB wrapper (client-side storage)        |
+| [Melt UI](https://melt-ui.com)                                        | Accessible UI primitives (dropdowns, popovers) |
+| [Paraglide JS](https://inlang.com/paraglide)                          | i18n                                           |
+| [svelte-dnd-action](https://github.com/isaacHagoel/svelte-dnd-action) | Drag & drop reordering                         |
+| [Material Icons](https://fonts.google.com/icons)                      | Iconography                                    |
 
 ## Getting started
 
@@ -39,13 +39,13 @@ Open the URL printed in the terminal (default `http://localhost:5173`).
 
 ### Other commands
 
-| Command | Description |
-|---|---|
-| `pnpm build` | Build for production |
-| `pnpm preview` | Preview production build |
-| `pnpm check` | Type-check with `svelte-check` |
-| `pnpm lint` | Lint with Prettier + ESLint |
-| `pnpm format` | Format code with Prettier |
+| Command        | Description                    |
+| -------------- | ------------------------------ |
+| `pnpm build`   | Build for production           |
+| `pnpm preview` | Preview production build       |
+| `pnpm check`   | Type-check with `svelte-check` |
+| `pnpm lint`    | Lint with Prettier + ESLint    |
+| `pnpm format`  | Format code with Prettier      |
 
 ## Data model
 
@@ -70,13 +70,13 @@ Dexie. No backend or API required.
 
 ### Keyboard shortcuts
 
-| Key | Action |
-|---|---|
-| `S` | Toggle station placement mode |
-| `A` | Toggle anchor point placement mode |
-| `Esc` | Cancel placement / deselect |
-| `D` | Deselect all |
-| `Delete` / `Backspace` | Delete selected item |
+| Key                    | Action                             |
+| ---------------------- | ---------------------------------- |
+| `S`                    | Toggle station placement mode      |
+| `A`                    | Toggle anchor point placement mode |
+| `Esc`                  | Cancel placement / deselect        |
+| `D`                    | Deselect all                       |
+| `Delete` / `Backspace` | Delete selected item               |
 
 ## Project structure
 

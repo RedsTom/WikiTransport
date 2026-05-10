@@ -16,6 +16,8 @@
 
 <div style="display:none">
 	{#each locales as locale (locale)}
-		<a href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)} data-sveltekit-reload>{locale}</a>
+		<a href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)} data-sveltekit-reload
+			>{locale}</a
+		>
 	{/each}
 </div>
