@@ -1,19 +1,40 @@
-# WikiTransport
+<p align="center">
+  <img src="static/assets/logo.svg" alt="WikiTransport" width="96" />
+</p>
 
-A web-based schematic transit map editor. Design clean, shareable
-transport network diagrams directly in your browser — no server needed.
+<h1 align="center">WikiTransport</h1>
 
-![Marseille network](Marseille-global.png)
+<p align="center">
+  <em>A web-based schematic transit map editor — design clean, shareable transport network diagrams directly in your browser, no server needed.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/RedsTom/WikiTransport">GitHub</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#usage">Usage</a>
+</p>
+
+<br>
+
+![Editor screenshot](static/assets/screenshot-editor.png)
 
 ## Features
 
 - **Schematic editor** — SVG-based canvas with snap-to-grid, pan/zoom, drag & drop
+- **Octilinear routing** — Automatic 45° angle routing with parallel line management
 - **Lines & stations** — Create lines with custom colors, add stations, reorder via drag
 - **Transit types** — Group lines by mode (Metro, Tram, Bus, etc.) with distinct icon shapes
 - **Anchor points** — Add curve control points on lines for fine-tuned routing
 - **Views** — Create named views with per-view station positions and visibility toggles
+- **SVG export** — Export production-ready SVGs with legend, interchange badges, and customizable styling
 - **i18n** — English and French interface
-- **Offline-first** — All data stored locally in IndexedDB via Dexie
+- **100% local** — All data stored locally in IndexedDB via Dexie, no server required, no telemetry
+- **Open source** — MIT license
+
+## Example maps
+
+![Marseille global](<static/assets/Marseille-global(1).svg>)
 
 ## Tech stack
 
@@ -91,9 +112,12 @@ src/
 │   ├── store/            # EditorState (Svelte 5 runes)
 │   ├── types/            # TypeScript models
 │   └── utils/            # textMeasure utility
-└── routes/
-    ├── +page.svelte      # Project list
-    └── project/[id]/     # Editor page
+├── routes/
+│   ├── +page.svelte      # Landing page
+│   ├── projects/         # Project list
+│   └── project/[id]/     # Editor page
+└── static/
+    └── assets/           # Images and assets
 ```
 
 ## License

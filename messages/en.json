@@ -148,5 +148,20 @@
 	"ic_mode_stack_with_text": "Stack with text",
 	"interchange_badge_direction": "Interchange position",
 	"serving_lines": "Serving lines",
-	"toggle_interchange_badge": "Show as transfer badge"
+	"toggle_interchange_badge": "Show as transfer badge",
+	"landing_tagline": "Create beautiful schematic transit maps",
+	"landing_get_started": "Get Started",
+	"landing_feature_editor": "Intuitive editor with drag-and-drop station placement, octilinear routing, and real-time preview.",
+	"landing_feature_export": "Export high-quality SVGs of your maps for print or web, with customizable legend and styling.",
+	"landing_feature_views": "Create multiple views of your network to highlight different lines, stations, or route variants.",
+	"landing_view_projects": "View Projects",
+	"landing_subtitle": "A web-based schematic transit map editor",
+	"landing_open_source": "Open source — MIT license",
+	"landing_made_in_france": "Made in France",
+	"landing_view_github": "View on GitHub",
+	"landing_feature_octilinear": "Octilinear routing with automatic parallel line management and smooth 45° angle routing.",
+	"landing_feature_types": "Metro, tram, bus, train — customize colors, dash patterns, line types, and station styles.",
+	"landing_feature_svg": "Export SVGs with legend, interchange badges, and customizable styling.",
+	"landing_showcase": "Example maps",
+	"landing_local": "100% local — no server, no telemetry, your data never leaves your device."
 }

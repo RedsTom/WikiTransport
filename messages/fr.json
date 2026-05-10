@@ -147,5 +147,20 @@
 	"ic_mode_stack_with_text": "Empilé avec le texte",
 	"interchange_badge_direction": "Position des correspondances",
 	"serving_lines": "Lignes desservies",
-	"toggle_interchange_badge": "Afficher comme badge de correspondance"
+	"toggle_interchange_badge": "Afficher comme badge de correspondance",
+	"landing_tagline": "Créez de magnifiques plans de transport schématiques",
+	"landing_get_started": "Commencer",
+	"landing_feature_editor": "Éditeur intuitif avec placement par glisser-déposer, routage octilinéaire et aperçu en temps réel.",
+	"landing_feature_export": "Exportez des SVG de haute qualité de vos plans pour l'impression ou le web, avec légende et style personnalisables.",
+	"landing_feature_views": "Créez plusieurs vues de votre réseau pour mettre en valeur différentes lignes, stations ou variantes de tracé.",
+	"landing_view_projects": "Voir les Projets",
+	"landing_subtitle": "Un éditeur de plans de transport schématiques en ligne",
+	"landing_open_source": "Open source — licence MIT",
+	"landing_made_in_france": "Fabriqué en France",
+	"landing_view_github": "Voir sur GitHub",
+	"landing_feature_octilinear": "Routage octilinéaire avec gestion automatique des lignes parallèles et angles à 45°.",
+	"landing_feature_types": "Métro, tram, bus, train — personnalisez couleurs, motifs, types de ligne et styles de station.",
+	"landing_feature_svg": "Exportez des SVG avec légende, badges de correspondance et style personnalisable.",
+	"landing_showcase": "Exemples de plans",
+	"landing_local": "100% local — pas de serveur, aucune télémétrie, vos données ne quittent jamais votre appareil."
 }
