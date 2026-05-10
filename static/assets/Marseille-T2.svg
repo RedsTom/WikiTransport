@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="290 -734.5290298916243 1517.7510814612983 235.0580597832486" width="1200" height="186">
+<rect x="290" y="-734.5290298916243" width="1517.7510814612983" height="235.0580597832486" fill="#f8f8f8"/>
+<g id="lines">
+<path d="M 360 -600 L 440 -600 L 520 -600 L 600 -600 L 680 -600 L 760 -600 L 840 -600 L 920 -600 L 1000 -600 L 1080 -600 L 1160 -600 L 1240 -600 L 1320 -600 L 1400 -600" fill="none" stroke="#f6d32d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="stations">
+<circle cx="1000" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 1014, -617)">
+<text x="1014" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Réformés-Canebière</text>
+</g>
+<circle cx="1400" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 1414, -617)">
+<text x="1414" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">La Blancarde</text>
+</g>
+<circle cx="920" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 934, -617)">
+<text x="934" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Noailles</text>
+</g>
+<circle cx="520" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 534, -617)">
+<text x="534" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Joliette</text>
+</g>
+<circle cx="360" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 374, -617)">
+<text x="374" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Arenc Euroméditerranée</text>
+</g>
+<circle cx="440" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 454, -617)">
+<text x="454" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Euroméditerranée Le Silo</text>
+</g>
+<circle cx="600" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 614, -617)">
+<text x="614" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">République-Dames</text>
+</g>
+<circle cx="680" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 694, -617)">
+<text x="694" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Sadi Carnot</text>
+</g>
+<circle cx="760" cy="-600" r="10" fill="white" stroke="#666" stroke-width="2.5"/>
+<g transform="rotate(-45, 774, -617)">
+<text x="774" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Belsunce Alcazar</text>
+</g>
+<circle cx="840" cy="-600" r="8" fill="#f6d32d" stroke="white" stroke-width="2"/>
+<g transform="rotate(-45, 854, -617)">
+<text x="854" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Canebière Capucins</text>
+</g>
+<circle cx="1080" cy="-600" r="8" fill="#f6d32d" stroke="white" stroke-width="2"/>
+<g transform="rotate(-45, 1094, -617)">
+<text x="1094" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">National</text>
+</g>
+<circle cx="1160" cy="-600" r="8" fill="#f6d32d" stroke="white" stroke-width="2"/>
+<g transform="rotate(-45, 1174, -617)">
+<text x="1174" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Longchamp</text>
+</g>
+<circle cx="1240" cy="-600" r="8" fill="#f6d32d" stroke="white" stroke-width="2"/>
+<g transform="rotate(-45, 1254, -617)">
+<text x="1254" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Foch Sakakini</text>
+</g>
+<circle cx="1320" cy="-600" r="8" fill="#f6d32d" stroke="white" stroke-width="2"/>
+<g transform="rotate(-45, 1334, -617)">
+<text x="1334" y="-617" font-size="12" font-family="sans-serif" font-weight="bold" fill="#000" text-anchor="start">Foch Boisson</text>
+</g>
+</g>
+<g id="legend">
+<rect x="1556.7910814612983" y="-734.5290298916243" width="250.95999999999998" height="235.0580597832486" fill="#f4f4f4" stroke="#bbb" stroke-width="1"/>
+<rect x="1572.7910814612983" y="-713.5290298916243" width="30" height="30" rx="2" fill="#ff7800" stroke="white" stroke-width="1.5"/>
+<text x="1587.7910814612983" y="-693.9790298916244" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#000">T1</text>
+<text x="1610.7910814612983" y="-703.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Noailles</text>
+<text x="1610.7910814612983" y="-687.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Les Caillols</text>
+<rect x="1572.7910814612983" y="-673.5290298916243" width="30" height="30" rx="2" fill="#f6d32d" stroke="white" stroke-width="1.5"/>
+<text x="1587.7910814612983" y="-653.9790298916244" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#000">T2</text>
+<text x="1610.7910814612983" y="-663.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Arenc Euroméditerranée</text>
+<text x="1610.7910814612983" y="-647.5290298916243" font-size="13" font-family="sans-serif" fill="#555">La Blancarde</text>
+<rect x="1572.7910814612983" y="-633.5290298916243" width="30" height="30" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="1587.7910814612983" y="-613.9790298916244" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#000">T3</text>
+<text x="1610.7910814612983" y="-623.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Gèze</text>
+<text x="1610.7910814612983" y="-607.5290298916243" font-size="13" font-family="sans-serif" fill="#555">La Gaye</text>
+<rect x="1577.1844797435" y="-589.1356316094225" width="21.213203435596423" height="21.213203435596423" rx="2" fill="#3584e4" stroke="white" stroke-width="1.5" transform="rotate(45, 1587.7910814612983, -578.5290298916243)"/>
+<text x="1587.7910814612983" y="-575.0290298916243" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#fff">M1</text>
+<text x="1610.7910814612983" y="-583.5290298916243" font-size="13" font-family="sans-serif" fill="#555">La Rose</text>
+<text x="1610.7910814612983" y="-567.5290298916243" font-size="13" font-family="sans-serif" fill="#555">La Fourragère</text>
+<rect x="1577.1844797435" y="-549.1356316094225" width="21.213203435596423" height="21.213203435596423" rx="2" fill="#e01b24" stroke="white" stroke-width="1.5" transform="rotate(45, 1587.7910814612983, -538.5290298916243)"/>
+<text x="1587.7910814612983" y="-535.0290298916243" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#fff">M2</text>
+<text x="1610.7910814612983" y="-543.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Gèze</text>
+<text x="1610.7910814612983" y="-527.5290298916243" font-size="13" font-family="sans-serif" fill="#555">Sainte-Marguerite-Dromel</text>
+</g>
+<g id="interchanges">
+<rect x="992.9289321881346" y="-577.0710678118654" width="14.14213562373095" height="14.14213562373095" rx="2" fill="#3584e4" stroke="white" stroke-width="1.5" transform="rotate(45, 1000, -570)"/>
+<text x="1000" y="-567.55" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="bold" fill="#fff">M1</text>
+<rect x="1378.5" y="-580" width="20" height="20" rx="2" fill="#ff7800" stroke="white" stroke-width="1.5"/>
+<text x="1388.5" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T1</text>
+<rect x="1404.4289321881345" y="-577.0710678118654" width="14.14213562373095" height="14.14213562373095" rx="2" fill="#3584e4" stroke="white" stroke-width="1.5" transform="rotate(45, 1411.5, -570)"/>
+<text x="1411.5" y="-567.55" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="bold" fill="#fff">M1</text>
+<rect x="898.5" y="-580" width="20" height="20" rx="2" fill="#ff7800" stroke="white" stroke-width="1.5"/>
+<text x="908.5" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T1</text>
+<rect x="924.4289321881346" y="-577.0710678118654" width="14.14213562373095" height="14.14213562373095" rx="2" fill="#e01b24" stroke="white" stroke-width="1.5" transform="rotate(45, 931.5, -570)"/>
+<text x="931.5" y="-567.55" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="bold" fill="#fff">M2</text>
+<rect x="498.5" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="508.5" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+<rect x="524.4289321881346" y="-577.0710678118654" width="14.14213562373095" height="14.14213562373095" rx="2" fill="#e01b24" stroke="white" stroke-width="1.5" transform="rotate(45, 531.5, -570)"/>
+<text x="531.5" y="-567.55" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="bold" fill="#fff">M2</text>
+<rect x="350" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="360" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+<rect x="430" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="440" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+<rect x="590" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="600" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+<rect x="670" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="680" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+<rect x="750" y="-580" width="20" height="20" rx="2" fill="#33d17a" stroke="white" stroke-width="1.5"/>
+<text x="760" y="-566.5" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000">T3</text>
+</g>
+</svg>
