@@ -716,9 +716,7 @@
 
 		<!-- Lines -->
 		{#each editorState.lines as line}
-			{@const isHidden =
-				editorState.effectiveHiddenLineIds.has(line.id!) ||
-				(line.transitTypeId !== undefined && editorState.hiddenTypeIds.has(line.transitTypeId))}
+			{@const isHidden = editorState.effectiveHiddenLineIds.has(line.id!)}
 			{#if !isHidden}
 				{@const points = editorState.routePoints
 					.filter((rp) => rp.lineId === line.id)

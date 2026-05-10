@@ -46,7 +46,6 @@ export class EditorState {
 	anchorLineClicked = $state(false);
 
 	hiddenLineIds = $state<Set<number>>(new Set());
-	hiddenTypeIds = $state<Set<number>>(new Set());
 
 	stationToDelete = $state<number | null>(null);
 	lineToDelete = $state<number | null>(null);
@@ -181,13 +180,6 @@ export class EditorState {
 		ViewService.update(view.id!, { hiddenStationIds: ids });
 	}
 
-	toggleTypeVisibility(id: number) {
-		const next = new Set(this.hiddenTypeIds);
-		if (next.has(id)) next.delete(id);
-		else next.add(id);
-		this.hiddenTypeIds = next;
-	}
-
 	reset() {
 		this.project = null;
 		this.transitTypes = [];
@@ -207,7 +199,6 @@ export class EditorState {
 		this.placementMode = null;
 		this.anchorLineClicked = false;
 		this.hiddenLineIds = new Set();
-		this.hiddenTypeIds = new Set();
 		this.stationToDelete = null;
 		this.lineToDelete = null;
 		this.anchorToDelete = null;

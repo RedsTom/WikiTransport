@@ -1,15 +1,11 @@
 <script lang="ts">
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
-	import { flip } from 'svelte/animate';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { LineService } from '$lib/services/LineService';
-	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
 	import type { Line } from '$lib/types/models';
-	import { db } from '$lib/services/Database';
 
-	import { Button, IconButton, TextField, Dialog, Slider } from '$lib/components/ui';
+	import { Button, TextField, Dialog, Slider, IconButton } from '$lib/components/ui';
 
 	let lineName = $state('');
 	let lineColor = $state('#000000');
@@ -27,60 +23,19 @@
 		}
 	});
 
-	let lineStations = $derived.by(() => {
-		if (!selectedLine?.id) return [];
-		return editorState.routePoints
-			.filter((rp) => rp.lineId === selectedLine.id)
-			.sort((a, b) => a.order - b.order)
-			.map((rp) => {
-				const s = editorState.stations.find((st) => st.id === rp.stationId);
-				return { ...rp, id: rp.id!, stationName: s?.name || m.unknown_station() };
-			});
-	});
-
 	let lineAnchors = $derived(
 		editorState.anchorPoints
 			.filter((ap) => ap.lineId === selectedLine?.id)
 			.sort((a, b) => a.order - b.order)
 	);
 
-	let dndItems = $state<any[]>([]);
-	let isDragging = $state(false);
-
 	let deleteConfirmOpen = $state(false);
-
-	$effect(() => {
-		if (!isDragging) {
-			dndItems = lineStations;
-		}
-	});
-
-	const flipDurationMs = 200;
 
 	async function updateLine(changes: Partial<Line>) {
 		if (selectedLine?.id) {
 			await LineService.updateLine(selectedLine.id, changes);
 			await editorState.loadLines();
 		}
-	}
-
-	async function handleDndConsider(e: CustomEvent<DndEvent<any>>) {
-		isDragging = true;
-		dndItems = e.detail.items;
-	}
-
-	async function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
-		dndItems = e.detail.items;
-		for (let i = 0; i < dndItems.length; i++) {
-			await db.routePoints.update(dndItems[i].id, { order: i });
-		}
-		await editorState.loadRoutePoints();
-		isDragging = false;
-	}
-
-	async function removeStationFromLine(rpId: number) {
-		await db.routePoints.delete(rpId);
-		await editorState.loadRoutePoints();
 	}
 
 	async function handleDeleteLine() {
@@ -145,30 +100,6 @@
 			<option value="2,4">{m.dotted()}</option>
 			<option value="8,4,2,4">{m.dash_dot()}</option>
 		</select>
-	</div>
-
-	<h3 class="mt-4 text-sm font-bold text-primary">{m.stations()}</h3>
-	<div
-		use:dndzone={{ items: dndItems, flipDurationMs }}
-		onconsider={handleDndConsider}
-		onfinalize={handleDndFinalize}
-		class="flex min-h-8 flex-col gap-0.5"
-	>
-		{#each dndItems as rp (rp.id)}
-			<div
-				animate:flip={{ duration: flipDurationMs }}
-				class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5"
-			>
-				<span class="material-symbols-outlined cursor-grab text-sm text-outline"
-					>drag_indicator</span
-				>
-				<span class="material-symbols-outlined text-sm text-on-surface-variant">location_on</span>
-				<span class="flex-1 truncate text-sm">{rp.stationName}</span>
-				<IconButton class="!h-6 !w-6" onclick={() => removeStationFromLine(rp.id)}>
-					<span class="material-symbols-outlined text-sm">remove</span>
-				</IconButton>
-			</div>
-		{/each}
 	</div>
 
 	{#if lineAnchors.length > 0}

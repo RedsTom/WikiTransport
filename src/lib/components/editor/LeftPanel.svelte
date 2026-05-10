@@ -21,6 +21,27 @@
 
 	const flipDurationMs = 200;
 
+	let stationDndItems = $state<Record<number, any[]>>({});
+	let isDraggingStation = $state(false);
+
+	let lineStationsMap = $derived.by(() => {
+		const map: Record<number, any[]> = {};
+		for (const rp of editorState.routePoints) {
+			if (!map[rp.lineId]) map[rp.lineId] = [];
+			const st = editorState.stations.find((s) => s.id === rp.stationId);
+			map[rp.lineId].push({ ...rp, stationName: st?.name || m.unknown_station() });
+		}
+		for (const key of Object.keys(map)) {
+			map[Number(key)].sort((a, b) => a.order - b.order);
+		}
+		return map;
+	});
+
+	$effect(() => {
+		if (isDraggingStation) return;
+		stationDndItems = lineStationsMap;
+	});
+
 	let collapsedTypes = $state<Set<number>>(new Set());
 	let collapsedLines = $state<Set<number>>(new Set());
 
@@ -70,10 +91,22 @@
 		}
 	}
 
-	async function handleDndFinalize(e: CustomEvent<DndEvent<Line>>) {
-		const newItems: Line[] = e.detail.items as any;
-		await LineService.updateLineOrders(newItems.map((item, i) => ({ id: item.id!, order: i })));
-		await editorState.loadLines();
+	function handleStationDndConsider(e: CustomEvent<DndEvent<any>>) {
+		isDraggingStation = true;
+		const items = e.detail.items as any[];
+		const lineId = items[0]?.lineId;
+		if (lineId != null) {
+			stationDndItems[lineId] = items;
+		}
+	}
+
+	async function handleStationDndFinalize(e: CustomEvent<DndEvent<any>>) {
+		const items = e.detail.items as any[];
+		for (let i = 0; i < items.length; i++) {
+			await db.routePoints.update(items[i].id, { order: i });
+		}
+		await editorState.loadRoutePoints();
+		isDraggingStation = false;
 	}
 
 	async function changeLineType(line: Line, newTypeId: number) {
@@ -240,15 +273,6 @@
 							role="none"
 							onclick={(e: MouseEvent) => e.stopPropagation()}
 						>
-							<Tooltip
-								text={editorState.hiddenTypeIds.has(type.id!) ? m.show_type() : m.hide_type()}
-							>
-								<IconButton onclick={() => editorState.toggleTypeVisibility(type.id!)}>
-									<span class="material-symbols-outlined text-sm">
-										{editorState.hiddenTypeIds.has(type.id!) ? 'visibility_off' : 'visibility'}
-									</span>
-								</IconButton>
-							</Tooltip>
 							<IconButton onclick={() => handleAddLine(type.id!)}>
 								<span class="material-symbols-outlined text-sm">add</span>
 							</IconButton>
@@ -256,12 +280,7 @@
 					</div>
 
 					{#if !isCollapsed}
-						<div
-							use:dndzone={{ items: linesOfType, flipDurationMs, type: 'line' }}
-							onconsider={() => {}}
-							onfinalize={handleDndFinalize}
-							class="flex flex-col gap-0.5"
-						>
+						<div class="flex flex-col gap-0.5">
 							{#each linesOfType as line (line.id)}
 								{@const isSelected = editorState.selectedLineId === line.id}
 								{@const transitType = editorState.transitTypes.find(
@@ -320,22 +339,24 @@
 											role="none"
 										>
 											<div class="flex items-center gap-0.5">
-												<Tooltip
-													text={editorState.hiddenLineIds.has(line.id!)
-														? m.show_line()
-														: m.hide_line()}
-												>
-													<IconButton
-														onclick={() =>
-															EditorService.toggleLineVisibility(editorState, line.id!)}
+												{#if !editorState.isGlobalView}
+													<Tooltip
+														text={editorState.hiddenLineIds.has(line.id!)
+															? m.show_line()
+															: m.hide_line()}
 													>
-														<span class="material-symbols-outlined text-sm">
-															{editorState.hiddenLineIds.has(line.id!)
-																? 'visibility_off'
-																: 'visibility'}
-														</span>
-													</IconButton>
-												</Tooltip>
+														<IconButton
+															onclick={() =>
+																EditorService.toggleLineVisibility(editorState, line.id!)}
+														>
+															<span class="material-symbols-outlined text-sm">
+																{editorState.hiddenLineIds.has(line.id!)
+																	? 'visibility_off'
+																	: 'visibility'}
+															</span>
+														</IconButton>
+													</Tooltip>
+												{/if}
 												<select
 													value={line.transitTypeId}
 													onchange={(e: Event) =>
@@ -352,35 +373,46 @@
 									</div>
 									{#if isLineExpanded}
 										<div class="ml-2 flex flex-col gap-0.5 border-l-2 border-outline/10 pl-2">
-											{#each lineRps as rp (rp.id)}
-												{@const st = editorState.stations.find((s) => s.id === rp.stationId)}
-												{@const isStationSelected =
-													editorState.selectedStationId === rp.stationId &&
-													editorState.selectedLineId === line.id}
+											{#if stationDndItems[line.id!]}
 												<div
-													class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors {isStationSelected
-														? 'bg-secondary-container text-on-secondary-container'
-														: 'hover:bg-surface-variant'}"
-													onclick={() => selectStationOnLine(rp.stationId, line.id!)}
-													role="button"
-													tabindex="0"
-													onkeydown={(e) =>
-														e.key === 'Enter' && selectStationOnLine(rp.stationId, line.id!)}
+													use:dndzone={{ items: stationDndItems[line.id!], flipDurationMs }}
+													onconsider={handleStationDndConsider}
+													onfinalize={handleStationDndFinalize}
+													class="flex flex-col gap-0.5"
 												>
-													<span class="material-symbols-outlined text-sm text-on-surface-variant"
-														>location_on</span
-													>
-													<span class="flex-1 truncate">{st?.name || m.unknown_station()}</span>
-													<div onclick={(e: MouseEvent) => e.stopPropagation()} role="none">
-														<IconButton
-															class="!h-6 !w-6"
-															onclick={() => rp.id && removeStationFromLine(rp.id)}
+													{#each stationDndItems[line.id!] as rp (rp.id)}
+														{@const st = editorState.stations.find((s) => s.id === rp.stationId)}
+														{@const isStationSelected =
+															editorState.selectedStationId === rp.stationId &&
+															editorState.selectedLineId === line.id}
+														<div
+															animate:flip={{ duration: flipDurationMs }}
+															class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors {isStationSelected
+																? 'bg-secondary-container text-on-secondary-container'
+																: 'hover:bg-surface-variant'}"
+															onclick={() => selectStationOnLine(rp.stationId, line.id!)}
+															role="button"
+															tabindex="0"
+															onkeydown={(e) =>
+																e.key === 'Enter' && selectStationOnLine(rp.stationId, line.id!)}
 														>
-															<span class="material-symbols-outlined text-sm">remove</span>
-														</IconButton>
-													</div>
+															<span
+																class="material-symbols-outlined text-sm text-on-surface-variant"
+																>location_on</span
+															>
+															<span class="flex-1 truncate">{st?.name || m.unknown_station()}</span>
+															<div onclick={(e: MouseEvent) => e.stopPropagation()} role="none">
+																<IconButton
+																	class="!h-6 !w-6"
+																	onclick={() => rp.id && removeStationFromLine(rp.id)}
+																>
+																	<span class="material-symbols-outlined text-sm">remove</span>
+																</IconButton>
+															</div>
+														</div>
+													{/each}
 												</div>
-											{/each}
+											{/if}
 											<div class="w-full px-1 pt-0.5">
 												<StationSelector
 													label={m.add_station()}
