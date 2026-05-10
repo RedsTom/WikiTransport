@@ -21,10 +21,18 @@
 		closeOnOutsideClick: true,
 		positioning: { placement: 'right' }
 	});
+
+	let popoverEl: HTMLDivElement;
+
+	$effect(() => {
+		popoverEl?.showPopover();
+	});
 </script>
 
 <div
-	class="fixed z-50"
+	bind:this={popoverEl}
+	popover="manual"
+	class="context-menu-popover"
 	style="left: {x}px; top: {y}px;"
 	role="none"
 	oncontextmenu={(e) => e.preventDefault()}
@@ -54,3 +62,13 @@
 		{/each}
 	</div>
 </div>
+
+<style>
+	.context-menu-popover {
+		inset: auto;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: none;
+	}
+</style>

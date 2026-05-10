@@ -27,9 +27,20 @@
 	} = $props();
 
 	const {
-		elements: { trigger, menu, item, separator }
+		elements: { trigger, menu, item, separator },
+		states: { open }
 	} = createDropdownMenu({
-		positioning: { placement: 'bottom-start' }
+		positioning: { placement: 'bottom-start', strategy: 'fixed' }
+	});
+
+	let menuEl: HTMLDivElement;
+
+	$effect(() => {
+		if ($open) {
+			menuEl?.showPopover();
+		} else {
+			menuEl?.hidePopover();
+		}
 	});
 </script>
 
@@ -38,7 +49,7 @@
 		{@render children?.()}
 	</button>
 
-	<div {...$menu} use:menu class="m3-menu">
+	<div bind:this={menuEl} {...$menu} use:menu class="m3-menu" popover="manual">
 		{#each items as entry, i (i)}
 			{#if entry.separator}
 				<div {...$separator} use:separator class="m3-menu__separator"></div>

@@ -86,12 +86,37 @@
 				editorState.deleteAnchorOpen = true;
 			}
 		}
+		if (e.key === 's' || e.key === 'S') {
+			e.preventDefault();
+			handleTogglePlacement();
+		}
+		if (e.key === 'a' || e.key === 'A') {
+			e.preventDefault();
+			handleToggleAnchor();
+		}
 		if (e.key === 'd' || e.key === 'D') {
 			e.preventDefault();
 			editorState.selectedLineId = null;
 			editorState.selectedStationId = null;
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
+		}
+		if (e.key === 'Tab') {
+			const rps = editorState.routePoints
+				.filter((rp) => rp.lineId === editorState.selectedLineId)
+				.sort((a, b) => a.order - b.order);
+			if (rps.length > 0) {
+				e.preventDefault();
+				let nextIndex = 0;
+				if (editorState.selectedStationId !== null) {
+					const cur = rps.findIndex((rp) => rp.stationId === editorState.selectedStationId);
+					if (cur !== -1) {
+						nextIndex = e.shiftKey ? (cur - 1 + rps.length) % rps.length : (cur + 1) % rps.length;
+					}
+				}
+				editorState.selectedStationId = rps[nextIndex].stationId;
+				editorState.rightTab = 'station';
+			}
 		}
 	}
 

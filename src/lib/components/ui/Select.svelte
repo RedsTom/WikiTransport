@@ -18,8 +18,20 @@
 
 	const {
 		elements: { trigger, menu, option },
-		states: { selected, selectedLabel }
-	} = createSelect();
+		states: { selected, selectedLabel, open }
+	} = createSelect({
+		positioning: { strategy: 'fixed' }
+	});
+
+	let menuEl: HTMLDivElement;
+
+	$effect(() => {
+		if ($open) {
+			menuEl?.showPopover();
+		} else {
+			menuEl?.hidePopover();
+		}
+	});
 
 	$effect(() => {
 		const sel = $selected;
@@ -41,7 +53,7 @@
 		<span class="material-symbols-outlined text-sm text-on-surface-variant">unfold_more</span>
 	</button>
 
-	<div {...$menu} use:menu class="m3-select__menu">
+	<div bind:this={menuEl} {...$menu} use:menu class="m3-select__menu" popover="manual">
 		{#each options as opt, i (i)}
 			<button {...$option(opt)} use:option class="m3-select__option">
 				{opt.label}

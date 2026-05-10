@@ -24,7 +24,19 @@
 	const {
 		elements: { trigger, menu },
 		states: { open }
-	} = createDropdownMenu();
+	} = createDropdownMenu({
+		positioning: { strategy: 'fixed' }
+	});
+
+	let menuEl: HTMLDivElement;
+
+	$effect(() => {
+		if ($open) {
+			menuEl?.showPopover();
+		} else {
+			menuEl?.hidePopover();
+		}
+	});
 
 	let selectedStation = $derived(
 		selectedId ? editorState.stations.find((s) => s.id === selectedId) : null
@@ -69,9 +81,11 @@
 </div>
 
 <div
+	bind:this={menuEl}
 	{...$menu}
 	use:menu
 	class="z-50 overflow-hidden rounded-lg border border-outline/20 bg-surface p-2 shadow-xl"
+	popover="manual"
 >
 	<div class="relative mb-1">
 		<span
