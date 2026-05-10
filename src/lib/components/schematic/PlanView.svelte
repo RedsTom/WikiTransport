@@ -8,6 +8,7 @@
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import { measureText } from '$lib/utils/textMeasure';
+	import { getContrastColor } from '$lib/utils/color';
 	import {
 		screenToSvg,
 		distToSegment,
@@ -22,6 +23,176 @@
 		LINE_SPACING,
 		DIR_CFG
 	} from '$lib/constants/schematic';
+	import type {
+		InterchangeBadgeMode,
+		InterchangeBadgeDirection,
+		IconShape
+	} from '$lib/types/models';
+
+	function sortLineIds(lineIds: number[]): number[] {
+		return [...lineIds].sort((a, b) => {
+			const la = editorState.lines.find((l) => l.id === a);
+			const lb = editorState.lines.find((l) => l.id === b);
+			if (!la || !lb) return a - b;
+			if (la.transitTypeId !== lb.transitTypeId)
+				return (la.transitTypeId ?? -1) - (lb.transitTypeId ?? -1);
+			return (la.name ?? '').localeCompare(lb.name ?? '');
+		});
+	}
+
+	const BADGE_SIZE = 20;
+	const BADGE_GAP = 3;
+	const BADGE_HALF = BADGE_SIZE / 2;
+	const BADGE_GAP_FROM_ANCHOR = 20;
+	const LABEL_BADGE_GAP = 4;
+	const STACK_BADGE_GAP = 12;
+	const TEXT_CENTER_OFFSET = -4;
+	const DIAMOND_HALF = BADGE_HALF / Math.SQRT2;
+	const DIAMOND_SIZE = DIAMOND_HALF * 2;
+
+	function getBadgeLayout(
+		mode: InterchangeBadgeMode,
+		direction: InterchangeBadgeDirection,
+		stationX: number,
+		stationY: number,
+		stationLabelDir: string,
+		labelLayout: { x: number; y: number; subtitleY: number },
+		badgeCount: number,
+		textWidth: number = 0,
+		labelAnchor: string = 'E'
+	): { startX: number; startY: number; horizontal: boolean; centeringOffset: number } {
+		const totalW = badgeCount * BADGE_SIZE + (badgeCount - 1) * BADGE_GAP;
+		const totalH = badgeCount * BADGE_SIZE + (badgeCount - 1) * BADGE_GAP;
+		const useDir = stationLabelDir;
+
+		const textRightExtent =
+			labelAnchor === 'end' ? 0 : labelAnchor === 'middle' ? textWidth / 2 : textWidth;
+		const textLeftExtent =
+			labelAnchor === 'start' ? 0 : labelAnchor === 'middle' ? textWidth / 2 : textWidth;
+
+		if (mode === 'station') {
+			const anchorX = stationX;
+			const anchorY = stationY;
+
+			const isHorizontal = !['E', 'W'].includes(direction);
+			const isSLabel = useDir.includes('S');
+
+			let startX: number = 0;
+			let startY: number = 0;
+
+			if (isHorizontal) {
+				startX = anchorX - totalW / 2;
+			} else {
+				startY = anchorY - totalW / 2;
+			}
+
+			switch (direction) {
+				case 'N':
+					startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					break;
+				case 'S':
+					if (isSLabel) {
+						startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					} else {
+						startY = anchorY + BADGE_GAP_FROM_ANCHOR;
+					}
+					break;
+				case 'E':
+					startX = anchorX + BADGE_GAP_FROM_ANCHOR;
+					break;
+				case 'W':
+					startX = anchorX - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					break;
+				case 'NE':
+					startX = anchorX + BADGE_GAP_FROM_ANCHOR / 2 - totalW / 2;
+					startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					break;
+				case 'NW':
+					startX = anchorX - BADGE_GAP_FROM_ANCHOR / 2 - totalW / 2;
+					startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					break;
+				case 'SE':
+					startX = anchorX + BADGE_GAP_FROM_ANCHOR / 2 - totalW / 2;
+					if (isSLabel) {
+						startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					} else {
+						startY = anchorY + BADGE_GAP_FROM_ANCHOR;
+					}
+					break;
+				case 'SW':
+					startX = anchorX - BADGE_GAP_FROM_ANCHOR / 2 - totalW / 2;
+					if (isSLabel) {
+						startY = anchorY - BADGE_GAP_FROM_ANCHOR - BADGE_SIZE;
+					} else {
+						startY = anchorY + BADGE_GAP_FROM_ANCHOR;
+					}
+					break;
+			}
+
+			return { startX, startY, horizontal: isHorizontal, centeringOffset: 0 };
+		}
+
+		if (mode === 'next_to_text') {
+			if (labelAnchor === 'end') {
+				return {
+					startX: labelLayout.x - textLeftExtent - LABEL_BADGE_GAP - totalW,
+					startY: labelLayout.y - BADGE_SIZE / 2 + TEXT_CENTER_OFFSET,
+					horizontal: true,
+					centeringOffset: 0
+				};
+			}
+			const centeringOffset = labelAnchor === 'middle' ? -(LABEL_BADGE_GAP + totalW) / 2 : 0;
+			return {
+				startX: labelLayout.x + textRightExtent + LABEL_BADGE_GAP + centeringOffset,
+				startY: labelLayout.y - BADGE_SIZE / 2 + TEXT_CENTER_OFFSET,
+				horizontal: true,
+				centeringOffset
+			};
+		}
+
+		const gap = STACK_BADGE_GAP;
+		switch (useDir) {
+			case 'E':
+			case 'NE':
+			case 'SE':
+				return {
+					startX: labelLayout.x + textRightExtent + gap,
+					startY: labelLayout.y - totalH / 2,
+					horizontal: false,
+					centeringOffset: 0
+				};
+			case 'W':
+			case 'NW':
+			case 'SW':
+				return {
+					startX: labelLayout.x - textLeftExtent - gap - BADGE_SIZE,
+					startY: labelLayout.y - totalH / 2,
+					horizontal: false,
+					centeringOffset: 0
+				};
+			case 'N':
+				return {
+					startX: labelLayout.x - totalW / 2,
+					startY: labelLayout.y - gap - BADGE_SIZE,
+					horizontal: true,
+					centeringOffset: 0
+				};
+			case 'S':
+				return {
+					startX: labelLayout.x - totalW / 2,
+					startY: labelLayout.y + gap,
+					horizontal: true,
+					centeringOffset: 0
+				};
+			default:
+				return {
+					startX: labelLayout.x + textRightExtent + gap,
+					startY: labelLayout.y - totalH / 2,
+					horizontal: false,
+					centeringOffset: 0
+				};
+		}
+	}
 
 	let viewBoxX = $state(0);
 	let viewBoxY = $state(0);
@@ -48,6 +219,7 @@
 			points.push(editorState.stationPosition(s));
 		}
 		for (const a of editorState.anchorPoints) {
+			if (!editorState.isGlobalView && editorState.effectiveHiddenLineIds.has(a.lineId)) continue;
 			points.push({ x: a.schematicX, y: a.schematicY });
 		}
 		return points;
@@ -55,8 +227,10 @@
 
 	let isTooFar = $derived.by(() => {
 		if (allContentPoints.length === 0) return false;
-		const vx = viewBoxX, vy = viewBoxY;
-		const vw = viewBoxWidth, vh = viewBoxHeight;
+		const vx = viewBoxX,
+			vy = viewBoxY;
+		const vw = viewBoxWidth,
+			vh = viewBoxHeight;
 		return !allContentPoints.some(
 			(p) => p.x >= vx && p.x <= vx + vw && p.y >= vy && p.y <= vy + vh
 		);
@@ -467,22 +641,22 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-		role="application"
-		class="relative h-full w-full overflow-hidden [background:var(--color-surface-variant)]"
-		tabindex="-1"
-		onkeydown={(e) => {
-			if (e.key === ' ' || e.key === 'Space') {
-				e.preventDefault();
-				e.stopPropagation();
-				fitContent();
-			}
-		}}
-		onmousedown={(e) => {
-			if (e.target === e.currentTarget || (e.target as HTMLElement).closest('svg')) {
-				e.currentTarget.focus();
-			}
-		}}
-	>
+	role="application"
+	class="relative h-full w-full overflow-hidden [background:var(--color-surface-variant)]"
+	tabindex="-1"
+	onkeydown={(e) => {
+		if (e.key === ' ' || e.key === 'Space') {
+			e.preventDefault();
+			e.stopPropagation();
+			fitContent();
+		}
+	}}
+	onmousedown={(e) => {
+		if (e.target === e.currentTarget || (e.target as HTMLElement).closest('svg')) {
+			e.currentTarget.focus();
+		}
+	}}
+>
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<svg
 		bind:this={svgEl}
@@ -620,29 +794,59 @@
 					data-station-id={station.id}
 				/>
 				{@const hasSubtitle = !!station.subtitle}
+				{@const servingLineIds = [
+					...new Set(
+						editorState.routePoints
+							.filter((rp) => rp.stationId === station.id)
+							.map((rp) => rp.lineId)
+					)
+				].filter((id) => editorState.lines.some((l) => l.id === id))}
+				{@const hiddenLineIdsSet = editorState.effectiveHiddenLineIds}
+				{@const hiddenInterchangeIds = editorState.stationHiddenInterchangeLineIds(station)}
+				{@const hiddenInterchangeIdsSet = new Set(hiddenInterchangeIds)}
+				{@const rawBadgeLineIds = servingLineIds.filter(
+					(id) => hiddenLineIdsSet.has(id) && !hiddenInterchangeIdsSet.has(id)
+				)}
+				{@const interchangeBadgeLineIds = sortLineIds(rawBadgeLineIds)}
+				{@const badgeMode = editorState.stationInterchangeBadgeMode(station)}
+				{@const badgeDirection = editorState.stationInterchangeBadgeDirection(station)}
 				{@const layout = getLabelLayout(labelAnchor, anchorDx, anchorDy, pos.x, pos.y)}
 				{@const titleFontSize = hasSubtitle ? 11 : 12}
 				{@const subFontSize = 9}
 				{@const titleW = measureText(station.name, titleFontSize, true)}
 				{@const subW = hasSubtitle ? measureText(station.subtitle!, subFontSize) : 0}
-				{@const titleX =
+				{@const badgeLayout = getBadgeLayout(
+					badgeMode,
+					badgeDirection,
+					pos.x,
+					pos.y,
+					labelDir,
+					layout,
+					interchangeBadgeLineIds.length,
+					titleW,
+					dCfg.anchor
+				)}
+				{@const centeringOffset = badgeLayout.centeringOffset}
+				{@const rawTitleX =
 					dCfg.anchor === 'end'
 						? layout.x - titleW
 						: dCfg.anchor === 'middle'
 							? layout.x - titleW / 2
 							: layout.x}
-				{@const subX =
+				{@const rawSubX =
 					subAlign === 'left'
-						? titleX
+						? rawTitleX
 						: subAlign === 'center'
-							? titleX + (titleW - subW) / 2
+							? rawTitleX + (titleW - subW) / 2
 							: subAlign === 'right'
-								? titleX + titleW - subW
+								? rawTitleX + titleW - subW
 								: dCfg.anchor === 'end'
 									? layout.x - subW
 									: dCfg.anchor === 'middle'
 										? layout.x - subW / 2
 										: layout.x}
+				{@const titleX = rawTitleX + centeringOffset}
+				{@const subX = rawSubX + centeringOffset}
 				{@const tx = dCfg.rotation
 					? `rotate(${dCfg.rotation}, ${layout.x}, ${layout.y})`
 					: undefined}
@@ -673,22 +877,103 @@
 						</text>
 					{/if}
 				</g>
+
+				{#if interchangeBadgeLineIds.length > 0}
+					{#each interchangeBadgeLineIds as lid, i}
+						{@const line = editorState.lines.find((l) => l.id === lid)}
+						{@const tt = editorState.transitTypes.find((t) => t.id === line?.transitTypeId)}
+						{@const shape = (tt?.iconShape ?? 'square') as IconShape}
+						{@const textColor = getContrastColor(line?.color ?? '#999')}
+						{@const cx = badgeLayout.horizontal
+							? badgeLayout.startX + i * (BADGE_SIZE + BADGE_GAP) + BADGE_SIZE / 2
+							: badgeLayout.startX + BADGE_SIZE / 2}
+						{@const cy = badgeLayout.horizontal
+							? badgeLayout.startY + BADGE_SIZE / 2
+							: badgeLayout.startY + i * (BADGE_SIZE + BADGE_GAP) + BADGE_SIZE / 2}
+						{#if line}
+							{#if shape === 'circle'}
+								<circle
+									{cx}
+									{cy}
+									r={BADGE_HALF}
+									fill={line.color}
+									stroke="white"
+									stroke-width="1.5"
+									class="pointer-events-none"
+								/>
+							{:else if shape === 'square'}
+								<rect
+									x={cx - BADGE_HALF}
+									y={cy - BADGE_HALF}
+									width={BADGE_SIZE}
+									height={BADGE_SIZE}
+									rx="2"
+									fill={line.color}
+									stroke="white"
+									stroke-width="1.5"
+									class="pointer-events-none"
+								/>
+							{:else if shape === 'diamond'}
+								<rect
+									x={cx - DIAMOND_HALF}
+									y={cy - DIAMOND_HALF}
+									width={DIAMOND_SIZE}
+									height={DIAMOND_SIZE}
+									rx="2"
+									fill={line.color}
+									stroke="white"
+									stroke-width="1.5"
+									transform="rotate(45, {cx}, {cy})"
+									class="pointer-events-none"
+								/>
+							{:else}
+								<rect
+									x={cx - BADGE_HALF}
+									y={cy - BADGE_HALF}
+									width={BADGE_SIZE}
+									height={BADGE_SIZE}
+									rx={BADGE_HALF}
+									fill={line.color}
+									stroke="white"
+									stroke-width="1.5"
+									class="pointer-events-none"
+								/>
+							{/if}
+							<text
+								x={cx}
+								y={cy + (shape === 'diamond' ? 2.1 : 3.5)}
+								text-anchor="middle"
+								font-family="sans-serif"
+								font-size={shape === 'diamond' ? 7 : 10}
+								font-weight="bold"
+								fill={textColor}
+								class="pointer-events-none"
+							>
+								{line.name}
+							</text>
+						{/if}
+					{/each}
+				{/if}
 			{/if}
 		{/each}
 
 		<!-- Anchors -->
 		{#each editorState.anchorPoints as ap}
-			{@const isSelected = editorState.selectedAnchorId === ap.id}
-			<polygon
-				points="-5,0 0,-5 5,0 0,5"
-				fill={isSelected ? 'currentColor' : 'currentColor'}
-				stroke={isSelected ? 'black' : 'none'}
-				stroke-width={isSelected ? 3 : 0}
-				class="{isSelected ? 'text-primary' : 'text-primary/40'} cursor-pointer"
-				transform="translate({ap.schematicX}, {ap.schematicY})"
-				data-anchor-id={ap.id}
-				onmousedown={(e) => startDragAnchor(e, ap.id!)}
-			/>
+			{@const isHiddenAnchor =
+				!editorState.isGlobalView && editorState.effectiveHiddenLineIds.has(ap.lineId)}
+			{#if !isHiddenAnchor}
+				{@const isSelected = editorState.selectedAnchorId === ap.id}
+				<polygon
+					points="-5,0 0,-5 5,0 0,5"
+					fill={isSelected ? 'currentColor' : 'currentColor'}
+					stroke={isSelected ? 'black' : 'none'}
+					stroke-width={isSelected ? 3 : 0}
+					class="{isSelected ? 'text-primary' : 'text-primary/40'} cursor-pointer"
+					transform="translate({ap.schematicX}, {ap.schematicY})"
+					data-anchor-id={ap.id}
+					onmousedown={(e) => startDragAnchor(e, ap.id!)}
+				/>
+			{/if}
 		{/each}
 	</svg>
 
@@ -699,8 +984,9 @@
 			>
 				<span class="material-symbols-outlined align-middle text-sm">explore</span>
 				{m.too_far()}
-				<kbd class="rounded bg-blue-500/20 px-1.5 py-0.5 text-xs">Espace</kbd>
-				{m.press_space_to_recenter()}
+				{m.recenter_before_key()}
+				<kbd class="rounded bg-blue-500/20 px-1.5 py-0.5 text-xs">{m.key_space()}</kbd>
+				{m.recenter_after_key()}
 			</div>
 		</div>
 	{/if}

@@ -3,10 +3,10 @@
 	import { flip } from 'svelte/animate';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
-import { LineService } from '$lib/services/LineService';
-import { TransitTypeService } from '$lib/services/TransitTypeService';
-import { EditorService } from '$lib/services/EditorService';
-import type { Line, TransitType } from '$lib/types/models';
+	import { LineService } from '$lib/services/LineService';
+	import { TransitTypeService } from '$lib/services/TransitTypeService';
+	import { EditorService } from '$lib/services/EditorService';
+	import type { Line, TransitType } from '$lib/types/models';
 
 	import {
 		Button,
@@ -187,9 +187,9 @@ import type { Line, TransitType } from '$lib/types/models';
 				<div class="mb-2">
 					<div
 						class="mb-1 flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-1.5 transition-colors {editorState.selectedTransitTypeId ===
-							type.id
-								? 'bg-secondary-container text-on-secondary-container'
-								: 'hover:bg-surface-variant'}"
+						type.id
+							? 'bg-secondary-container text-on-secondary-container'
+							: 'hover:bg-surface-variant'}"
 						onclick={() => selectType(type.id!)}
 						role="button"
 						tabindex="0"
@@ -240,7 +240,9 @@ import type { Line, TransitType } from '$lib/types/models';
 							role="none"
 							onclick={(e: MouseEvent) => e.stopPropagation()}
 						>
-							<Tooltip text={editorState.hiddenTypeIds.has(type.id!) ? m.show_type() : m.hide_type()}>
+							<Tooltip
+								text={editorState.hiddenTypeIds.has(type.id!) ? m.show_type() : m.hide_type()}
+							>
 								<IconButton onclick={() => editorState.toggleTypeVisibility(type.id!)}>
 									<span class="material-symbols-outlined text-sm">
 										{editorState.hiddenTypeIds.has(type.id!) ? 'visibility_off' : 'visibility'}
@@ -319,9 +321,14 @@ import type { Line, TransitType } from '$lib/types/models';
 										>
 											<div class="flex items-center gap-0.5">
 												<Tooltip
-													text={editorState.hiddenLineIds.has(line.id!) ? m.show_line() : m.hide_line()}
+													text={editorState.hiddenLineIds.has(line.id!)
+														? m.show_line()
+														: m.hide_line()}
 												>
-													<IconButton onclick={() => EditorService.toggleLineVisibility(editorState, line.id!)}>
+													<IconButton
+														onclick={() =>
+															EditorService.toggleLineVisibility(editorState, line.id!)}
+													>
 														<span class="material-symbols-outlined text-sm">
 															{editorState.hiddenLineIds.has(line.id!)
 																? 'visibility_off'
@@ -374,17 +381,17 @@ import type { Line, TransitType } from '$lib/types/models';
 													</div>
 												</div>
 											{/each}
-										<div class="w-full px-1 pt-0.5">
-											<StationSelector
-												label={m.add_station()}
-												variant="outlined"
-												class="w-full"
-												excludeIds={lineRps
-													.map((rp) => rp.stationId)
-													.filter((id): id is number => id != null)}
-												onSelect={(id: number) => addStationToLine(line.id!, id)}
-											/>
-										</div>
+											<div class="w-full px-1 pt-0.5">
+												<StationSelector
+													label={m.add_station()}
+													variant="outlined"
+													class="w-full"
+													excludeIds={lineRps
+														.map((rp) => rp.stationId)
+														.filter((id): id is number => id != null)}
+													onSelect={(id: number) => addStationToLine(line.id!, id)}
+												/>
+											</div>
 										</div>
 									{/if}
 								</div>

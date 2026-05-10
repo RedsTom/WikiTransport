@@ -100,13 +100,13 @@
 		bind:this={inputEl}
 		type="text"
 		inputmode="numeric"
-		value={value}
+		{value}
 		oninput={handleInput}
 		onmousedown={handleMouseDown}
 		onwheel={handleWheel}
 		onkeydown={handleKeydown}
-		class="w-full cursor-ew-resize rounded-md border border-outline/20 bg-transparent px-2.5 py-1.5 text-sm tabular-nums outline-none transition-colors focus:border-primary {isDragging ? 'border-primary bg-primary-container/20' : ''}"
+		class="w-full cursor-ew-resize rounded-md border border-outline/20 bg-transparent px-2.5 py-1.5 text-sm tabular-nums transition-colors outline-none focus:border-primary {isDragging
+			? 'border-primary bg-primary-container/20'
+			: ''}"
 	/>
 </div>
-
-

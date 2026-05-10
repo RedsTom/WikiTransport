@@ -5,7 +5,7 @@
 	import type { TransitType } from '$lib/types/models';
 
 	import { EditorService } from '$lib/services/EditorService';
-import { Button, TextField, Select, Dialog, Tooltip } from '$lib/components/ui';
+	import { Button, TextField, Select, Dialog, Tooltip } from '$lib/components/ui';
 	import type { IconShape } from '$lib/types/models';
 
 	const ICON_OPTIONS = [
@@ -84,7 +84,11 @@ import { Button, TextField, Select, Dialog, Tooltip } from '$lib/components/ui';
 <div class="flex flex-col gap-4">
 	<h3 class="text-sm font-bold text-primary">{m.type_heading()}</h3>
 
-	<TextField label={m.name()} bind:value={typeName} onchange={() => updateType({ name: typeName })} />
+	<TextField
+		label={m.name()}
+		bind:value={typeName}
+		onchange={() => updateType({ name: typeName })}
+	/>
 
 	<div class="flex flex-col gap-2">
 		<span class="text-sm text-on-surface-variant">{m.icon()}</span>

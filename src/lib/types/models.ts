@@ -64,6 +64,9 @@ export interface AnchorPoint {
 	viewId?: number;
 }
 
+export type InterchangeBadgeMode = 'station' | 'next_to_text' | 'stack_with_text';
+export type InterchangeBadgeDirection = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
+
 export interface View {
 	id?: number;
 	projectId: number;
@@ -83,4 +86,7 @@ export interface ViewStation {
 	subtitleAlign?: string;
 	anchorDx?: number;
 	anchorDy?: number;
+	interchangeBadgeMode?: InterchangeBadgeMode;
+	interchangeBadgeDirection?: InterchangeBadgeDirection;
+	hiddenInterchangeLineIds?: number[];
 }

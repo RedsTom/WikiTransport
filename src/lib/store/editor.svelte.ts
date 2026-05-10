@@ -6,7 +6,9 @@ import type {
 	TransitType,
 	AnchorPoint,
 	View,
-	ViewStation
+	ViewStation,
+	InterchangeBadgeMode,
+	InterchangeBadgeDirection
 } from '../types/models';
 import { LineService } from '../services/LineService';
 import { StationService } from '../services/StationService';
@@ -137,6 +139,30 @@ export class EditorState {
 		);
 		if (vs) return vs[field] ?? station[field] ?? defaultValue;
 		return station[field] ?? defaultValue;
+	}
+
+	stationInterchangeBadgeMode(station: Station): InterchangeBadgeMode {
+		if (this.isGlobalView) return 'station';
+		const vs = this.viewStations.find(
+			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
+		);
+		return vs?.interchangeBadgeMode ?? 'station';
+	}
+
+	stationInterchangeBadgeDirection(station: Station): InterchangeBadgeDirection {
+		if (this.isGlobalView) return 'S';
+		const vs = this.viewStations.find(
+			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
+		);
+		return vs?.interchangeBadgeDirection ?? 'S';
+	}
+
+	stationHiddenInterchangeLineIds(station: Station): number[] {
+		if (this.isGlobalView) return [];
+		const vs = this.viewStations.find(
+			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
+		);
+		return vs?.hiddenInterchangeLineIds ?? [];
 	}
 
 	toggleStationVisibility(id: number) {

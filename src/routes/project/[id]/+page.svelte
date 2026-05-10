@@ -8,17 +8,25 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { goto } from '$app/navigation';
-import { StationService } from '$lib/services/StationService';
-import { LineService } from '$lib/services/LineService';
-import { AnchorPointService } from '$lib/services/AnchorPointService';
-import { ViewService } from '$lib/services/ViewService';
-import { EditorService } from '$lib/services/EditorService';
-import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
+	import { StationService } from '$lib/services/StationService';
+	import { LineService } from '$lib/services/LineService';
+	import { AnchorPointService } from '$lib/services/AnchorPointService';
+	import { ViewService } from '$lib/services/ViewService';
+	import { EditorService } from '$lib/services/EditorService';
+	import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 	import RightPanel from '$lib/components/editor/RightPanel.svelte';
 	import ToolBar from '$lib/components/editor/ToolBar.svelte';
 	import PlanView from '$lib/components/schematic/PlanView.svelte';
 
-	import { CircularProgress, IconButton, Dialog, Button, TextField, ContextMenu } from '$lib/components/ui';
+	import {
+		CircularProgress,
+		IconButton,
+		Dialog,
+		Button,
+		TextField,
+		ContextMenu,
+		Tooltip
+	} from '$lib/components/ui';
 
 	let projectId = $derived(Number(page.params.id));
 	let isLoading = $state(true);
@@ -157,7 +165,7 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 		<CircularProgress indeterminate />
 	</div>
 {:else}
-<div class="flex h-screen w-full flex-col overflow-hidden">
+	<div class="flex h-screen w-full flex-col overflow-hidden">
 		<!-- Top Bar -->
 		<header
 			class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface-variant px-4"
@@ -207,6 +215,16 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 			</div>
 
 			<div class="flex items-center gap-2">
+				<Tooltip text={m.export()}>
+					<IconButton
+						onclick={() =>
+							goto(
+								`/project/${projectId}/${editorState.activeViewId === null ? 'global' : editorState.activeViewId}/export`
+							)}
+					>
+						<span class="material-symbols-outlined">download</span>
+					</IconButton>
+				</Tooltip>
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
@@ -243,7 +261,8 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 						>
 							<span class="material-symbols-outlined align-middle text-sm">add_location</span>
 							{m.click_to_place_station()}
-							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> {m.esc_to_cancel()}
+							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd>
+							{m.esc_to_cancel()}
 						</div>
 					</div>
 				{:else if editorState.placementMode === 'anchor'}
@@ -259,15 +278,13 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 							{:else}
 								{m.click_to_select_line_then_place_anchor()}
 							{/if}
-							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd> {m.esc_to_cancel()}
+							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd>
+							{m.esc_to_cancel()}
 						</div>
 					</div>
 				{/if}
 
-				<ToolBar
-					onaddstation={handleTogglePlacement}
-					onaddanchor={handleToggleAnchor}
-				/>
+				<ToolBar onaddstation={handleTogglePlacement} onaddanchor={handleToggleAnchor} />
 			</main>
 
 			<RightPanel />
@@ -385,7 +402,9 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 
 	<!-- Rename view dialog -->
 	<Dialog bind:open={viewRenameOpen}>
-		{#snippet title()}{m.rename_view_title({ name: editorState.views.find((v) => v.id === viewRenameId)?.name ?? '' })}{/snippet}
+		{#snippet title()}{m.rename_view_title({
+				name: editorState.views.find((v) => v.id === viewRenameId)?.name ?? ''
+			})}{/snippet}
 		<TextField
 			label={m.view_name()}
 			bind:value={viewRenameName}
@@ -394,7 +413,13 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 			}}
 		/>
 		{#snippet actions()}
-			<Button variant="text" onclick={() => { viewRenameOpen = false; viewRenameId = null; }}>{m.cancel()}</Button>
+			<Button
+				variant="text"
+				onclick={() => {
+					viewRenameOpen = false;
+					viewRenameId = null;
+				}}>{m.cancel()}</Button
+			>
 			<Button variant="filled" onclick={handleRenameView}>{m.rename()}</Button>
 		{/snippet}
 	</Dialog>
@@ -404,7 +429,13 @@ import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 		{#snippet title()}{m.delete()}{/snippet}
 		<p>{m.delete_view_confirm()}</p>
 		{#snippet actions()}
-			<Button variant="text" onclick={() => { viewDeleteOpen = false; viewDeleteId = null; }}>{m.cancel()}</Button>
+			<Button
+				variant="text"
+				onclick={() => {
+					viewDeleteOpen = false;
+					viewDeleteId = null;
+				}}>{m.cancel()}</Button
+			>
 			<Button variant="filled" onclick={handleDeleteView}>{m.delete()}</Button>
 		{/snippet}
 	</Dialog>

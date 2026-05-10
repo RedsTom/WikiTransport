@@ -1,5 +1,10 @@
 import { db } from './Database';
-import type { ViewStation, Station } from '../types/models';
+import type {
+	ViewStation,
+	Station,
+	InterchangeBadgeMode,
+	InterchangeBadgeDirection
+} from '../types/models';
 
 type ViewStationUpdate = Partial<Omit<ViewStation, 'id' | 'viewId' | 'stationId'>>;
 
@@ -8,35 +13,23 @@ export class ViewStationService {
 		return await db.viewStations.where({ viewId }).toArray();
 	}
 
-	/**
-	 * Create or update a view station with the given properties.
-	 * Only the provided fields in `updates` will be modified.
-	 * If no existing record is found and at least one positional field
-	 * (schematicX/Y) is missing, the base station's position is used as fallback.
-	 */
 	static async updateViewStation(
 		viewId: number,
 		stationId: number,
 		updates: ViewStationUpdate
 	): Promise<void> {
-		const clean: Record<string, unknown> = {};
-		for (const [k, v] of Object.entries(updates)) {
-			if (v !== undefined) clean[k] = v;
-		}
 		const existing = await db.viewStations.where({ viewId, stationId }).first();
 		if (existing) {
-			if (Object.keys(clean).length > 0) {
-				await db.viewStations.update(existing.id!, clean);
-			}
+			await db.viewStations.update(existing.id!, updates);
 		} else {
 			const s = await db.stations.get(stationId);
 			if (!s) return;
 			await db.viewStations.add({
 				viewId,
 				stationId,
-				schematicX: (clean.schematicX as number) ?? s.schematicX,
-				schematicY: (clean.schematicY as number) ?? s.schematicY,
-				...clean
+				schematicX: updates.schematicX ?? s.schematicX,
+				schematicY: updates.schematicY ?? s.schematicY,
+				...updates
 			} as ViewStation);
 		}
 	}
@@ -76,7 +69,7 @@ export class ViewStationService {
 		stationId: number,
 		subtitleAlign: string
 	): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { subtitleAlign });
+		await this.updateViewStation(viewId, stationId, { subtitleAlign: subtitleAlign || undefined });
 	}
 
 	static async setAnchorDx(viewId: number, stationId: number, anchorDx: number): Promise<void> {
@@ -93,6 +86,38 @@ export class ViewStationService {
 		labelAnchor: string
 	): Promise<void> {
 		await this.updateViewStation(viewId, stationId, { labelAnchor });
+	}
+
+	static async setInterchangeBadgeMode(
+		viewId: number,
+		stationId: number,
+		mode: InterchangeBadgeMode
+	): Promise<void> {
+		await this.updateViewStation(viewId, stationId, { interchangeBadgeMode: mode });
+	}
+
+	static async setInterchangeBadgeDirection(
+		viewId: number,
+		stationId: number,
+		direction: InterchangeBadgeDirection
+	): Promise<void> {
+		await this.updateViewStation(viewId, stationId, { interchangeBadgeDirection: direction });
+	}
+
+	static async toggleInterchangeLine(
+		viewId: number,
+		stationId: number,
+		lineId: number,
+		hidden: boolean
+	): Promise<void> {
+		const existing = await db.viewStations.where({ viewId, stationId }).first();
+		let hiddenIds = existing?.hiddenInterchangeLineIds ?? [];
+		if (hidden && !hiddenIds.includes(lineId)) {
+			hiddenIds = [...hiddenIds, lineId];
+		} else if (!hidden && hiddenIds.includes(lineId)) {
+			hiddenIds = hiddenIds.filter((id) => id !== lineId);
+		}
+		await this.updateViewStation(viewId, stationId, { hiddenInterchangeLineIds: hiddenIds });
 	}
 
 	static async deleteForView(viewId: number): Promise<void> {
