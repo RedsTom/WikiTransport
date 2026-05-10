@@ -76,7 +76,7 @@
 					: 'cursor-default text-outline'}"
 			onclick={selectLine}
 		>
-			{m.lines()}
+			{m.line()}
 		</button>
 		<button
 			role="tab"
@@ -90,7 +90,7 @@
 					: 'cursor-default text-outline'}"
 			onclick={selectStation}
 		>
-			{m.stations()}
+			{m.station()}
 		</button>
 	</div>
 
