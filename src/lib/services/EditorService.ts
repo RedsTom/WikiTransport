@@ -40,10 +40,11 @@ export class EditorService {
 	/**
 	 * Create a new view by cloning the current state (stations, anchors, visibility).
 	 */
-	static async createView(state: EditorState, name: string): Promise<void> {
-		if (!state.project?.id) return;
+	static async createView(state: EditorState, name: string): Promise<number> {
+		const projectId = state.project?.id;
+		if (!projectId) throw new Error('No project loaded');
 		const hiddenLineIds = [...state.effectiveHiddenLineIds];
-		const viewId = await ViewService.create(state.project.id, name, hiddenLineIds, []);
+		const viewId = await ViewService.create(projectId, name, hiddenLineIds, []);
 
 		for (const s of state.stations) {
 			if (!s.id) continue;
@@ -67,6 +68,7 @@ export class EditorService {
 
 		await state.loadViews();
 		await this.switchToView(state, viewId);
+		return viewId;
 	}
 
 	/**

@@ -4,7 +4,7 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ContextMenu } from '$lib/components/ui';
+	import { ContextMenu, CircularProgress } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import { measureText } from '$lib/utils/textMeasure';
@@ -268,6 +268,27 @@
 
 	onMount(() => {
 		requestAnimationFrame(() => fitContent());
+	});
+
+	$effect(() => {
+		if (editorState.isSwitchingView) return;
+		const key = editorState.activeViewId === null ? 'global' : String(editorState.activeViewId);
+		const vb = { x: viewBoxX, y: viewBoxY, width: viewBoxWidth, height: viewBoxHeight };
+		editorState.viewBoxRecords[key] = vb;
+		editorState.currentViewBox = vb;
+	});
+
+	$effect(() => {
+		const key = editorState.activeViewId === null ? 'global' : String(editorState.activeViewId);
+		const saved = editorState.viewBoxRecords[key];
+		if (saved) {
+			viewBoxX = saved.x;
+			viewBoxY = saved.y;
+			viewBoxWidth = saved.width;
+			viewBoxHeight = saved.height;
+		} else {
+			fitContent();
+		}
 	});
 
 	function handleMouseDown(e: MouseEvent) {
@@ -977,8 +998,14 @@
 		{/each}
 	</svg>
 
+	{#if editorState.isSwitchingView}
+		<div class="absolute inset-0 z-30 flex items-center justify-center bg-surface-variant">
+			<CircularProgress indeterminate class="h-8 w-8" />
+		</div>
+	{/if}
+
 	{#if isTooFar}
-		<div class="pointer-events-none absolute inset-0 z-30 flex items-start justify-center pt-8">
+		<div class="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-8">
 			<div
 				class="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-500 shadow-lg"
 			>

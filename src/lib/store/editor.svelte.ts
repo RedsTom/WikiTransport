@@ -28,6 +28,11 @@ export class EditorState {
 	views = $state<View[]>([]);
 	viewStations = $state<ViewStation[]>([]);
 	activeViewId = $state<number | null>(null);
+	currentViewBox = $state({ x: 0, y: 0, width: 1000, height: 1000 });
+	viewBoxRecords = $state<Record<string, { x: number; y: number; width: number; height: number }>>(
+		{}
+	);
+	isSwitchingView = $state(false);
 
 	leftTab = $state<'lines' | 'types' | 'stations'>('lines');
 	rightTab = $state<'general' | 'line' | 'station'>('general');
