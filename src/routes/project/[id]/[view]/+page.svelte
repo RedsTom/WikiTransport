@@ -213,16 +213,16 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				<Tooltip text={m.export()}>
-					<IconButton
-						onclick={() =>
-							goto(
-								`/project/${projectId}/${editorState.activeViewId === null ? 'global' : editorState.activeViewId}/export`
-							)}
-					>
-						<span class="material-symbols-outlined">download</span>
-					</IconButton>
-				</Tooltip>
+				<Button
+					variant="tonal"
+					onclick={() =>
+						goto(
+							`/project/${projectId}/${editorState.activeViewId === null ? 'global' : editorState.activeViewId}/export`
+						)}
+				>
+					<span class="material-symbols-outlined">download</span>
+					{m.export()}
+				</Button>
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
