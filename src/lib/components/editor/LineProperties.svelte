@@ -114,7 +114,9 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<label class="text-sm text-on-surface-variant" for="stroke-width-slider">{m.stroke_width()}</label>
+		<label class="text-sm text-on-surface-variant" for="stroke-width-slider"
+			>{m.stroke_width()}</label
+		>
 		<div class="flex items-center gap-3">
 			<Slider
 				bind:value={lineStrokeWidth}
@@ -128,7 +130,9 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<label class="text-sm text-on-surface-variant" for="dash-pattern-select">{m.dash_pattern()}</label>
+		<label class="text-sm text-on-surface-variant" for="dash-pattern-select"
+			>{m.dash_pattern()}</label
+		>
 		<select
 			id="dash-pattern-select"
 			bind:value={lineDashPattern}
@@ -168,12 +172,16 @@
 	</div>
 
 	{#if lineAnchors.length > 0}
-		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">{m.anchors()}</h4>
+		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">
+			{m.anchors()}
+		</h4>
 		<div class="flex flex-col gap-0.5">
 			{#each lineAnchors as ap (ap.id)}
 				<div class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5">
 					<span class="material-symbols-outlined text-sm text-on-surface-variant">anchor</span>
-					<span class="flex-1 truncate text-sm">{m.anchor_coords({x: ap.schematicX, y: ap.schematicY})}</span>
+					<span class="flex-1 truncate text-sm"
+						>{m.anchor_coords({ x: ap.schematicX, y: ap.schematicY })}</span
+					>
 					<IconButton
 						class="!h-6 !w-6"
 						onclick={async () => {

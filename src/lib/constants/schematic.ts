@@ -30,11 +30,11 @@ export const DIR_ARROWS: Record<string, string> = {
 export const ANCHOR_ICONS: Record<string, string> = {
 	N: 'vertical_align_top',
 	NE: 'north_east',
-	E: 'chevron_right',
+	E: 'align_horizontal_right',
 	SE: 'south_east',
 	S: 'vertical_align_bottom',
 	SW: 'south_west',
-	W: 'chevron_left',
+	W: 'align_horizontal_left',
 	NW: 'north_west'
 };
 
