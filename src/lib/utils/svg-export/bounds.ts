@@ -12,18 +12,10 @@ import {
 	getBadgeLayout,
 	getInterchangeBadgeModeForStation,
 	getInterchangeBadgeDirectionForStation,
-	getHiddenInterchangeLineIdsForStation,
 	BADGE_SIZE,
 	BADGE_GAP
 } from './renderers';
 import { getLegendDimensions } from './legend';
-
-interface Bounds {
-	minX: number;
-	minY: number;
-	maxX: number;
-	maxY: number;
-}
 
 function lineNamesForStation(
 	stationId: number,
@@ -73,7 +65,7 @@ function getStationLabelExtent(
 	const { hiddenLineIds: hids } = lineNamesForStation(station.id!, data, hiddenLines);
 	const nBadges = hids.length;
 
-	let actualBadgeCount = nBadges;
+	const actualBadgeCount = nBadges;
 
 	let textL: number, textR: number, textT: number, textB: number;
 	switch (dCfg.anchor) {
@@ -123,12 +115,6 @@ function getStationLabelExtent(
 	let maxY = textB;
 
 	if (nBadges > 0) {
-		const excludedIds = getHiddenInterchangeLineIdsForStation(
-			station.id!,
-			data.viewStations,
-			isGlobal
-		);
-		const excludedSet = new Set(excludedIds);
 		const badgeMode = getInterchangeBadgeModeForStation(station.id!, data.viewStations, isGlobal);
 		const badgeDirection = getInterchangeBadgeDirectionForStation(
 			station.id!,
@@ -149,8 +135,6 @@ function getStationLabelExtent(
 		);
 
 		if (badgeLayout.centeringOffset) {
-			textL += badgeLayout.centeringOffset;
-			textR += badgeLayout.centeringOffset;
 			minX += badgeLayout.centeringOffset;
 			maxX += badgeLayout.centeringOffset;
 		}
