@@ -1,8 +1,11 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import { Button } from '$lib/components/ui';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import type { Pathname } from '$app/types';
 </script>
 
 <svelte:head>
