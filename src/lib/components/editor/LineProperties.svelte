@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { flip } from 'svelte/animate';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { LineService } from '$lib/services/LineService';
@@ -6,6 +8,8 @@
 	import type { Line } from '$lib/types/models';
 
 	import { Button, TextField, Dialog, Slider, IconButton } from '$lib/components/ui';
+
+	const flipDurationMs = 200;
 
 	let lineName = $state('');
 	let lineColor = $state('#000000');
@@ -23,11 +27,104 @@
 		}
 	});
 
-	let lineAnchors = $derived(
-		editorState.anchorPoints
-			.filter((ap) => ap.lineId === selectedLine?.id)
-			.sort((a, b) => a.order - b.order)
-	);
+	type DndItem = {
+		id: string;
+		type: 'station' | 'anchor';
+		order: number;
+		stationId?: number;
+		stationName?: string;
+		anchorId?: number;
+		schematicX?: number;
+		schematicY?: number;
+	};
+
+	let dndItems = $state<DndItem[]>([]);
+	let isDragging = $state(false);
+
+	let firstStation = $derived.by(() => {
+		const line = selectedLine;
+		if (!line?.id) return null;
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+		if (rps.length === 0) return null;
+		const st = editorState.stations.find((s) => s.id === rps[0].stationId);
+		return st ? { station: st, order: rps[0].order } : null;
+	});
+
+	let lastStation = $derived.by(() => {
+		const line = selectedLine;
+		if (!line?.id) return null;
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+		if (rps.length === 0) return null;
+		const st = editorState.stations.find((s) => s.id === rps[rps.length - 1].stationId);
+		return st ? { station: st, order: rps[rps.length - 1].order } : null;
+	});
+
+	let firstStationOrder = $derived(firstStation?.order ?? 0);
+	let lastStationOrder = $derived(lastStation?.order ?? 0);
+
+	$effect(() => {
+		if (isDragging) return;
+		const line = selectedLine;
+		if (!line?.id) {
+			dndItems = [];
+			return;
+		}
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+		const anchors = editorState.anchorPoints
+			.filter((ap) => ap.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+
+		if (rps.length < 2) return;
+
+		const items: DndItem[] = [];
+		let ai = 0;
+
+		for (let ri = 1; ri < rps.length - 1; ri++) {
+			const rp = rps[ri];
+			const station = editorState.stations.find((s) => s.id === rp.stationId);
+			if (!station) continue;
+			while (ai < anchors.length && anchors[ai].order < rp.order) {
+				if (anchors[ai].order > firstStationOrder) {
+					items.push({
+						id: `a-${anchors[ai].id!}`,
+						type: 'anchor',
+						order: anchors[ai].order,
+						anchorId: anchors[ai].id,
+						schematicX: anchors[ai].schematicX,
+						schematicY: anchors[ai].schematicY
+					});
+				}
+				ai++;
+			}
+			items.push({
+				id: `s-${station.id!}`,
+				type: 'station',
+				order: rp.order,
+				stationId: station.id,
+				stationName: station.name
+			});
+		}
+		while (ai < anchors.length) {
+			if (anchors[ai].order > firstStationOrder && anchors[ai].order < lastStationOrder) {
+				items.push({
+					id: `a-${anchors[ai].id!}`,
+					type: 'anchor',
+					order: anchors[ai].order,
+					anchorId: anchors[ai].id,
+					schematicX: anchors[ai].schematicX,
+					schematicY: anchors[ai].schematicY
+				});
+			}
+			ai++;
+		}
+		dndItems = items;
+	});
 
 	let deleteConfirmOpen = $state(false);
 
@@ -45,6 +142,48 @@
 			await editorState.loadLines();
 			await editorState.loadRoutePoints();
 		}
+	}
+
+	function handleDndConsider(e: CustomEvent<DndEvent<DndItem>>) {
+		isDragging = true;
+		dndItems = e.detail.items;
+	}
+
+	async function handleDndFinalize(e: CustomEvent<DndEvent<DndItem>>) {
+		const items = e.detail.items as DndItem[];
+
+		let i = 0;
+		while (i < items.length && items[i].type === 'anchor') i++;
+
+		const updates: { id: number; order: number }[] = [];
+		while (i < items.length) {
+			if (items[i].type === 'station') {
+				const prevOrder = items[i].order;
+				const anchorItems: DndItem[] = [];
+				let j = i + 1;
+				while (j < items.length && items[j].type === 'anchor') {
+					anchorItems.push(items[j]);
+					j++;
+				}
+				const nextOrder = j < items.length ? items[j].order : lastStationOrder;
+				if (anchorItems.length > 0) {
+					const n = anchorItems.length;
+					for (let k = 0; k < n; k++) {
+						const newOrder = prevOrder + ((k + 1) * (nextOrder - prevOrder)) / (n + 1);
+						const aid = anchorItems[k].anchorId;
+						if (aid != null) updates.push({ id: aid, order: newOrder });
+					}
+				}
+				i = j;
+			} else {
+				i++;
+			}
+		}
+		for (const u of updates) {
+			await AnchorPointService.update(u.id, { order: u.order });
+		}
+		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+		isDragging = false;
 	}
 </script>
 
@@ -102,30 +241,77 @@
 		</select>
 	</div>
 
-	{#if lineAnchors.length > 0}
-		<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">
-			{m.anchors()}
-		</h4>
-		<div class="flex flex-col gap-0.5">
-			{#each lineAnchors as ap (ap.id)}
-				<div class="flex items-center gap-2 rounded-md bg-surface-variant p-1.5">
-					<span class="material-symbols-outlined text-sm text-on-surface-variant">anchor</span>
-					<span class="flex-1 truncate text-sm"
-						>{m.anchor_coords({ x: ap.schematicX, y: ap.schematicY })}</span
-					>
-					<IconButton
-						class="!h-6 !w-6"
-						onclick={async () => {
-							await AnchorPointService.delete(ap.id!);
-							await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+	<h4 class="text-xs font-bold tracking-wider text-on-surface-variant uppercase">
+		{m.anchors()}
+	</h4>
+
+	<div class="flex flex-col gap-0.5">
+		{#if firstStation}
+			<div
+				class="flex items-center gap-2 rounded-md bg-surface-variant/60 px-2 py-1.5 text-sm font-medium"
+			>
+				<span class="material-symbols-outlined text-sm">location_on</span>
+				<span>{firstStation.station.name}</span>
+			</div>
+		{/if}
+
+		{#if dndItems.length > 0}
+			<div
+				use:dndzone={{ items: dndItems, flipDurationMs }}
+				onconsider={handleDndConsider}
+				onfinalize={handleDndFinalize}
+				class="flex flex-col gap-0.5"
+			>
+				{#each dndItems as item (item.id)}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						animate:flip={{ duration: flipDurationMs }}
+						role="none"
+						class="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors {item.type ===
+						'station'
+							? 'bg-surface-variant/60 font-medium'
+							: 'hover:bg-surface-variant/40'}"
+						onmouseenter={() => {
+							if (item.type === 'anchor') editorState.hoveredAnchorId = item.anchorId!;
+						}}
+						onmouseleave={() => {
+							if (item.type === 'anchor') editorState.hoveredAnchorId = null;
 						}}
 					>
-						<span class="material-symbols-outlined text-sm">remove</span>
-					</IconButton>
-				</div>
-			{/each}
-		</div>
-	{/if}
+						{#if item.type === 'station'}
+							<span class="material-symbols-outlined text-sm">location_on</span>
+							<span>{item.stationName}</span>
+						{:else}
+							<span class="cursor-grab text-on-surface-variant active:cursor-grabbing">
+								<span class="material-symbols-outlined text-base">menu</span>
+							</span>
+							<span class="flex-1 truncate"
+								>{m.anchor_coords({ x: item.schematicX!, y: item.schematicY! })}</span
+							>
+							<IconButton
+								class="!h-6 !w-6"
+								onclick={async () => {
+									await AnchorPointService.delete(item.anchorId!);
+									await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+								}}
+							>
+								<span class="material-symbols-outlined text-sm">remove</span>
+							</IconButton>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		{#if lastStation}
+			<div
+				class="flex items-center gap-2 rounded-md bg-surface-variant/60 px-2 py-1.5 text-sm font-medium"
+			>
+				<span class="material-symbols-outlined text-sm">location_on</span>
+				<span>{lastStation.station.name}</span>
+			</div>
+		{/if}
+	</div>
 
 	<Button variant="filled" onclick={() => (deleteConfirmOpen = true)}>
 		<span class="material-symbols-outlined">delete</span>

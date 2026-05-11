@@ -11,7 +11,9 @@
 	import { getContrastColor } from '$lib/utils/color';
 	import {
 		screenToSvg,
+		screenToSvgRaw,
 		distToSegment,
+		closestPointOnSegment,
 		scaleDashPattern,
 		getLabelLayout,
 		createOctilinearPath
@@ -293,6 +295,17 @@
 
 	function handleMouseDown(e: MouseEvent) {
 		const target = e.target as SVGElement;
+
+		if (editorState.placementMode === 'station') {
+			placeStationAtClick(e);
+			return;
+		}
+
+		if (editorState.placementMode === 'anchor') {
+			placeAnchorAtClick(e);
+			return;
+		}
+
 		if (target.tagName === 'circle') return;
 		if (target.tagName === 'polygon' && target.closest('[data-anchor-id]')) return;
 
@@ -303,20 +316,6 @@
 			editorState.selectedStationId = null;
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
-			if (editorState.placementMode === 'anchor') {
-				editorState.anchorLineClicked = true;
-			}
-			return;
-		}
-
-		if (editorState.placementMode === 'station') {
-			placeStationAtClick(e);
-			return;
-		}
-
-		if (editorState.placementMode === 'anchor') {
-			if (!editorState.anchorLineClicked) return;
-			placeAnchorAtClick(e);
 			return;
 		}
 
@@ -326,6 +325,7 @@
 	}
 
 	function startDragAnchor(e: MouseEvent, id: number) {
+		if (editorState.placementMode) return;
 		e.stopPropagation();
 		draggedAnchorId = id;
 		editorState.selectedAnchorId = id;
@@ -334,37 +334,54 @@
 	}
 
 	async function placeAnchorAtClick(e: MouseEvent) {
-		if (!editorState.selectedLineId) return;
-		const pos = screenToSvg(e, e.currentTarget as SVGSVGElement);
+		const svgEl = e.currentTarget as SVGSVGElement;
+		const pos = screenToSvgRaw(e, svgEl);
+		const target = e.target as SVGElement;
+		const lineEl = target.closest('[data-line]');
+		let lineId: number | null = null;
+		if (lineEl) {
+			lineId = Number(lineEl.getAttribute('data-line'));
+		}
 
-		const rps = editorState.routePoints
-			.filter((rp) => rp.lineId === editorState.selectedLineId)
-			.sort((a, b) => a.order - b.order);
-		if (rps.length < 2) return;
+		const lines = lineId
+			? editorState.lines.filter((l) => l.id === lineId)
+			: editorState.lines.filter((l) => l.id && !editorState.effectiveHiddenLineIds.has(l.id));
 
-		let bestDist = Infinity;
-		let bestOrder = 0;
+		let best: { lineId: number; dist: number; order: number; cx: number; cy: number } | null = null;
 
-		for (let i = 0; i < rps.length - 1; i++) {
-			const sA = editorState.stations.find((s) => s.id === rps[i].stationId);
-			const sB = editorState.stations.find((s) => s.id === rps[i + 1].stationId);
-			if (!sA || !sB) continue;
-			const pA = editorState.stationPosition(sA);
-			const pB = editorState.stationPosition(sB);
-			const dist = distToSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
-			if (dist < bestDist) {
-				bestDist = dist;
-				bestOrder = (rps[i].order + rps[i + 1].order) / 2;
+		for (const line of lines) {
+			if (!line.id || editorState.effectiveHiddenLineIds.has(line.id)) continue;
+			const rps = editorState.routePoints
+				.filter((rp) => rp.lineId === line.id)
+				.sort((a, b) => a.order - b.order);
+			if (rps.length < 2) continue;
+			for (let i = 0; i < rps.length - 1; i++) {
+				const sA = editorState.stations.find((s) => s.id === rps[i].stationId);
+				const sB = editorState.stations.find((s) => s.id === rps[i + 1].stationId);
+				if (!sA || !sB) continue;
+				const pA = editorState.stationPosition(sA);
+				const pB = editorState.stationPosition(sB);
+				const dist = distToSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
+				if (!best || dist < best.dist) {
+					const cp = closestPointOnSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
+					best = {
+						lineId: line.id,
+						dist,
+						order: (rps[i].order + rps[i + 1].order) / 2,
+						cx: cp.x,
+						cy: cp.y
+					};
+				}
 			}
 		}
 
-		if (bestDist > 60) return;
+		if (!best || best.dist > 60) return;
 
 		await AnchorPointService.create(
-			editorState.selectedLineId,
-			pos.x,
-			pos.y,
-			bestOrder,
+			best.lineId,
+			best.cx,
+			best.cy,
+			best.order,
 			editorState.activeViewId ?? undefined
 		);
 		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
@@ -381,7 +398,20 @@
 			pos.x,
 			pos.y
 		);
-		if (editorState.selectedLineId !== null) {
+		const pending = editorState.pendingLineInsert;
+		if (pending) {
+			const rp = editorState.routePoints.find(
+				(r) => r.lineId === editorState.selectedLineId && r.stationId === pending.refStationId
+			);
+			if (editorState.selectedLineId !== null && rp) {
+				await StationService.addStationToLine(
+					editorState.selectedLineId,
+					stationId,
+					rp.order + (pending.before ? -0.5 : 0.5)
+				);
+			}
+			editorState.pendingLineInsert = null;
+		} else if (editorState.selectedLineId !== null) {
 			const existingPoints = editorState.routePoints.filter(
 				(rp) => rp.lineId === editorState.selectedLineId
 			);
@@ -586,6 +616,7 @@
 	}
 
 	function startDragStation(e: MouseEvent, id: number) {
+		if (editorState.placementMode) return;
 		e.stopPropagation();
 		draggedStationId = id;
 		didDragStation = false;
@@ -982,12 +1013,13 @@
 				!editorState.isGlobalView && editorState.effectiveHiddenLineIds.has(ap.lineId)}
 			{#if !isHiddenAnchor}
 				{@const isSelected = editorState.selectedAnchorId === ap.id}
+				{@const isHovered = editorState.hoveredAnchorId === ap.id}
 				<polygon
 					points="-5,0 0,-5 5,0 0,5"
-					fill={isSelected ? 'currentColor' : 'currentColor'}
-					stroke={isSelected ? 'black' : 'none'}
-					stroke-width={isSelected ? 3 : 0}
-					class="{isSelected ? 'text-primary' : 'text-primary/40'} cursor-pointer"
+					fill={isSelected || isHovered ? 'currentColor' : 'currentColor'}
+					stroke={isSelected ? 'black' : isHovered ? 'var(--color-primary)' : 'none'}
+					stroke-width={isSelected ? 3 : isHovered ? 2 : 0}
+					class="{isSelected || isHovered ? 'text-primary' : 'text-primary/40'} cursor-pointer"
 					transform="translate({ap.schematicX}, {ap.schematicY})"
 					data-anchor-id={ap.id}
 					onmousedown={(e) => startDragAnchor(e, ap.id!)}

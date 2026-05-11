@@ -484,7 +484,7 @@
 
 		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
 			<div class="flex items-center justify-between text-sm text-on-surface-variant">
-				<span>{m.anchor_distance()}</span>
+				<span>{m.label_distance()}</span>
 				<Tooltip text={m.view_specific_property()}>
 					<span class="material-symbols-outlined text-xs text-outline">tune</span>
 				</Tooltip>

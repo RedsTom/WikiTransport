@@ -41,9 +41,10 @@ export class EditorState {
 	selectedLineId = $state<number | null>(null);
 	selectedStationId = $state<number | null>(null);
 	selectedAnchorId = $state<number | null>(null);
+	hoveredAnchorId = $state<number | null>(null);
 
 	placementMode = $state<'station' | 'anchor' | null>(null);
-	anchorLineClicked = $state(false);
+	pendingLineInsert = $state<{ refStationId: number; before: boolean } | null>(null);
 
 	hiddenLineIds = $state<Set<number>>(new Set());
 
@@ -197,7 +198,6 @@ export class EditorState {
 		this.selectedStationId = null;
 		this.selectedAnchorId = null;
 		this.placementMode = null;
-		this.anchorLineClicked = false;
 		this.hiddenLineIds = new Set();
 		this.stationToDelete = null;
 		this.lineToDelete = null;

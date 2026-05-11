@@ -46,48 +46,35 @@
 		await editorState.loadRoutePoints();
 	}
 
-	async function handleAddBefore() {
+	function startAddPlacement(before: boolean) {
 		if (editorState.selectedLineId === null || editorState.selectedStationId === null) return;
 		const rp = editorState.routePoints.find(
 			(r) =>
 				r.lineId === editorState.selectedLineId && r.stationId === editorState.selectedStationId
 		);
 		if (!rp) return;
-		const name = m.new_station({ n: editorState.stations.length + 1 });
-		const station = editorState.stations.find((s) => s.id === editorState.selectedStationId);
-		const id = await StationService.createStation(
-			editorState.project!.id,
-			name,
-			0,
-			0,
-			station?.schematicX ?? 0,
-			station?.schematicY ?? 0
-		);
-		await StationService.addStationToLine(editorState.selectedLineId, id, rp.order - 0.5);
-		await EditorService.reloadAll(editorState);
-		editorState.selectedStationId = id;
+		editorState.pendingLineInsert = { refStationId: editorState.selectedStationId, before };
+		editorState.placementMode = 'station';
 	}
 
-	async function handleAddAfter() {
-		if (editorState.selectedLineId === null || editorState.selectedStationId === null) return;
-		const rp = editorState.routePoints.find(
-			(r) =>
-				r.lineId === editorState.selectedLineId && r.stationId === editorState.selectedStationId
-		);
-		if (!rp) return;
-		const name = m.new_station({ n: editorState.stations.length + 1 });
-		const station = editorState.stations.find((s) => s.id === editorState.selectedStationId);
-		const id = await StationService.createStation(
-			editorState.project!.id,
-			name,
-			0,
-			0,
-			station?.schematicX ?? 0,
-			station?.schematicY ?? 0
-		);
-		await StationService.addStationToLine(editorState.selectedLineId, id, rp.order + 0.5);
-		await EditorService.reloadAll(editorState);
-		editorState.selectedStationId = id;
+	function handleStationShortcut(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		if (target.matches('input, textarea, select, [contenteditable]')) return;
+		if (e.key === 's' || e.key === 'S') {
+			e.preventDefault();
+			if (editorState.placementMode === 'station') {
+				editorState.placementMode = null;
+				editorState.pendingLineInsert = null;
+			} else if (beforeAfterVisible) {
+				if (e.shiftKey) {
+					startAddPlacement(true);
+				} else {
+					startAddPlacement(false);
+				}
+			} else {
+				editorState.placementMode = 'station';
+			}
+		}
 	}
 
 	const {
@@ -147,6 +134,8 @@
 		new Map(editorState.transitTypes.map((t) => [t.id, t.icon ?? 'directions_transit']))
 	);
 </script>
+
+<svelte:window onkeydown={handleStationShortcut} />
 
 <div
 	class="absolute bottom-4 left-1/2 z-30 flex max-w-[80vw] -translate-x-1/2 items-center gap-2 rounded-full border border-outline/20 bg-surface px-4 py-2 shadow-xl"
@@ -284,12 +273,12 @@
 		</Tooltip>
 	{:else if beforeAfterVisible}
 		<Tooltip text={`${m.add_before()} (⇧+S)`}>
-			<IconButton class="!h-6 !w-6 shrink-0" onclick={handleAddBefore}>
+			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(true)}>
 				<span class="material-symbols-outlined -scale-x-[100%] text-sm">new_label</span>
 			</IconButton>
 		</Tooltip>
 		<Tooltip text={`${m.add_after()} (S)`}>
-			<IconButton class="!h-6 !w-6 shrink-0" onclick={handleAddAfter}>
+			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(false)}>
 				<span class="material-symbols-outlined text-sm">new_label</span>
 			</IconButton>
 		</Tooltip>

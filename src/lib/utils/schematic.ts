@@ -12,6 +12,14 @@ export function screenToSvg(e: MouseEvent, svg: SVGSVGElement): { x: number; y: 
 	};
 }
 
+export function screenToSvgRaw(e: MouseEvent, svg: SVGSVGElement): { x: number; y: number } {
+	const pt = svg.createSVGPoint();
+	pt.x = e.clientX;
+	pt.y = e.clientY;
+	const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+	return { x: svgP.x, y: svgP.y };
+}
+
 export function distToSegment(
 	px: number,
 	py: number,
@@ -27,6 +35,23 @@ export function distToSegment(
 	let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
 	t = Math.max(0, Math.min(1, t));
 	return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+export function closestPointOnSegment(
+	px: number,
+	py: number,
+	ax: number,
+	ay: number,
+	bx: number,
+	by: number
+): { x: number; y: number } {
+	const dx = bx - ax,
+		dy = by - ay;
+	const lenSq = dx * dx + dy * dy;
+	if (lenSq === 0) return { x: ax, y: ay };
+	let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+	t = Math.max(0, Math.min(1, t));
+	return { x: ax + t * dx, y: ay + t * dy };
 }
 
 export function scaleDashPattern(

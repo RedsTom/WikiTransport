@@ -55,14 +55,16 @@
 			editorState.placementMode = null;
 		} else {
 			editorState.placementMode = 'anchor';
-			editorState.anchorLineClicked = false;
 		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		if (target.matches('input, textarea, select, [contenteditable]')) return;
 		if (e.key === 'Escape') {
 			if (editorState.placementMode) {
 				editorState.placementMode = null;
+				editorState.pendingLineInsert = null;
 			} else if (editorState.selectedAnchorId) {
 				editorState.selectedAnchorId = null;
 			} else if (editorState.selectedStationId) {
@@ -76,15 +78,15 @@
 				e.preventDefault();
 				editorState.stationToDelete = editorState.selectedStationId;
 				editorState.deleteStationOpen = true;
-			} else if (editorState.selectedLineId) {
-				e.preventDefault();
-				editorState.lineToDelete = editorState.selectedLineId;
-				editorState.deleteLineOpen = true;
 			} else if (editorState.selectedAnchorId) {
 				e.preventDefault();
 				editorState.anchorToDelete = editorState.selectedAnchorId;
 				editorState.deleteAnchorOpen = true;
 			}
+		}
+		if (e.key === 'a' || e.key === 'A') {
+			e.preventDefault();
+			handleToggleAnchor();
 		}
 		if (e.key === 'd' || e.key === 'D') {
 			e.preventDefault();
@@ -92,6 +94,23 @@
 			editorState.selectedStationId = null;
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
+		}
+		if (e.key === 'Tab') {
+			const rps = editorState.routePoints
+				.filter((rp) => rp.lineId === editorState.selectedLineId)
+				.sort((a, b) => a.order - b.order);
+			if (rps.length > 0) {
+				e.preventDefault();
+				let nextIndex = 0;
+				if (editorState.selectedStationId !== null) {
+					const cur = rps.findIndex((rp) => rp.stationId === editorState.selectedStationId);
+					if (cur !== -1) {
+						nextIndex = e.shiftKey ? (cur - 1 + rps.length) % rps.length : (cur + 1) % rps.length;
+					}
+				}
+				editorState.selectedStationId = rps[nextIndex].stationId;
+				editorState.rightTab = 'station';
+			}
 		}
 	}
 
@@ -271,11 +290,7 @@
 							class="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-lg"
 						>
 							<span class="material-symbols-outlined align-middle text-sm">anchor</span>
-							{#if editorState.anchorLineClicked}
-								{m.click_to_place_anchor()}
-							{:else}
-								{m.click_to_select_line_then_place_anchor()}
-							{/if}
+							{m.click_on_line_to_place_anchor()}
 							<kbd class="rounded bg-white/20 px-1.5 py-0.5 text-xs">Esc</kbd>
 							{m.esc_to_cancel()}
 						</div>
