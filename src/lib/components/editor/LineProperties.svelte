@@ -152,10 +152,24 @@
 	async function handleDndFinalize(e: CustomEvent<DndEvent<DndItem>>) {
 		const items = e.detail.items as DndItem[];
 
+		const updates: { id: number; order: number }[] = [];
+
 		let i = 0;
 		while (i < items.length && items[i].type === 'anchor') i++;
 
-		const updates: { id: number; order: number }[] = [];
+		if (i > 0) {
+			const nextOrder = i < items.length ? items[i].order : lastStationOrder;
+			for (let k = 0; k < i; k++) {
+				const aid = items[k].anchorId;
+				if (aid != null) {
+					updates.push({
+						id: aid,
+						order: firstStationOrder + ((k + 1) * (nextOrder - firstStationOrder)) / (i + 1)
+					});
+				}
+			}
+		}
+
 		while (i < items.length) {
 			if (items[i].type === 'station') {
 				const prevOrder = items[i].order;
