@@ -1,4 +1,3 @@
-import type { Station } from '$lib/types/models';
 import { GRID_SIZE } from '$lib/constants/schematic';
 
 export function screenToSvg(e: MouseEvent, svg: SVGSVGElement): { x: number; y: number } {

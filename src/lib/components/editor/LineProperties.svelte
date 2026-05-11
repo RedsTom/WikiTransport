@@ -5,7 +5,7 @@
 	import { editorState } from '$lib/store/editor.svelte';
 	import { LineService } from '$lib/services/LineService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import type { Line } from '$lib/types/models';
+	import type { Line } from '$lib/types';
 
 	import { Button, TextField, Dialog, Slider, IconButton } from '$lib/components/ui';
 

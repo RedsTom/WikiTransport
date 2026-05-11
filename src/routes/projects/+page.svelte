@@ -7,7 +7,7 @@
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import type { Project } from '$lib/types/models';
+	import type { Project } from '$lib/types';
 
 	import { Button, Fab, IconButton, Dialog, TextField } from '$lib/components/ui';
 

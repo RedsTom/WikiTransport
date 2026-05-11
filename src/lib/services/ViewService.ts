@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { View } from '../types/models';
+import type { View } from '../types';
 
 export class ViewService {
 	static async getForProject(projectId: number): Promise<View[]> {

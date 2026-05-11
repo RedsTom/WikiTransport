@@ -9,14 +9,12 @@ import type {
 	ViewStation,
 	InterchangeBadgeMode,
 	InterchangeBadgeDirection
-} from '../types/models';
+} from '../types';
 import { LineService } from '../services/LineService';
 import { StationService } from '../services/StationService';
 import { TransitTypeService } from '../services/TransitTypeService';
 import { AnchorPointService } from '../services/AnchorPointService';
 import { ViewService } from '../services/ViewService';
-import { ViewStationService } from '../services/ViewStationService';
-import { EditorService } from '../services/EditorService';
 
 export class EditorState {
 	project = $state<Project | null>(null);
@@ -99,75 +97,52 @@ export class EditorState {
 	}
 
 	stationLabelDirection(station: Station): string {
-		if (this.isGlobalView) return station.labelDirection ?? 'E';
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		if (vs) return vs.labelDirection ?? 'E';
-		return station.labelDirection ?? 'E';
+		return this._stationViewValue(station, 'labelDirection', 'E');
 	}
 
 	stationLabelAnchor(station: Station): string {
-		if (this.isGlobalView) return station.labelAnchor ?? 'E';
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		if (vs) return vs.labelAnchor ?? 'E';
-		return station.labelAnchor ?? 'E';
+		return this._stationViewValue(station, 'labelAnchor', 'E');
 	}
 
 	stationSubtitleAlign(station: Station): string | undefined {
-		if (this.isGlobalView) return station.subtitleAlign;
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		if (vs) return vs.subtitleAlign;
-		return station.subtitleAlign;
+		return this._stationViewValue<string | undefined>(station, 'subtitleAlign', undefined);
 	}
 
 	stationAnchorDx(station: Station): number {
-		return this._stationAnchorValue(station, 'anchorDx', 14);
+		return this._stationViewValue(station, 'anchorDx', 14);
 	}
 
 	stationAnchorDy(station: Station): number {
-		return this._stationAnchorValue(station, 'anchorDy', 14);
-	}
-
-	private _stationAnchorValue(
-		station: Station,
-		field: 'anchorDx' | 'anchorDy',
-		defaultValue: number
-	): number {
-		if (this.isGlobalView) return station[field] ?? defaultValue;
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		if (vs) return vs[field] ?? station[field] ?? defaultValue;
-		return station[field] ?? defaultValue;
+		return this._stationViewValue(station, 'anchorDy', 14);
 	}
 
 	stationInterchangeBadgeMode(station: Station): InterchangeBadgeMode {
-		if (this.isGlobalView) return 'station';
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
-		return vs?.interchangeBadgeMode ?? 'station';
+		return this._stationViewValue<InterchangeBadgeMode>(station, 'interchangeBadgeMode', 'station');
 	}
 
 	stationInterchangeBadgeDirection(station: Station): InterchangeBadgeDirection {
-		if (this.isGlobalView) return 'S';
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
+		return this._stationViewValue<InterchangeBadgeDirection>(
+			station,
+			'interchangeBadgeDirection',
+			'S'
 		);
-		return vs?.interchangeBadgeDirection ?? 'S';
 	}
 
 	stationHiddenInterchangeLineIds(station: Station): number[] {
-		if (this.isGlobalView) return [];
+		return this._stationViewValue<number[]>(station, 'hiddenInterchangeLineIds', []);
+	}
+
+	private _stationViewValue<T>(
+		station: Station,
+		field: keyof Station | keyof ViewStation,
+		defaultValue: T
+	): T {
+		if (this.isGlobalView) return (station as any)[field] ?? defaultValue;
 		const vs = this.viewStations.find(
 			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
 		);
-		return vs?.hiddenInterchangeLineIds ?? [];
+		if (vs) return (vs as any)[field] ?? (station as any)[field] ?? defaultValue;
+		return (station as any)[field] ?? defaultValue;
 	}
 
 	toggleStationVisibility(id: number) {

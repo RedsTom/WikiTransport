@@ -2,11 +2,9 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { TransitTypeService } from '$lib/services/TransitTypeService';
-	import type { TransitType } from '$lib/types/models';
-
 	import { EditorService } from '$lib/services/EditorService';
-	import { Button, TextField, Select, Dialog, Tooltip } from '$lib/components/ui';
-	import type { IconShape } from '$lib/types/models';
+	import { TextField, Tooltip, Select, Button, Dialog } from '$lib/components/ui';
+	import type { TransitType, IconShape } from '$lib/types';
 
 	const ICON_OPTIONS = [
 		'directions_bus',

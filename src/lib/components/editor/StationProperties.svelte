@@ -2,18 +2,14 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { StationService } from '$lib/services/StationService';
-	import { AnchorPointService } from '$lib/services/AnchorPointService';
 	import { ViewStationService } from '$lib/services/ViewStationService';
 	import { EditorService } from '$lib/services/EditorService';
 
 	import { Button, TextField, Dialog, Tooltip, NumberInput } from '$lib/components/ui';
 	import { DIR_ARROWS, ANCHOR_ICONS } from '$lib/constants/schematic';
-	import type {
-		InterchangeBadgeMode,
-		InterchangeBadgeDirection,
-		Line,
-		TransitType
-	} from '$lib/types/models';
+	import DirectionGrid from './properties/DirectionGrid.svelte';
+	import InterchangeBadgeControls from './properties/InterchangeBadgeControls.svelte';
+	import type { InterchangeBadgeMode, InterchangeBadgeDirection, Line } from '$lib/types';
 
 	let stationName = $state('');
 	let stationSubtitle = $state('');
@@ -109,7 +105,7 @@
 							schematicX: station.schematicX,
 							schematicY: station.schematicY,
 							interchangeBadgeMode: mode
-						} as import('$lib/types/models').ViewStation
+						} as import('$lib/types').ViewStation
 					];
 				}
 			}
@@ -141,7 +137,7 @@
 							schematicX: station.schematicX,
 							schematicY: station.schematicY,
 							interchangeBadgeDirection: dir
-						} as import('$lib/types/models').ViewStation
+						} as import('$lib/types').ViewStation
 					];
 				}
 			}
@@ -185,7 +181,7 @@
 	}
 
 	async function applyStationUpdate(
-		partialStation: Partial<import('$lib/types/models').Station>,
+		partialStation: Partial<import('$lib/types').Station>,
 		viewStationUpdateFn?: (viewId: number, stationId: number) => Promise<void>
 	) {
 		const station = editorState.stations.find((s) => s.id === editorState.selectedStationId);
@@ -216,7 +212,7 @@
 						schematicX: station.schematicX,
 						schematicY: station.schematicY,
 						...cleanVs
-					} as import('$lib/types/models').ViewStation
+					} as import('$lib/types').ViewStation
 				];
 			}
 		}
@@ -225,21 +221,21 @@
 	async function setLabelDirection(dir: string) {
 		labelDir = dir;
 		await applyStationUpdate({ labelDirection: dir }, (vid, sid) =>
-			ViewStationService.setLabelDirection(vid, sid, dir)
+			ViewStationService.updateViewStation(vid, sid, { labelDirection: dir })
 		);
 	}
 
 	async function setSubtitleAlign(align: string) {
 		subtitleAlign = align;
 		await applyStationUpdate({ subtitleAlign: align || undefined }, (vid, sid) =>
-			ViewStationService.setSubtitleAlign(vid, sid, align)
+			ViewStationService.updateViewStation(vid, sid, { subtitleAlign: align || undefined })
 		);
 	}
 
 	async function setLabelAnchor(anchor: string) {
 		labelAnchor = anchor;
 		await applyStationUpdate({ labelAnchor: anchor }, (vid, sid) =>
-			ViewStationService.setLabelAnchor(vid, sid, anchor)
+			ViewStationService.updateViewStation(vid, sid, { labelAnchor: anchor })
 		);
 	}
 
@@ -279,14 +275,14 @@
 	async function commitAnchorDx(d: number) {
 		anchorDx = d;
 		await applyStationUpdate({ anchorDx: d }, (vid, sid) =>
-			ViewStationService.setAnchorDx(vid, sid, d)
+			ViewStationService.updateViewStation(vid, sid, { anchorDx: d })
 		);
 	}
 
 	async function commitAnchorDy(d: number) {
 		anchorDy = d;
 		await applyStationUpdate({ anchorDy: d }, (vid, sid) =>
-			ViewStationService.setAnchorDy(vid, sid, d)
+			ViewStationService.updateViewStation(vid, sid, { anchorDy: d })
 		);
 	}
 
@@ -368,119 +364,21 @@
 			</div>
 		{/if}
 
-		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-			<div class="flex items-center justify-between text-sm text-on-surface-variant">
-				<span>{m.label_direction()}</span>
-				<Tooltip text={m.view_specific_property()}>
-					<span class="material-symbols-outlined text-xs text-outline">tune</span>
-				</Tooltip>
-			</div>
-			<div class="flex flex-col gap-1 self-center">
-				<div class="flex gap-1">
-					{#each ['NW', 'N', 'NE'] as dir}
-						<button
-							class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelDir ===
-							dir
-								? 'border-primary bg-primary-container text-primary'
-								: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-							onclick={() => setLabelDirection(dir)}
-							title={dir}
-						>
-							<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-						</button>
-					{/each}
-				</div>
-				<div class="flex gap-1">
-					{#each ['W', '', 'E'] as dir}
-						{#if dir}
-							<button
-								class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelDir ===
-								dir
-									? 'border-primary bg-primary-container text-primary'
-									: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-								onclick={() => setLabelDirection(dir)}
-								title={dir}
-							>
-								<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-							</button>
-						{:else}
-							<div class="aspect-square w-9"></div>
-						{/if}
-					{/each}
-				</div>
-				<div class="flex gap-1">
-					{#each ['SW', 'S', 'SE'] as dir}
-						<button
-							class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelDir ===
-							dir
-								? 'border-primary bg-primary-container text-primary'
-								: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-							onclick={() => setLabelDirection(dir)}
-							title={dir}
-						>
-							<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-						</button>
-					{/each}
-				</div>
-			</div>
-		</div>
+		<DirectionGrid
+			title={m.label_direction()}
+			tooltip={m.view_specific_property()}
+			selectedDir={labelDir}
+			iconMap={DIR_ARROWS}
+			onchange={setLabelDirection}
+		/>
 
-		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-			<div class="flex items-center justify-between text-sm text-on-surface-variant">
-				<span>{m.label_positioning()}</span>
-				<Tooltip text={m.view_specific_property()}>
-					<span class="material-symbols-outlined text-xs text-outline">tune</span>
-				</Tooltip>
-			</div>
-			<div class="flex flex-col gap-1 self-center">
-				<div class="flex gap-1">
-					{#each ['NW', 'N', 'NE'] as anchor}
-						<button
-							class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelAnchor ===
-							anchor
-								? 'border-primary bg-primary-container text-primary'
-								: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-							onclick={() => setLabelAnchor(anchor)}
-							title={anchor}
-						>
-							<span class="material-symbols-outlined">{ANCHOR_ICONS[anchor]}</span>
-						</button>
-					{/each}
-				</div>
-				<div class="flex gap-1">
-					{#each ['W', '', 'E'] as anchor}
-						{#if anchor}
-							<button
-								class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelAnchor ===
-								anchor
-									? 'border-primary bg-primary-container text-primary'
-									: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-								onclick={() => setLabelAnchor(anchor)}
-								title={anchor}
-							>
-								<span class="material-symbols-outlined">{ANCHOR_ICONS[anchor]}</span>
-							</button>
-						{:else}
-							<div class="aspect-square w-9"></div>
-						{/if}
-					{/each}
-				</div>
-				<div class="flex gap-1">
-					{#each ['SW', 'S', 'SE'] as anchor}
-						<button
-							class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {labelAnchor ===
-							anchor
-								? 'border-primary bg-primary-container text-primary'
-								: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-							onclick={() => setLabelAnchor(anchor)}
-							title={anchor}
-						>
-							<span class="material-symbols-outlined">{ANCHOR_ICONS[anchor]}</span>
-						</button>
-					{/each}
-				</div>
-			</div>
-		</div>
+		<DirectionGrid
+			title={m.label_positioning()}
+			tooltip={m.view_specific_property()}
+			selectedDir={labelAnchor}
+			iconMap={ANCHOR_ICONS}
+			onchange={setLabelAnchor}
+		/>
 
 		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
 			<div class="flex items-center justify-between text-sm text-on-surface-variant">
@@ -516,133 +414,16 @@
 		</div>
 
 		{#if hasInterchangeBadges}
-			<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-				<div class="flex items-center justify-between text-sm text-on-surface-variant">
-					<span>{m.interchange_badge_mode()}</span>
-					<Tooltip text={m.view_specific_property()}>
-						<span class="material-symbols-outlined text-xs text-outline">tune</span>
-					</Tooltip>
-				</div>
-				<div class="flex w-full flex-col overflow-hidden rounded-md border border-outline/20">
-					<button
-						class="flex w-full items-center justify-center border-b border-outline/20 py-2 text-sm transition-colors {interchangeBadgeMode ===
-						'station'
-							? 'bg-primary-container text-primary'
-							: 'text-on-surface-variant hover:bg-surface-variant'}"
-						onclick={() => setInterchangeBadgeMode('station')}
-					>
-						{m.ic_mode_station()}
-					</button>
-					<button
-						class="flex w-full items-center justify-center border-b border-outline/20 py-2 text-sm transition-colors {interchangeBadgeMode ===
-						'next_to_text'
-							? 'bg-primary-container text-primary'
-							: 'text-on-surface-variant hover:bg-surface-variant'}"
-						onclick={() => setInterchangeBadgeMode('next_to_text')}
-					>
-						{m.ic_mode_next_to_text()}
-					</button>
-					<button
-						class="flex w-full items-center justify-center py-2 text-sm transition-colors {interchangeBadgeMode ===
-						'stack_with_text'
-							? 'bg-primary-container text-primary'
-							: 'text-on-surface-variant hover:bg-surface-variant'}"
-						onclick={() => setInterchangeBadgeMode('stack_with_text')}
-					>
-						{m.ic_mode_stack_with_text()}
-					</button>
-				</div>
-			</div>
-
-			{#if interchangeBadgeMode === 'station'}
-				<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-					<div class="flex items-center justify-between text-sm text-on-surface-variant">
-						<span>{m.interchange_badge_direction()}</span>
-					</div>
-					<div class="flex flex-col gap-1 self-center">
-						<div class="flex gap-1">
-							{#each ['NW', 'N', 'NE'] as dir}
-								<button
-									class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {interchangeBadgeDir ===
-									dir
-										? 'border-primary bg-primary-container text-primary'
-										: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-									onclick={() => setInterchangeBadgeDirection(dir as InterchangeBadgeDirection)}
-									title={dir}
-								>
-									<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-								</button>
-							{/each}
-						</div>
-						<div class="flex gap-1">
-							{#each ['W', '', 'E'] as dir}
-								{#if dir}
-									<button
-										class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {interchangeBadgeDir ===
-										dir
-											? 'border-primary bg-primary-container text-primary'
-											: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-										onclick={() => setInterchangeBadgeDirection(dir as InterchangeBadgeDirection)}
-										title={dir}
-									>
-										<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-									</button>
-								{:else}
-									<div class="aspect-square w-9"></div>
-								{/if}
-							{/each}
-						</div>
-						<div class="flex gap-1">
-							{#each ['SW', 'S', 'SE'] as dir}
-								<button
-									class="flex aspect-square w-9 items-center justify-center rounded-md border p-1.5 text-base transition-colors {interchangeBadgeDir ===
-									dir
-										? 'border-primary bg-primary-container text-primary'
-										: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-									onclick={() => setInterchangeBadgeDirection(dir as InterchangeBadgeDirection)}
-									title={dir}
-								>
-									<span class="material-symbols-outlined">{DIR_ARROWS[dir]}</span>
-								</button>
-							{/each}
-						</div>
-					</div>
-				</div>
-			{/if}
-
-			<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-				<div class="text-sm text-on-surface-variant">{m.serving_lines()}</div>
-				<div class="flex flex-col gap-1">
-					{#each servingLinesAtStation as line}
-						{@const tt = editorState.transitTypes.find((t) => t.id === line.transitTypeId)}
-						{@const isHiddenLine = effectiveHiddenLines.has(line.id!)}
-						{@const isBadgeHidden = hiddenBadgeLineIds.has(line.id!)}
-						<div
-							class="flex items-center justify-between rounded-md p-1.5 hover:bg-surface-variant"
-						>
-							<div class="flex items-center gap-2">
-								<div class="h-4 w-4 shrink-0 rounded" style="background-color: {line.color}"></div>
-								<span class="text-sm">{line.name}</span>
-							</div>
-							{#if isHiddenLine}
-								<button
-									class="flex h-7 w-7 items-center justify-center rounded transition-colors {isBadgeHidden
-										? 'text-outline/50'
-										: 'bg-primary-container text-primary'}"
-									onclick={() => toggleInterchangeBadgeLine(line.id!, !isBadgeHidden)}
-									title={m.toggle_interchange_badge()}
-								>
-									<span class="material-symbols-outlined text-base"
-										>{isBadgeHidden ? 'visibility_off' : 'visibility'}</span
-									>
-								</button>
-							{:else}
-								<span class="text-xs text-outline/50">{m.line()}</span>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</div>
+			<InterchangeBadgeControls
+				mode={interchangeBadgeMode}
+				direction={interchangeBadgeDir}
+				servingLines={servingLinesAtStation}
+				hiddenLineIds={effectiveHiddenLines}
+				{hiddenBadgeLineIds}
+				onchangeMode={setInterchangeBadgeMode}
+				onchangeDirection={setInterchangeBadgeDirection}
+				ontoggleLine={toggleInterchangeBadgeLine}
+			/>
 		{/if}
 
 		<Button variant="filled" onclick={() => (deleteConfirmOpen = true)}>

@@ -1,12 +1,7 @@
 import { db } from './Database';
-import type {
-	ViewStation,
-	Station,
-	InterchangeBadgeMode,
-	InterchangeBadgeDirection
-} from '../types/models';
+import type { ViewStation, InterchangeBadgeMode, InterchangeBadgeDirection } from '../types';
 
-type ViewStationUpdate = Partial<Omit<ViewStation, 'id' | 'viewId' | 'stationId'>>;
+export type ViewStationUpdate = Partial<Omit<ViewStation, 'id' | 'viewId' | 'stationId'>>;
 
 export class ViewStationService {
 	static async getForView(viewId: number): Promise<ViewStation[]> {
@@ -54,38 +49,6 @@ export class ViewStationService {
 			anchorDx,
 			anchorDy
 		});
-	}
-
-	static async setLabelDirection(
-		viewId: number,
-		stationId: number,
-		labelDirection: string
-	): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { labelDirection });
-	}
-
-	static async setSubtitleAlign(
-		viewId: number,
-		stationId: number,
-		subtitleAlign: string
-	): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { subtitleAlign: subtitleAlign || undefined });
-	}
-
-	static async setAnchorDx(viewId: number, stationId: number, anchorDx: number): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { anchorDx });
-	}
-
-	static async setAnchorDy(viewId: number, stationId: number, anchorDy: number): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { anchorDy });
-	}
-
-	static async setLabelAnchor(
-		viewId: number,
-		stationId: number,
-		labelAnchor: string
-	): Promise<void> {
-		await this.updateViewStation(viewId, stationId, { labelAnchor });
 	}
 
 	static async setInterchangeBadgeMode(

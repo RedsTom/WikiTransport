@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { Project } from '../types/models';
+import type { Project } from '../types';
 
 export class ProjectService {
 	static async getAllProjects(): Promise<Project[]> {

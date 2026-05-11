@@ -8,7 +8,7 @@ import type {
 	AnchorPoint,
 	View,
 	ViewStation
-} from '../types/models';
+} from '../types';
 
 export class TransitDatabase extends Dexie {
 	projects!: Table<Project, number>;

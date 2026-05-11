@@ -2,7 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import type { Project } from '$lib/types/models';
+	import type { Project } from '$lib/types';
 
 	import { TextField } from '$lib/components/ui';
 

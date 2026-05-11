@@ -83,3 +83,90 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 10. Diamond shapes: use `side = radius / sqrt(2)` for visual consistency
 11. When `badgeAnchor='label'`, compute `badgeOffsetX` and use `adjustedLayout` for both label and badges
 12. For translations with styled elements, use before/after key splitting pattern
+
+---
+
+## Refactoring — Code Organization & Architecture
+
+### Command: `refactorise`
+
+The `refactorise` command triggers a full-codebase restructuring pass. It means:
+
+1. **SRP (Single Responsibility)**: Every file does one thing. Split large files (over ~300 lines) into focused modules.
+2. **DRY (Don't Repeat Yourself)**: Extract repeated patterns into services or utility functions.
+3. **Separation of Concerns**: Domain logic in services, state in stores, rendering in components, types in dedicated files.
+4. **Clean Architecture**: Clear dependency direction — Components → Services/Store → Utils/Types.
+
+### Code Organization
+
+```
+src/lib/
+├── types/               # All TypeScript interfaces & types (one file per domain)
+│   ├── index.ts         # Barrel re-export
+│   ├── project.ts
+│   ├── transit-type.ts
+│   ├── line.ts
+│   ├── station.ts
+│   ├── route-point.ts
+│   ├── anchor-point.ts
+│   ├── view.ts          # View, ViewStation
+│   └── interchange.ts   # InterchangeBadgeMode, InterchangeBadgeDirection, IconShape
+├── store/               # Svelte 5 $state runes (state only, no business logic)
+│   └── editor.svelte.ts
+├── services/            # Database CRUD + orchestration (thin, single-responsibility)
+│   ├── Database.ts
+│   ├── project.service.ts
+│   ├── transit-type.service.ts
+│   ├── line.service.ts
+│   ├── station.service.ts
+│   ├── anchor-point.service.ts
+│   ├── view.service.ts
+│   ├── view-station.service.ts
+│   └── editor.service.ts
+├── utils/               # Pure functions, no side effects
+│   ├── color.ts
+│   ├── geometry.ts
+│   ├── text-measure.ts
+│   └── svg-export/      # SVG rendering (split by concern)
+│       ├── index.ts
+│       ├── bounds.ts
+│       ├── renderers.ts
+│       └── legend.ts
+├── components/          # Svelte 5 components
+│   ├── editor/
+│   │   ├── properties/  # Sub-components for properties panels
+│   │   │   ├── DirectionGrid.svelte
+│   │   │   ├── AnchorGrid.svelte
+│   │   │   ├── InterchangeBadgeControls.svelte
+│   │   │   └── ServingLinesList.svelte
+│   │   ├── LeftPanel.svelte
+│   │   ├── RightPanel.svelte
+│   │   ├── StationProperties.svelte
+│   │   ├── LineProperties.svelte
+│   │   ├── ProjectProperties.svelte
+│   │   ├── TypeProperties.svelte
+│   │   └── ToolBar.svelte
+│   ├── schematic/
+│   │   ├── PlanView.svelte
+│   │   ├── SchematicGrid.svelte
+│   │   ├── SchematicLines.svelte
+│   │   ├── SchematicStations.svelte
+│   │   ├── SchematicAnchors.svelte
+│   │   └── SchematicBadges.svelte
+│   └── ui/
+└── constants/
+    └── schematic.ts
+```
+
+### Key Principles
+
+- **No file > ~400 lines**: Split into sub-modules if growing beyond.
+- **Types first**: All interfaces in `src/lib/types/`, never inline type definitions.
+- **Services are thin**: Just CRUD wrappers and orchestration. No rendering logic.
+- **Components are Dumb**: Read from store, emit events/call services. No direct DB access.
+- **Utils are Pure**: No Svelte imports, no side effects, fully testable.
+- **Shared logic lives once**: E.g., `buildLineOffsets` lives in a shared utility, not duplicated in both PlanView and svg-export.
+
+### Badge Layout Duplication
+
+The `getBadgeLayout` function is defined identically in both `PlanView.svelte` and `svg-export.ts`. When refactoring, extract to a shared utility — the canonical location is in `src/lib/utils/svg-export/` (since SVG export rendering is more complex), imported by PlanView. This is the single source of truth for badge positioning.

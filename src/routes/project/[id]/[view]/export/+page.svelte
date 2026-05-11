@@ -13,7 +13,7 @@
 	import { CircularProgress, IconButton, Button } from '$lib/components/ui';
 	import { generateExportSvg, buildExportSvgForPreview } from '$lib/utils/svg-export';
 	import type { ExportData, ExportOptions } from '$lib/utils/svg-export';
-	import type { View } from '$lib/types/models';
+	import type { View } from '$lib/types';
 
 	const projectId = $derived(Number(page.params.id));
 	const viewParam = $derived(page.params.view ?? 'global');
@@ -93,6 +93,7 @@
 		_animFrame = requestAnimationFrame(animateProgress);
 
 		_genTimeout = setTimeout(() => {
+			if (!exportData) return;
 			try {
 				const svgString = buildExportSvgForPreview(exportData, opts, global);
 				if (_animFrame !== null) cancelAnimationFrame(_animFrame);
@@ -155,7 +156,7 @@
 			const stations = await StationService.getStations(project.id!);
 			const transitTypes = await TransitTypeService.getTypes(project.id!);
 
-			const routePoints: import('$lib/types/models').RoutePoint[] = [];
+			const routePoints: import('$lib/types').RoutePoint[] = [];
 			for (const line of lines) {
 				if (line.id) {
 					const pts = await StationService.getRoutePointsForLine(line.id);
@@ -163,12 +164,12 @@
 				}
 			}
 
-			const anchorPoints: import('$lib/types/models').AnchorPoint[] = [];
+			const anchorPoints: import('$lib/types').AnchorPoint[] = [];
 
 			let activeView: View | null = null;
 			let hiddenLineIds: number[] = [];
 			let explicitHiddenStationIds: number[] = [];
-			let viewStations: import('$lib/types/models').ViewStation[] = [];
+			let viewStations: import('$lib/types').ViewStation[] = [];
 
 			if (isGlobal) {
 				for (const line of lines) {

@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { Station, RoutePoint } from '../types/models';
+import type { Station, RoutePoint } from '../types';
 
 export class StationService {
 	static async getStations(projectId: number): Promise<Station[]> {

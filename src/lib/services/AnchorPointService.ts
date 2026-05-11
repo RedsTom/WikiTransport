@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { AnchorPoint } from '../types/models';
+import type { AnchorPoint } from '../types';
 
 export class AnchorPointService {
 	static async getForLine(lineId: number, viewId?: number): Promise<AnchorPoint[]> {

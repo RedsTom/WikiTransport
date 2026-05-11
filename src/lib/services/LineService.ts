@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { Line, Station, RoutePoint } from '../types/models';
+import type { Line } from '../types';
 
 export class LineService {
 	static async getLines(projectId: number): Promise<Line[]> {

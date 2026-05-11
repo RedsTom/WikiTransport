@@ -6,16 +6,9 @@
 	import { LineService } from '$lib/services/LineService';
 	import { TransitTypeService } from '$lib/services/TransitTypeService';
 	import { EditorService } from '$lib/services/EditorService';
-	import type { Line, TransitType } from '$lib/types/models';
+	import type { Line } from '$lib/types';
 
-	import {
-		Button,
-		IconButton,
-		TextField,
-		NativeSelect,
-		Tooltip,
-		StationSelector
-	} from '$lib/components/ui';
+	import { Button, IconButton, TextField, Tooltip, StationSelector } from '$lib/components/ui';
 	import { db } from '$lib/services/Database';
 	import { StationService } from '$lib/services/StationService';
 
@@ -418,6 +411,7 @@
 													label={m.add_station()}
 													variant="outlined"
 													class="w-full"
+													includeIcon={true}
 													excludeIds={lineRps
 														.map((rp) => rp.stationId)
 														.filter((id): id is number => id != null)}

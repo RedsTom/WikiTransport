@@ -3,7 +3,6 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { StationService } from '$lib/services/StationService';
-	import { EditorService } from '$lib/services/EditorService';
 
 	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
 

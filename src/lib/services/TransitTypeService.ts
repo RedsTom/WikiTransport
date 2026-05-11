@@ -1,5 +1,5 @@
 import { db } from './Database';
-import type { TransitType } from '../types/models';
+import type { TransitType } from '../types';
 
 export class TransitTypeService {
 	static async getTypes(projectId: number): Promise<TransitType[]> {

@@ -1,11 +1,10 @@
 import type { EditorState } from '$lib/store/editor.svelte';
-import type { Station, ViewStation } from '$lib/types/models';
+import type { Station, ViewStation } from '$lib/types';
 import { StationService } from './StationService';
 import { LineService } from './LineService';
 import { ViewService } from './ViewService';
 import { ViewStationService } from './ViewStationService';
 import { AnchorPointService } from './AnchorPointService';
-import { ANCHOR_DX_DEFAULT, ANCHOR_DY_DEFAULT } from '$lib/constants/schematic';
 
 /**
  * Orchestrates multi-entity business operations on the editor state.
