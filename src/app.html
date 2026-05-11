@@ -15,6 +15,13 @@
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 		<meta name="apple-mobile-web-app-title" content="WikiTransport" />
 		<link rel="apple-touch-icon" href="/pwa-192x192.png" />
+		<script>
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker.addEventListener('controllerchange', () => {
+					window.location.reload();
+				});
+			}
+		</script>
 
 		<!-- Google Fonts for Material 3 (Roboto) and Material Symbols (Outlined) -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />

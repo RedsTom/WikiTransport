@@ -10,6 +10,8 @@ export default defineConfig({
 		sveltekit(),
 		SvelteKitPWA({
 			registerType: 'autoUpdate',
+			base: '/',
+			scope: '/',
 			includeAssets: ['favicon.svg'],
 			manifest: {
 				name: 'WikiTransport',
@@ -34,7 +36,49 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}']
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+				navigateFallback: null,
+				runtimeCaching: [
+					{
+						urlPattern: /^\/(en|fr)?\/?([^.]*)?$/,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'pages',
+							expiration: {
+								maxEntries: 50,
+								maxAgeSeconds: 30 * 24 * 60 * 60
+							}
+						}
+					},
+					{
+						urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'google-fonts-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					},
+					{
+						urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+						handler: 'CacheFirst',
+						options: {
+							cacheName: 'gstatic-fonts-cache',
+							expiration: {
+								maxEntries: 10,
+								maxAgeSeconds: 60 * 60 * 24 * 365
+							},
+							cacheableResponse: {
+								statuses: [0, 200]
+							}
+						}
+					}
+				]
 			}
 		}),
 		paraglideVitePlugin({
