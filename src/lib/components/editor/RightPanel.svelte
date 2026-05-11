@@ -21,33 +21,16 @@
 	let hasStation = $derived(!!selectedStation);
 	let hasAnchor = $derived(!!selectedAnchor);
 
-	$effect(() => {
-		const lineId = editorState.selectedLineId;
-		const stationId = editorState.selectedStationId;
-		const anchorId = editorState.selectedAnchorId;
-		if (anchorId !== null) {
-			editorState.rightTab = 'station';
-		} else if (lineId !== null && stationId === null) {
-			editorState.rightTab = 'line';
-		} else if (stationId !== null) {
-			editorState.rightTab = 'station';
-		} else if (lineId === null && stationId === null) {
-			editorState.rightTab = 'general';
-		}
-	});
-
 	function selectGeneral() {
 		editorState.rightTab = 'general';
 	}
 
 	function selectLine() {
 		editorState.rightTab = 'line';
-		editorState.leftTab = 'lines';
 	}
 
 	function selectStation() {
 		editorState.rightTab = 'station';
-		editorState.leftTab = 'stations';
 	}
 </script>
 

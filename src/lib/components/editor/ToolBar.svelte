@@ -255,17 +255,17 @@
 	<!-- Action buttons -->
 	{#if addToLineVisible}
 		<Tooltip text={m.add_station_to_line()}>
-			<IconButton class="shrink-0 !text-primary" onclick={handleAddToLine}>
-				<span class="material-symbols-outlined">add_circle</span>
+			<IconButton class="!h-6 !w-6 shrink-0 !text-primary" onclick={handleAddToLine}>
+				<span class="material-symbols-outlined text-sm">add_circle</span>
 			</IconButton>
 		</Tooltip>
 	{:else if beforeAfterVisible}
-		<Tooltip text={`${m.add_before()} (⇧+S)`}>
+		<Tooltip text={`${m.add_station_before()} (⇧+S)`}>
 			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(true)}>
 				<span class="material-symbols-outlined -scale-x-[100%] text-sm">new_label</span>
 			</IconButton>
 		</Tooltip>
-		<Tooltip text={`${m.add_after()} (S)`}>
+		<Tooltip text={`${m.add_station_after()} (S)`}>
 			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(false)}>
 				<span class="material-symbols-outlined text-sm">new_label</span>
 			</IconButton>
@@ -277,10 +277,10 @@
 				: `${m.add_station()} (S)`}
 		>
 			<IconButton
-				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
+				class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
 				onclick={onaddstation}
 			>
-				<span class="material-symbols-outlined"
+				<span class="material-symbols-outlined text-sm"
 					>{editorState.placementMode === 'station' ? 'close' : 'add_location'}</span
 				>
 			</IconButton>
@@ -291,10 +291,10 @@
 		text={editorState.placementMode === 'anchor' ? `${m.cancel()} (Esc)` : `${m.add_anchor()} (A)`}
 	>
 		<IconButton
-			class="shrink-0 {editorState.placementMode === 'anchor' ? '!bg-error !text-on-error' : ''}"
+			class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'anchor' ? '!bg-error !text-on-error' : ''}"
 			onclick={onaddanchor}
 		>
-			<span class="material-symbols-outlined"
+			<span class="material-symbols-outlined text-sm"
 				>{editorState.placementMode === 'anchor' ? 'close' : 'anchor'}</span
 			>
 		</IconButton>

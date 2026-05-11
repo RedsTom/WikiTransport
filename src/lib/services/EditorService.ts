@@ -193,6 +193,18 @@ export class EditorService {
 	}
 
 	/**
+	 * Update an anchor point's position and reload.
+	 */
+	static async updateAnchorPosition(state: EditorState, id: number, schematicX: number, schematicY: number) {
+		await AnchorPointService.update(id, { schematicX, schematicY });
+		const anchor = state.anchorPoints.find((a) => a.id === id);
+		if (anchor) {
+			anchor.schematicX = schematicX;
+			anchor.schematicY = schematicY;
+		}
+	}
+
+	/**
 	 * Delete an anchor point and reset selection.
 	 */
 	static async deleteAnchor(state: EditorState, id: number): Promise<void> {

@@ -22,6 +22,8 @@
 	let interchangeBadgeDir = $state<InterchangeBadgeDirection>('S');
 	let posX = $state(0);
 	let posY = $state(0);
+	let anchorPosX = $state(0);
+	let anchorPosY = $state(0);
 	let ratioLocked = $state(false);
 	let lockedRatio = $state(1);
 	let updatingFromLock = $state(false);
@@ -77,6 +79,9 @@
 			const p = editorState.stationPosition(selectedStation);
 			posX = p.x;
 			posY = p.y;
+		} else if (selectedAnchor) {
+			anchorPosX = selectedAnchor.schematicX;
+			anchorPosY = selectedAnchor.schematicY;
 		}
 	});
 
@@ -243,6 +248,14 @@
 		posX = x;
 		posY = y;
 		await EditorService.updateViewStationPosition(editorState, selectedStation!.id!, x, y);
+	}
+
+	async function setAnchorPosition(x: number, y: number) {
+		anchorPosX = x;
+		anchorPosY = y;
+		if (selectedAnchor?.id) {
+			await EditorService.updateAnchorPosition(editorState, selectedAnchor.id, x, y);
+		}
 	}
 
 	function toggleRatioLock() {
@@ -456,13 +469,19 @@
 
 		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
 			<span class="text-sm text-on-surface-variant">{m.position()}</span>
-			<div class="flex items-center gap-2 text-sm">
-				<span class="rounded bg-surface-variant px-2 py-1 font-mono"
-					>{m.position_x({ x: selectedAnchor.schematicX })}</span
-				>
-				<span class="rounded bg-surface-variant px-2 py-1 font-mono"
-					>{m.position_y({ y: selectedAnchor.schematicY })}</span
-				>
+			<div class="flex gap-2">
+				<NumberInput
+					label="X"
+					bind:value={anchorPosX}
+					onchange={() => setAnchorPosition(anchorPosX, anchorPosY)}
+					class="flex-1"
+				/>
+				<NumberInput
+					label="Y"
+					bind:value={anchorPosY}
+					onchange={() => setAnchorPosition(anchorPosX, anchorPosY)}
+					class="flex-1"
+				/>
 			</div>
 		</div>
 

@@ -26,9 +26,9 @@ export class ProjectService {
 
 			// Add default transit types
 			await db.transitTypes.bulkAdd([
-				{ projectId: newProjectId, name: 'Bus', iconShape: 'circle' },
-				{ projectId: newProjectId, name: 'Tramway', iconShape: 'square' },
-				{ projectId: newProjectId, name: 'Metro', iconShape: 'diamond' }
+				{ projectId: newProjectId, name: 'Bus', icon: 'directions_bus', iconShape: 'circle' },
+				{ projectId: newProjectId, name: 'Tramway', icon: 'tram', iconShape: 'square' },
+				{ projectId: newProjectId, name: 'Metro', icon: 'subway', iconShape: 'diamond' }
 			]);
 		});
 

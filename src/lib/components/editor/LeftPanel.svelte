@@ -118,14 +118,12 @@
 	function selectLine(id: number) {
 		editorState.selectedLineId = id;
 		editorState.selectedTransitTypeId = null;
-		editorState.rightTab = 'line';
 	}
 
 	function selectStationOnLine(stationId: number, lineId: number) {
 		editorState.selectedLineId = lineId;
 		editorState.selectedStationId = stationId;
 		editorState.selectedAnchorId = null;
-		editorState.rightTab = 'station';
 	}
 
 	function selectType(id: number) {
@@ -137,13 +135,6 @@
 	function selectStation(id: number) {
 		editorState.selectedStationId = id;
 		editorState.selectedAnchorId = null;
-		editorState.rightTab = 'station';
-	}
-
-	function selectAnchor(id: number) {
-		editorState.selectedAnchorId = id;
-		editorState.selectedStationId = null;
-		editorState.rightTab = 'station';
 	}
 
 	const tabDefs = [
@@ -154,27 +145,11 @@
 
 	let stationSearch = $state('');
 
-	type ListEntry =
-		| { kind: 'station'; id: number; name: string }
-		| { kind: 'anchor'; id: number; label: string };
-	let allEntries = $derived.by((): ListEntry[] => {
-		const q = stationSearch.toLowerCase();
-		const result: ListEntry[] = [];
-		for (const s of editorState.stations) {
-			if (s.id && s.name.toLowerCase().includes(q)) {
-				result.push({ kind: 'station', id: s.id, name: s.name });
-			}
-		}
-		for (const a of editorState.anchorPoints) {
-			if (a.id) {
-				const label = `${m.anchor()} #${a.id}`;
-				if (label.toLowerCase().includes(q) || !q) {
-					result.push({ kind: 'anchor', id: a.id, label });
-				}
-			}
-		}
-		return result;
-	});
+	let filteredStations = $derived(
+		editorState.stations.filter(
+			(s) => s.id && s.name.toLowerCase().includes(stationSearch.toLowerCase())
+		)
+	);
 </script>
 
 <aside class="flex w-80 shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface">
@@ -334,7 +309,7 @@
 											<div class="flex items-center gap-0.5">
 												{#if !editorState.isGlobalView}
 													<Tooltip
-														text={editorState.hiddenLineIds.has(line.id!)
+														text={editorState.effectiveHiddenLineIds.has(line.id!)
 															? m.show_line()
 															: m.hide_line()}
 													>
@@ -343,7 +318,7 @@
 																EditorService.toggleLineVisibility(editorState, line.id!)}
 														>
 															<span class="material-symbols-outlined text-sm">
-																{editorState.hiddenLineIds.has(line.id!)
+																{editorState.effectiveHiddenLineIds.has(line.id!)
 																	? 'visibility_off'
 																	: 'visibility'}
 															</span>
@@ -457,54 +432,47 @@
 			<div class="mb-2">
 				<TextField label={m.search_stations()} bind:value={stationSearch} />
 			</div>
-			{#each allEntries as entry (entry.id)}
-				{#if entry.kind === 'station'}
+			{#each filteredStations as station (station.id)}
+				<div
+					class="group mb-1 flex cursor-pointer items-center gap-3 rounded-md p-2.5 transition-colors {editorState.selectedStationId ===
+					station.id
+						? 'bg-secondary-container text-on-secondary-container'
+						: 'hover:bg-surface-variant'}"
+					onclick={() => selectStation(station.id!)}
+					role="button"
+					tabindex="0"
+					onkeydown={(e) => e.key === 'Enter' && selectStation(station.id!)}
+				>
+					<span class="material-symbols-outlined text-sm">location_on</span>
+				<span class="flex-1 truncate text-sm font-medium">{station.name}</span>
+				{#if !editorState.isGlobalView}
 					<div
-						class="group mb-1 flex cursor-pointer items-center gap-3 rounded-md p-2.5 transition-colors {editorState.selectedStationId ===
-						entry.id
-							? 'bg-secondary-container text-on-secondary-container'
-							: 'hover:bg-surface-variant'}"
-						onclick={() => selectStation(entry.id)}
-						role="button"
-						tabindex="0"
-						onkeydown={(e) => e.key === 'Enter' && selectStation(entry.id)}
+						class="opacity-0 transition-opacity group-hover:opacity-100"
+						onclick={(e: MouseEvent) => e.stopPropagation()}
+						role="none"
 					>
-						<span class="material-symbols-outlined text-sm">location_on</span>
-						<span class="flex-1 truncate text-sm font-medium">{entry.name}</span>
-						{#if !editorState.isGlobalView}
-							<div
-								class="opacity-0 transition-opacity group-hover:opacity-100"
-								onclick={(e: MouseEvent) => {
-									e.stopPropagation();
-									editorState.toggleStationVisibility(entry.id);
+						<Tooltip
+							text={editorState.effectiveHiddenStationIds.has(station.id!)
+								? m.show_line()
+								: m.hide_line()}
+						>
+							<IconButton
+								onclick={() => {
+									editorState.toggleStationVisibility(station.id!);
 								}}
-								role="none"
 							>
-								<span class="material-symbols-outlined text-sm text-on-surface-variant">
-									{editorState.effectiveHiddenStationIds.has(entry.id)
+								<span class="material-symbols-outlined text-sm">
+									{editorState.effectiveHiddenStationIds.has(station.id!)
 										? 'visibility_off'
 										: 'visibility'}
 								</span>
-							</div>
-						{/if}
-					</div>
-				{:else}
-					<div
-						class="mb-1 flex cursor-pointer items-center gap-3 rounded-md p-2.5 transition-colors {editorState.selectedAnchorId ===
-						entry.id
-							? 'bg-secondary-container text-on-secondary-container'
-							: 'hover:bg-surface-variant'}"
-						onclick={() => selectAnchor(entry.id)}
-						role="button"
-						tabindex="0"
-						onkeydown={(e) => e.key === 'Enter' && selectAnchor(entry.id)}
-					>
-						<span class="material-symbols-outlined text-sm">anchor</span>
-						<span class="flex-1 truncate text-sm font-medium">{entry.label}</span>
+							</IconButton>
+						</Tooltip>
 					</div>
 				{/if}
+				</div>
 			{/each}
-			{#if allEntries.length === 0}
+			{#if filteredStations.length === 0}
 				<div
 					class="flex items-center justify-center p-6 text-center text-sm text-on-surface-variant opacity-70"
 				>
