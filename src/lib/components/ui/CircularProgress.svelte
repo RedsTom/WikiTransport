@@ -3,12 +3,10 @@
 	import { createProgress } from '@melt-ui/svelte';
 
 	let {
-		indeterminate = true,
 		value = 0,
 		class: className = '',
 		...rest
 	}: {
-		indeterminate?: boolean;
 		value?: number;
 		class?: string;
 		[key: string]: unknown;

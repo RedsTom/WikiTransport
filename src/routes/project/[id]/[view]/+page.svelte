@@ -8,6 +8,7 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { StationService } from '$lib/services/StationService';
 	import { LineService } from '$lib/services/LineService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
@@ -24,8 +25,7 @@
 		Dialog,
 		Button,
 		TextField,
-		ContextMenu,
-		Tooltip
+		ContextMenu
 	} from '$lib/components/ui';
 
 	let projectId = $derived(Number(page.params.id));
@@ -236,7 +236,9 @@
 					variant="tonal"
 					onclick={() =>
 						goto(
-							`/project/${projectId}/${editorState.activeViewId === null ? 'global' : editorState.activeViewId}/export`
+							resolve(
+								`/project/${projectId}/${editorState.activeViewId === null ? 'global' : editorState.activeViewId}/export`
+							)
 						)}
 				>
 					<span class="material-symbols-outlined">download</span>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -50,7 +51,9 @@
 		const doc = parser.parseFromString(svgString, 'image/svg+xml');
 		const svgEl = doc.documentElement;
 		if (svgEl.tagName !== 'svg') return;
+		/* eslint-disable-next-line svelte/no-dom-manipulating */
 		svgWrapper.innerHTML = '';
+		/* eslint-disable-next-line svelte/no-dom-manipulating */
 		svgWrapper.appendChild(document.importNode(svgEl, true));
 		applyTransform();
 	}
@@ -106,8 +109,7 @@
 	});
 
 	$effect(() => {
-		svgTransform;
-		applyTransform();
+		if (svgTransform) applyTransform();
 	});
 
 	function handleWheel(e: WheelEvent) {
@@ -258,7 +260,7 @@
 		class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface-variant px-4"
 	>
 		<div class="flex items-center gap-4">
-			<IconButton onclick={() => goto(`/project/${projectId}`)}>
+			<IconButton onclick={() => goto(resolve(`/project/${projectId}`))}>
 				<span class="material-symbols-outlined">arrow_back</span>
 			</IconButton>
 			<h1 class="text-base font-medium">{m.export_preview()}</h1>

@@ -9,16 +9,20 @@
 	import type { Line } from '$lib/types';
 
 	import { Button, IconButton, TextField, Tooltip, StationSelector } from '$lib/components/ui';
+	import { SvelteSet } from 'svelte/reactivity';
+	/* eslint-disable svelte/no-unnecessary-state-wrap */
 	import { db } from '$lib/services/Database';
 	import { StationService } from '$lib/services/StationService';
+	import type { RoutePoint } from '$lib/types';
 
 	const flipDurationMs = 200;
 
-	let stationDndItems = $state<Record<number, any[]>>({});
+	type DndItem = RoutePoint & { stationName: string };
+	let stationDndItems = $state<Record<number, DndItem[]>>({});
 	let isDraggingStation = $state(false);
 
 	let lineStationsMap = $derived.by(() => {
-		const map: Record<number, any[]> = {};
+		const map: Record<number, DndItem[]> = {};
 		for (const rp of editorState.routePoints) {
 			if (!map[rp.lineId]) map[rp.lineId] = [];
 			const st = editorState.stations.find((s) => s.id === rp.stationId);
@@ -35,17 +39,15 @@
 		stationDndItems = lineStationsMap;
 	});
 
-	let collapsedTypes = $state<Set<number>>(new Set());
-	let collapsedLines = $state<Set<number>>(new Set());
+	let collapsedTypes = $state(new SvelteSet<number>());
+	let collapsedLines = $state(new SvelteSet<number>());
 
 	function toggleCollapse(typeId: number) {
-		const next = new Set(collapsedTypes);
-		if (next.has(typeId)) {
-			next.delete(typeId);
+		if (collapsedTypes.has(typeId)) {
+			collapsedTypes.delete(typeId);
 		} else {
-			next.add(typeId);
+			collapsedTypes.add(typeId);
 		}
-		collapsedTypes = next;
 	}
 
 	async function removeStationFromLine(rpId: number) {
@@ -84,17 +86,17 @@
 		}
 	}
 
-	function handleStationDndConsider(e: CustomEvent<DndEvent<any>>) {
+	function handleStationDndConsider(e: CustomEvent<DndEvent<DndItem>>) {
 		isDraggingStation = true;
-		const items = e.detail.items as any[];
+		const items = e.detail.items;
 		const lineId = items[0]?.lineId;
 		if (lineId != null) {
 			stationDndItems[lineId] = items;
 		}
 	}
 
-	async function handleStationDndFinalize(e: CustomEvent<DndEvent<any>>) {
-		const items = e.detail.items as any[];
+	async function handleStationDndFinalize(e: CustomEvent<DndEvent<DndItem>>) {
+		const items = e.detail.items;
 		for (let i = 0; i < items.length; i++) {
 			await db.routePoints.update(items[i].id, { order: i });
 		}
@@ -109,10 +111,8 @@
 	}
 
 	function toggleLineCollapse(id: number) {
-		const next = new Set(collapsedLines);
-		if (next.has(id)) next.delete(id);
-		else next.add(id);
-		collapsedLines = next;
+		if (collapsedLines.has(id)) collapsedLines.delete(id);
+		else collapsedLines.add(id);
 	}
 
 	function selectLine(id: number) {
@@ -179,7 +179,7 @@
 
 <aside class="flex w-80 shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface">
 	<div class="flex shrink-0 border-b border-outline/20" role="tablist">
-		{#each tabDefs as tab}
+		{#each tabDefs as tab (tab.key)}
 			<button
 				role="tab"
 				aria-selected={editorState.leftTab === tab.key}
@@ -357,7 +357,7 @@
 													onclick={(e: MouseEvent) => e.stopPropagation()}
 													class="w-20 rounded-md border border-outline/20 bg-transparent px-1.5 py-0.5 text-xs"
 												>
-													{#each editorState.transitTypes as t}
+													{#each editorState.transitTypes as t (t.id)}
 														<option value={t.id}>{t.name}</option>
 													{/each}
 												</select>

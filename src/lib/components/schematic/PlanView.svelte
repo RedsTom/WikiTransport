@@ -7,6 +7,7 @@
 	import { ContextMenu, CircularProgress } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		screenToSvg,
 		screenToSvgRaw,
@@ -394,7 +395,7 @@
 		}
 	}
 
-	async function handleMouseUp(e: MouseEvent) {
+	async function handleMouseUp() {
 		isDraggingPan = false;
 		if (draggedStationId !== null) {
 			if (didDragStation) {
@@ -453,7 +454,7 @@
 	type SegOffsetMap = Map<number, Map<string, { x: number; y: number }>>;
 
 	let lineOffsets: SegOffsetMap = $derived.by(() => {
-		const segMap = new Map<string, { dx: number; dy: number; lineIds: number[] }>();
+		const segMap = new SvelteMap<string, { dx: number; dy: number; lineIds: number[] }>();
 
 		for (const line of editorState.lines) {
 			if (!line.id || editorState.effectiveHiddenLineIds.has(line.id)) continue;
@@ -487,10 +488,10 @@
 			});
 		}
 
-		const result: SegOffsetMap = new Map();
+		const result: SegOffsetMap = new SvelteMap();
 		for (const line of editorState.lines) {
 			if (line.id && !editorState.effectiveHiddenLineIds.has(line.id)) {
-				result.set(line.id, new Map());
+				result.set(line.id, new SvelteMap());
 			}
 		}
 

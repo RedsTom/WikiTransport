@@ -49,7 +49,6 @@
 		let h = Math.round(w / aspectRatio);
 		if (h > 900) {
 			h = 900;
-			w = Math.round(h * aspectRatio);
 		}
 		return h;
 	});

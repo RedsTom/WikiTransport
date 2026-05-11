@@ -10,6 +10,7 @@ import type {
 	InterchangeBadgeMode,
 	InterchangeBadgeDirection
 } from '../types';
+import { SvelteSet } from 'svelte/reactivity';
 import { LineService } from '../services/LineService';
 import { StationService } from '../services/StationService';
 import { TransitTypeService } from '../services/TransitTypeService';
@@ -44,7 +45,7 @@ export class EditorState {
 	placementMode = $state<'station' | 'anchor' | null>(null);
 	pendingLineInsert = $state<{ refStationId: number; before: boolean } | null>(null);
 
-	hiddenLineIds = $state<Set<number>>(new Set());
+	hiddenLineIds = $state(new SvelteSet<number>());
 
 	stationToDelete = $state<number | null>(null);
 	lineToDelete = $state<number | null>(null);
@@ -75,14 +76,14 @@ export class EditorState {
 	get effectiveHiddenLineIds(): Set<number> {
 		if (this.isGlobalView) return this.hiddenLineIds;
 		const view = this.activeView;
-		return new Set(view?.hiddenLineIds ?? []);
+		return new SvelteSet(view?.hiddenLineIds ?? []);
 	}
 
 	get effectiveHiddenStationIds(): Set<number> {
-		if (this.isGlobalView) return new Set();
+		if (this.isGlobalView) return new SvelteSet<number>();
 		const view = this.activeView;
-		const base = new Set(view?.hiddenStationIds ?? []);
-		const hiddenLineSet = new Set(view?.hiddenLineIds ?? []);
+		const base = new SvelteSet(view?.hiddenStationIds ?? []);
+		const hiddenLineSet = new SvelteSet(view?.hiddenLineIds ?? []);
 		for (const st of this.stations) {
 			if (!st.id) continue;
 			if (base.has(st.id)) continue;
@@ -137,12 +138,13 @@ export class EditorState {
 		field: keyof Station | keyof ViewStation,
 		defaultValue: T
 	): T {
-		if (this.isGlobalView) return (station as any)[field] ?? defaultValue;
+		const s = station as Record<string, unknown>;
+		if (this.isGlobalView) return (s[field] as T) ?? defaultValue;
 		const vs = this.viewStations.find(
 			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
 		);
-		if (vs) return (vs as any)[field] ?? (station as any)[field] ?? defaultValue;
-		return (station as any)[field] ?? defaultValue;
+		if (vs) return ((vs as Record<string, unknown>)[field] as T) ?? (s[field] as T) ?? defaultValue;
+		return (s[field] as T) ?? defaultValue;
 	}
 
 	toggleStationVisibility(id: number) {
@@ -173,7 +175,7 @@ export class EditorState {
 		this.selectedStationId = null;
 		this.selectedAnchorId = null;
 		this.placementMode = null;
-		this.hiddenLineIds = new Set();
+		this.hiddenLineIds = new SvelteSet<number>();
 		this.stationToDelete = null;
 		this.lineToDelete = null;
 		this.anchorToDelete = null;
@@ -201,7 +203,7 @@ export class EditorState {
 	}
 
 	async loadRoutePoints() {
-		let allPoints: RoutePoint[] = [];
+		const allPoints: RoutePoint[] = [];
 		for (const line of this.lines) {
 			if (line.id) {
 				const points = await StationService.getRoutePointsForLine(line.id);
@@ -212,7 +214,7 @@ export class EditorState {
 	}
 
 	async loadAnchorPoints(viewId?: number) {
-		let allAnchors: AnchorPoint[] = [];
+		const allAnchors: AnchorPoint[] = [];
 		for (const line of this.lines) {
 			if (line.id) {
 				const anchors = await AnchorPointService.getForLine(line.id, viewId);

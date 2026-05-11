@@ -277,7 +277,6 @@
 				class="flex flex-col gap-0.5"
 			>
 				{#each dndItems as item (item.id)}
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						animate:flip={{ duration: flipDurationMs }}
 						role="none"

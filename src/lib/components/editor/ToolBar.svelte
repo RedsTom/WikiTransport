@@ -3,6 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { StationService } from '$lib/services/StationService';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
 
@@ -93,7 +94,7 @@
 	}
 
 	let linesByType = $derived.by(() => {
-		const groups = new Map<string, typeof editorState.lines>();
+		const groups = new SvelteMap<string, typeof editorState.lines>();
 		const uncategorized: typeof editorState.lines = [];
 		const sorted = [...editorState.lines].sort((a, b) => a.name.localeCompare(b.name));
 		for (const line of sorted) {
@@ -130,7 +131,7 @@
 	});
 
 	const typeIconMap = $derived(
-		new Map(editorState.transitTypes.map((t) => [t.id, t.icon ?? 'directions_transit']))
+		new SvelteMap(editorState.transitTypes.map((t) => [t.id, t.icon ?? 'directions_transit']))
 	);
 </script>
 
@@ -145,6 +146,7 @@
 			class="h-3 w-3 shrink-0 rounded-full"
 			style="background-color: {selectedLineChip?.color || '#ccc'}"
 		></div>
+		<!-- eslint-disable-next-line svelte/require-store-reactive-access -->
 		<button
 			type="button"
 			{...$lineTrigger}
@@ -167,6 +169,7 @@
 			</Tooltip>
 		{/if}
 
+		<!-- eslint-disable-next-line svelte/require-store-reactive-access -->
 		<div {...$lineMenuEl} use:lineMenuEl class="m3-menu">
 			<div class="m3-menu__search">
 				<span class="material-symbols-outlined m3-menu__search-icon">search</span>
@@ -180,18 +183,11 @@
 				/>
 			</div>
 			<div class="max-h-48 overflow-y-auto">
-				{#each filteredLineGroups.groups as [typeName, lines]}
+				{#each filteredLineGroups.groups as [typeName, lines] (typeName)}
 					<div class="m3-menu__group-label">{typeName}</div>
-					{#each lines as line}
-						<button
-							type="button"
-							{...$lineItem}
-							use:lineItem
-							class="m3-menu__item"
-							onclick={() => {
-								editorState.selectedLineId = line.id!;
-							}}
-						>
+					{#each lines as line (line.id)}
+						<!-- eslint-disable-next-line svelte/require-store-reactive-access -->
+						<button type="button" {...$lineItem} use:lineItem class="m3-menu__item">
 							<div
 								class="h-3 w-3 shrink-0 rounded-full"
 								style="background-color: {line.color}"
@@ -207,16 +203,9 @@
 				{/each}
 				{#if filteredLineGroups.uncategorized.length}
 					<div class="m3-menu__group-label">{m.other_lines()}</div>
-					{#each filteredLineGroups.uncategorized as line}
-						<button
-							type="button"
-							{...$lineItem}
-							use:lineItem
-							class="m3-menu__item"
-							onclick={() => {
-								editorState.selectedLineId = line.id!;
-							}}
-						>
+					{#each filteredLineGroups.uncategorized as line (line.id)}
+						<!-- eslint-disable-next-line svelte/require-store-reactive-access -->
+						<button type="button" {...$lineItem} use:lineItem class="m3-menu__item">
 							<div
 								class="h-3 w-3 shrink-0 rounded-full"
 								style="background-color: {line.color}"

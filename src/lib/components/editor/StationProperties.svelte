@@ -349,7 +349,7 @@
 					</Tooltip>
 				</div>
 				<div class="flex w-full overflow-hidden rounded-md border border-outline/20">
-					{#each [{ value: 'left', icon: 'format_align_left' }, { value: 'center', icon: 'format_align_center' }, { value: 'right', icon: 'format_align_right' }] as opt}
+					{#each [{ value: 'left', icon: 'format_align_left' }, { value: 'center', icon: 'format_align_center' }, { value: 'right', icon: 'format_align_right' }] as opt (opt.value)}
 						<button
 							class="flex flex-1 items-center justify-center border-r border-outline/20 py-1.5 text-base transition-colors last:border-r-0 {subtitleAlign ===
 							opt.value

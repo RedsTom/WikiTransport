@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
-	import type { Pathname } from '$app/types';
-	import { resolve } from '$app/paths';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui';
+	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 </script>
 
 <svelte:head>
@@ -101,7 +98,7 @@
 				{m.landing_showcase()}
 			</h3>
 			<a
-				href="/assets/Marseille-global(1).svg"
+				href={resolve('/assets/Marseille-global(1).svg')}
 				target="_blank"
 				class="block overflow-hidden rounded-xl border border-outline/20 transition-shadow hover:shadow-md"
 			>

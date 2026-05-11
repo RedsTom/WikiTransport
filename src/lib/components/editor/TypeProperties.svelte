@@ -91,7 +91,7 @@
 	<div class="flex flex-col gap-2">
 		<span class="text-sm text-on-surface-variant">{m.icon()}</span>
 		<div class="grid grid-cols-5 gap-1">
-			{#each ICON_OPTIONS as iconName}
+			{#each ICON_OPTIONS as iconName (iconName)}
 				<Tooltip text={iconLabel(iconName)}>
 					<button
 						class="flex items-center justify-center rounded-md border p-2 text-lg transition-colors {typeIcon ===

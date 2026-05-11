@@ -4,7 +4,7 @@
 	import { editorState } from '$lib/store/editor.svelte';
 
 	let {
-		onSelect = (id: number) => {},
+		onSelect = () => {},
 		excludeIds = [] as number[],
 		label = m.select_station(),
 		variant = 'outlined' as 'outlined' | 'text',
@@ -42,7 +42,7 @@
 	);
 
 	$effect(() => {
-		if (!$open) search = '';
+		if ($open === false) search = '';
 	});
 
 	function handleSelect(id: number) {
@@ -51,6 +51,7 @@
 </script>
 
 <div class="relative inline-flex {className}">
+	<!-- eslint-disable svelte/require-store-reactive-access -->
 	<button
 		type="button"
 		{...$trigger}
@@ -66,8 +67,10 @@
 		<span class="truncate">{selectedStation?.name ?? label}</span>
 		<span class="material-symbols-outlined text-sm">unfold_more</span>
 	</button>
+	<!-- eslint-enable svelte/require-store-reactive-access -->
 </div>
 
+<!-- eslint-disable svelte/require-store-reactive-access -->
 <div
 	{...$menu}
 	use:menu
@@ -87,7 +90,7 @@
 		/>
 	</div>
 	<div class="flex max-h-36 flex-col gap-0.5 overflow-y-auto">
-		{#each filtered as station}
+		{#each filtered as station (station.id)}
 			<button
 				type="button"
 				class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-surface-variant"
