@@ -11,7 +11,7 @@
 
 	let wrapperEl: HTMLDivElement;
 	let tooltipEl: HTMLDivElement;
-	let tooltipStyle = $state('');
+	let style = $state('display:none');
 
 	function show() {
 		if (!wrapperEl || !tooltipEl) return;
@@ -20,12 +20,11 @@
 		const vw = window.innerWidth;
 		let left = rect.left + rect.width / 2 - tw / 2;
 		left = Math.max(4, Math.min(left, vw - tw - 4));
-		tooltipStyle = `left:${left}px;top:${rect.top - tooltipEl.offsetHeight - 6}px`;
-		tooltipEl.showPopover();
+		style = `left:${left}px;top:${rect.top - tooltipEl.offsetHeight - 6}px;display:block`;
 	}
 
 	function hide() {
-		tooltipEl?.hidePopover();
+		style = 'display:none';
 	}
 </script>
 
@@ -37,22 +36,19 @@
 	role="none"
 >
 	{@render children?.()}
-	<div
-		bind:this={tooltipEl}
-		class="component-tooltip"
-		popover="manual"
-		role="tooltip"
-		style={tooltipStyle}
-	>
+	<div bind:this={tooltipEl} class="component-tooltip" role="tooltip" {style}>
 		{text}
 	</div>
 </div>
 
 <style>
 	.component-tooltip-wrapper {
+		position: relative;
 		display: inline-flex;
 	}
 	.component-tooltip {
+		position: fixed;
+		z-index: 100;
 		padding: 0.25rem 0.625rem;
 		border-radius: var(--radius-sm, 4px);
 		background: var(--color-on-surface, #1a1a2e);
@@ -62,8 +58,5 @@
 		line-height: 1.3;
 		white-space: nowrap;
 		pointer-events: none;
-		inset: auto;
-		margin: 0;
-		border: none;
 	}
 </style>

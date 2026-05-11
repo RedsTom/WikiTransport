@@ -90,21 +90,10 @@
 		editorState.selectedStationId = id;
 	}
 
-	let lineMenuEl2: HTMLDivElement;
-
 	const {
-		elements: { trigger: lineTrigger, menu: lineMenuEl, item: lineItem },
-		states: { open: lineOpen }
+		elements: { trigger: lineTrigger, menu: lineMenuEl, item: lineItem }
 	} = createDropdownMenu({
 		positioning: { placement: 'top-start' }
-	});
-
-	$effect(() => {
-		if ($lineOpen) {
-			lineMenuEl2?.showPopover();
-		} else {
-			lineMenuEl2?.hidePopover();
-		}
 	});
 
 	let selectedLineChip = $derived(
@@ -190,7 +179,7 @@
 			</Tooltip>
 		{/if}
 
-		<div bind:this={lineMenuEl2} {...$lineMenuEl} use:lineMenuEl class="m3-menu" popover="manual">
+		<div {...$lineMenuEl} use:lineMenuEl class="m3-menu">
 			<div class="m3-menu__search">
 				<span class="material-symbols-outlined m3-menu__search-icon">search</span>
 				<input
