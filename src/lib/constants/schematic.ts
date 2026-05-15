@@ -45,3 +45,5 @@ export const DASH_PATTERNS = [
 	{ value: '2,4', label: 'dotted' },
 	{ value: '8,4,2,4', label: 'dash_dot' }
 ] as const;
+
+export const DND_DROP_TARGET_STYLE = { outline: '2px solid var(--color-primary)' } as const;

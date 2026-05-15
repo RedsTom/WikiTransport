@@ -6,6 +6,7 @@
 	import { LineService } from '$lib/services/LineService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
 	import type { Line } from '$lib/types';
+	import { DND_DROP_TARGET_STYLE } from '$lib/constants/schematic';
 
 	import { Button, TextField, Dialog, Slider, IconButton } from '$lib/components/ui';
 
@@ -271,7 +272,7 @@
 
 		{#if dndItems.length > 0}
 			<div
-				use:dragHandleZone={{ items: dndItems, flipDurationMs, dropTargetStyle: { outline: '2px solid var(--color-primary)' } }}
+				use:dragHandleZone={{ items: dndItems, flipDurationMs, dropTargetStyle: DND_DROP_TARGET_STYLE }}
 				onconsider={handleDndConsider}
 				onfinalize={handleDndFinalize}
 				class="flex flex-col gap-0.5"
