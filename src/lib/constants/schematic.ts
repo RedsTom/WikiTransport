@@ -46,4 +46,4 @@ export const DASH_PATTERNS = [
 	{ value: '8,4,2,4', label: 'dash_dot' }
 ] as const;
 
-export const DND_DROP_TARGET_STYLE = { outline: '2px solid var(--color-primary)' } as const;
+export const DND_DROP_TARGET_STYLE = { boxShadow: '0 0 0 2px var(--color-primary)', borderRadius: '8px' } as const;
