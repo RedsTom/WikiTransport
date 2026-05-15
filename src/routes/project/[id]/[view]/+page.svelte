@@ -189,7 +189,7 @@
 		>
 			<div class="flex items-center gap-4">
 				<a
-					href={resolve('/')}
+					href={resolve('/projects')}
 					class="flex items-center gap-2 text-base font-bold text-on-surface no-underline transition-opacity hover:opacity-70"
 				>
 					<img src="/assets/logo.svg" alt="WikiTransport" class="h-6 w-6" />
