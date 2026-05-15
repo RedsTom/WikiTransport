@@ -422,12 +422,16 @@
 		</Button>
 
 		<Dialog bind:open={deleteConfirmOpen}>
+			{#snippet icon()}
+				<span class="material-symbols-outlined">delete</span>
+			{/snippet}
 			{#snippet title()}{m.delete()}{/snippet}
 			<p>{m.delete_station_confirm()}</p>
 			{#snippet actions()}
 				<Button variant="text" onclick={() => (deleteConfirmOpen = false)}>{m.cancel()}</Button>
 				<Button
 					variant="filled"
+					autofocus
 					onclick={async () => {
 						await handleDeleteStation();
 						deleteConfirmOpen = false;

@@ -324,6 +324,9 @@
 
 	<!-- Delete station confirmation -->
 	<Dialog bind:open={editorState.deleteStationOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">delete</span>
+		{/snippet}
 		{#snippet title()}{m.delete_station()}{/snippet}
 		<p>{m.delete_station_confirm()}</p>
 		{#snippet actions()}
@@ -336,6 +339,7 @@
 			>
 			<Button
 				variant="filled"
+				autofocus
 				onclick={async () => {
 					if (editorState.stationToDelete !== null) {
 						await StationService.deleteStation(editorState.stationToDelete);
@@ -350,6 +354,9 @@
 
 	<!-- Delete line confirmation -->
 	<Dialog bind:open={editorState.deleteLineOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">delete</span>
+		{/snippet}
 		{#snippet title()}{m.delete_line()}{/snippet}
 		<p>{m.delete_line_confirm()}</p>
 		{#snippet actions()}
@@ -362,6 +369,7 @@
 			>
 			<Button
 				variant="filled"
+				autofocus
 				onclick={async () => {
 					if (editorState.lineToDelete !== null) {
 						await LineService.deleteLine(editorState.lineToDelete);
@@ -376,6 +384,9 @@
 
 	<!-- Delete anchor confirmation -->
 	<Dialog bind:open={editorState.deleteAnchorOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">delete</span>
+		{/snippet}
 		{#snippet title()}{m.delete_anchor()}{/snippet}
 		<p>{m.delete_anchor_confirm()}</p>
 		{#snippet actions()}
@@ -388,6 +399,7 @@
 			>
 			<Button
 				variant="filled"
+				autofocus
 				onclick={async () => {
 					if (editorState.anchorToDelete !== null) {
 						await AnchorPointService.delete(editorState.anchorToDelete);
@@ -433,6 +445,9 @@
 
 	<!-- Rename view dialog -->
 	<Dialog bind:open={viewRenameOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">edit</span>
+		{/snippet}
 		{#snippet title()}{m.rename_view_title({
 				name: editorState.views.find((v) => v.id === viewRenameId)?.name ?? ''
 			})}{/snippet}
@@ -451,12 +466,15 @@
 					viewRenameId = null;
 				}}>{m.cancel()}</Button
 			>
-			<Button variant="filled" onclick={handleRenameView}>{m.rename()}</Button>
+			<Button variant="filled" autofocus onclick={handleRenameView}>{m.rename()}</Button>
 		{/snippet}
 	</Dialog>
 
 	<!-- Delete view confirmation -->
 	<Dialog bind:open={viewDeleteOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">delete</span>
+		{/snippet}
 		{#snippet title()}{m.delete()}{/snippet}
 		<p>{m.delete_view_confirm()}</p>
 		{#snippet actions()}
@@ -467,12 +485,15 @@
 					viewDeleteId = null;
 				}}>{m.cancel()}</Button
 			>
-			<Button variant="filled" onclick={handleDeleteView}>{m.delete()}</Button>
+			<Button variant="filled" autofocus onclick={handleDeleteView}>{m.delete()}</Button>
 		{/snippet}
 	</Dialog>
 
 	<!-- New View dialog -->
 	<Dialog bind:open={viewDialogOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">add</span>
+		{/snippet}
 		{#snippet title()}{m.new_view()}{/snippet}
 		<TextField
 			label={m.view_name()}
@@ -483,7 +504,7 @@
 		/>
 		{#snippet actions()}
 			<Button variant="text" onclick={() => (viewDialogOpen = false)}>{m.cancel()}</Button>
-			<Button variant="filled" onclick={handleCreateView}>{m.create()}</Button>
+			<Button variant="filled" autofocus onclick={handleCreateView}>{m.create()}</Button>
 		{/snippet}
 	</Dialog>
 {/if}

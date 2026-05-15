@@ -118,6 +118,9 @@
 </div>
 
 <Dialog bind:open={isDialogOpen}>
+	{#snippet icon()}
+		<span class="material-symbols-outlined">add</span>
+	{/snippet}
 	{#snippet title()}
 		{m.new_project()}
 	{/snippet}
@@ -129,13 +132,16 @@
 		<Button variant="text" onclick={() => (isDialogOpen = false)}>
 			{m.cancel()}
 		</Button>
-		<Button variant="filled" onclick={handleCreateProject}>
+		<Button variant="filled" autofocus onclick={handleCreateProject}>
 			{m.create()}
 		</Button>
 	{/snippet}
 </Dialog>
 
 <Dialog bind:open={deleteConfirmOpen}>
+	{#snippet icon()}
+		<span class="material-symbols-outlined">delete</span>
+	{/snippet}
 	{#snippet title()}
 		{m.delete()}
 	{/snippet}
@@ -152,6 +158,7 @@
 		</Button>
 		<Button
 			variant="filled"
+			autofocus
 			onclick={async () => {
 				if (deleteConfirmId !== null) {
 					await ProjectService.deleteProject(deleteConfirmId);
