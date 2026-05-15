@@ -29,32 +29,38 @@
 
 	type DndItem = {
 		id: string;
-		type: 'anchor';
+		type: 'station' | 'anchor';
 		order: number;
-		anchorId: number;
-		schematicX: number;
-		schematicY: number;
+		stationId?: number;
+		stationName?: string;
+		anchorId?: number;
+		schematicX?: number;
+		schematicY?: number;
 	};
 
-	let segments = $state<DndItem[][]>([]);
+	let dndItems = $state<DndItem[]>([]);
 	let isDragging = $state(false);
 
-	let lineRps = $derived(
-		editorState.routePoints
-			.filter((rp) => rp.lineId === selectedLine?.id)
-			.sort((a, b) => a.order - b.order)
-	);
-
 	let firstStation = $derived.by(() => {
-		if (lineRps.length === 0) return null;
-		const st = editorState.stations.find((s) => s.id === lineRps[0].stationId);
-		return st ? { station: st, order: lineRps[0].order } : null;
+		const line = selectedLine;
+		if (!line?.id) return null;
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+		if (rps.length === 0) return null;
+		const st = editorState.stations.find((s) => s.id === rps[0].stationId);
+		return st ? { station: st, order: rps[0].order } : null;
 	});
 
 	let lastStation = $derived.by(() => {
-		if (lineRps.length === 0) return null;
-		const st = editorState.stations.find((s) => s.id === lineRps[lineRps.length - 1].stationId);
-		return st ? { station: st, order: lineRps[lineRps.length - 1].order } : null;
+		const line = selectedLine;
+		if (!line?.id) return null;
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
+		if (rps.length === 0) return null;
+		const st = editorState.stations.find((s) => s.id === rps[rps.length - 1].stationId);
+		return st ? { station: st, order: rps[rps.length - 1].order } : null;
 	});
 
 	let firstStationOrder = $derived(firstStation?.order ?? 0);
@@ -64,36 +70,60 @@
 		if (isDragging) return;
 		const line = selectedLine;
 		if (!line?.id) {
-			segments = [];
+			dndItems = [];
 			return;
 		}
+		const rps = editorState.routePoints
+			.filter((rp) => rp.lineId === line.id)
+			.sort((a, b) => a.order - b.order);
 		const anchors = editorState.anchorPoints
 			.filter((ap) => ap.lineId === line.id)
 			.sort((a, b) => a.order - b.order);
 
-		if (lineRps.length < 2) return;
+		if (rps.length < 2) return;
 
-		const result: DndItem[][] = [];
+		const items: DndItem[] = [];
 		let ai = 0;
 
-		for (let ri = 0; ri < lineRps.length - 1; ri++) {
-			const seg: DndItem[] = [];
-			while (ai < anchors.length && anchors[ai].order < lineRps[ri + 1].order) {
-				if (anchors[ai].order > lineRps[ri].order) {
-					seg.push({
+		for (let ri = 1; ri < rps.length - 1; ri++) {
+			const rp = rps[ri];
+			const station = editorState.stations.find((s) => s.id === rp.stationId);
+			if (!station) continue;
+			while (ai < anchors.length && anchors[ai].order < rp.order) {
+				if (anchors[ai].order > firstStationOrder) {
+					items.push({
 						id: `a-${anchors[ai].id!}`,
 						type: 'anchor',
 						order: anchors[ai].order,
-						anchorId: anchors[ai].id!,
+						anchorId: anchors[ai].id,
 						schematicX: anchors[ai].schematicX,
 						schematicY: anchors[ai].schematicY
 					});
 				}
 				ai++;
 			}
-			result.push(seg);
+			items.push({
+				id: `s-${station.id!}`,
+				type: 'station',
+				order: rp.order,
+				stationId: station.id,
+				stationName: station.name
+			});
 		}
-		segments = result;
+		while (ai < anchors.length) {
+			if (anchors[ai].order > firstStationOrder && anchors[ai].order < lastStationOrder) {
+				items.push({
+					id: `a-${anchors[ai].id!}`,
+					type: 'anchor',
+					order: anchors[ai].order,
+					anchorId: anchors[ai].id,
+					schematicX: anchors[ai].schematicX,
+					schematicY: anchors[ai].schematicY
+				});
+			}
+			ai++;
+		}
+		dndItems = items;
 	});
 
 	let deleteConfirmOpen = $state(false);
@@ -114,18 +144,57 @@
 		}
 	}
 
-	function handleConsider(e: CustomEvent<DndEvent<DndItem>>, segIdx: number) {
+	function handleDndConsider(e: CustomEvent<DndEvent<DndItem>>) {
 		isDragging = true;
-		segments[segIdx] = e.detail.items as DndItem[];
+		dndItems = e.detail.items;
 	}
 
-	async function handleFinalize(e: CustomEvent<DndEvent<DndItem>>, segIdx: number) {
+	async function handleDndFinalize(e: CustomEvent<DndEvent<DndItem>>) {
 		const items = e.detail.items as DndItem[];
-		segments[segIdx] = items;
-		const n = items.length;
-		for (let i = 0; i < n; i++) {
-			const newOrder = lineRps[segIdx].order + ((i + 1) / (n + 1)) * (lineRps[segIdx + 1].order - lineRps[segIdx].order);
-			await AnchorPointService.update(items[i].anchorId, { order: newOrder });
+
+		const updates: { id: number; order: number }[] = [];
+
+		let i = 0;
+		while (i < items.length && items[i].type === 'anchor') i++;
+
+		if (i > 0) {
+			const nextOrder = i < items.length ? items[i].order : lastStationOrder;
+			for (let k = 0; k < i; k++) {
+				const aid = items[k].anchorId;
+				if (aid != null) {
+					updates.push({
+						id: aid,
+						order: firstStationOrder + ((k + 1) * (nextOrder - firstStationOrder)) / (i + 1)
+					});
+				}
+			}
+		}
+
+		while (i < items.length) {
+			if (items[i].type === 'station') {
+				const prevOrder = items[i].order;
+				const anchorItems: DndItem[] = [];
+				let j = i + 1;
+				while (j < items.length && items[j].type === 'anchor') {
+					anchorItems.push(items[j]);
+					j++;
+				}
+				const nextOrder = j < items.length ? items[j].order : lastStationOrder;
+				if (anchorItems.length > 0) {
+					const n = anchorItems.length;
+					for (let k = 0; k < n; k++) {
+						const newOrder = prevOrder + ((k + 1) * (nextOrder - prevOrder)) / (n + 1);
+						const aid = anchorItems[k].anchorId;
+						if (aid != null) updates.push({ id: aid, order: newOrder });
+					}
+				}
+				i = j;
+			} else {
+				i++;
+			}
+		}
+		for (const u of updates) {
+			await AnchorPointService.update(u.id, { order: u.order });
 		}
 		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
 		isDragging = false;
@@ -200,49 +269,61 @@
 			</div>
 		{/if}
 
-		{#each segments as seg, segIdx}
+		{#if dndItems.length > 0}
 			<div
-				use:dndzone={{ items: seg, type: 'anchor-segment', flipDurationMs }}
-				onconsider={(e) => handleConsider(e, segIdx)}
-				onfinalize={(e) => handleFinalize(e, segIdx)}
+				use:dndzone={{ items: dndItems, flipDurationMs }}
+				onconsider={handleDndConsider}
+				onfinalize={handleDndFinalize}
 				class="flex flex-col gap-0.5"
 			>
-				{#each seg as item (item.id)}
+				{#each dndItems as item (item.id)}
 					<div
 						animate:flip={{ duration: flipDurationMs }}
 						role="none"
-						class="flex cursor-grab items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-surface-variant/40 active:cursor-grabbing"
-						onmouseenter={() => (editorState.hoveredAnchorId = item.anchorId)}
-						onmouseleave={() => (editorState.hoveredAnchorId = null)}
+						class="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors {item.type ===
+						'station'
+							? 'bg-surface-variant/60 font-medium'
+							: 'hover:bg-surface-variant/40'}"
+						onmouseenter={() => {
+							if (item.type === 'anchor') editorState.hoveredAnchorId = item.anchorId!;
+						}}
+						onmouseleave={() => {
+							if (item.type === 'anchor') editorState.hoveredAnchorId = null;
+						}}
 					>
-						<span class="text-on-surface-variant">
-							<span class="material-symbols-outlined text-base">menu</span>
-						</span>
-						<span class="flex-1 truncate"
-							>{m.anchor_coords({ x: item.schematicX, y: item.schematicY })}</span
-						>
-						<IconButton
-							class="!h-6 !w-6"
-							onclick={async () => {
-								await AnchorPointService.delete(item.anchorId);
-								await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
-							}}
-						>
-							<span class="material-symbols-outlined text-sm">remove</span>
-						</IconButton>
+						{#if item.type === 'station'}
+							<span class="material-symbols-outlined text-sm">location_on</span>
+							<span>{item.stationName}</span>
+						{:else}
+							<span class="cursor-grab text-on-surface-variant active:cursor-grabbing">
+								<span class="material-symbols-outlined text-base">menu</span>
+							</span>
+							<span class="flex-1 truncate"
+								>{m.anchor_coords({ x: item.schematicX!, y: item.schematicY! })}</span
+							>
+							<IconButton
+								class="!h-6 !w-6"
+								onclick={async () => {
+									await AnchorPointService.delete(item.anchorId!);
+									await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+								}}
+							>
+								<span class="material-symbols-outlined text-sm">remove</span>
+							</IconButton>
+						{/if}
 					</div>
 				{/each}
 			</div>
+		{/if}
 
-			{@const rp = lineRps[segIdx + 1]}
-			{@const st = editorState.stations.find((s) => s.id === rp.stationId)}
+		{#if lastStation}
 			<div
 				class="flex items-center gap-2 rounded-md bg-surface-variant/60 px-2 py-1.5 text-sm font-medium"
 			>
 				<span class="material-symbols-outlined text-sm">location_on</span>
-				<span>{st?.name || m.unknown_station()}</span>
+				<span>{lastStation.station.name}</span>
 			</div>
-		{/each}
+		{/if}
 	</div>
 
 	<Button variant="filled" onclick={() => (deleteConfirmOpen = true)}>
