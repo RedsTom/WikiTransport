@@ -271,7 +271,7 @@
 
 		{#if dndItems.length > 0}
 			<div
-				use:dragHandleZone={{ items: dndItems, flipDurationMs, dropTargetClasses: ['dnd-active-dropzone'] }}
+				use:dragHandleZone={{ items: dndItems, flipDurationMs, dropTargetStyle: { outline: '2px solid var(--color-primary)' } }}
 				onconsider={handleDndConsider}
 				onfinalize={handleDndFinalize}
 				class="flex flex-col gap-0.5"

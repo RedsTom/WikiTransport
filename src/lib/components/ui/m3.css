@@ -410,8 +410,3 @@
 		transform: rotate(360deg);
 	}
 }
-
-/* --- DnD Active Drop Zone --- */
-.dnd-active-dropzone {
-	outline: 2px solid var(--color-primary);
-}
