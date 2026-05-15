@@ -261,7 +261,7 @@
 		</Tooltip>
 	{:else if beforeAfterVisible}
 		<ModeButton
-			active={editorState.placementMode === 'station'}
+			active={editorState.placementMode === 'station' && editorState.pendingLineInsert?.before === true}
 			inactiveIcon="new_label"
 			iconStyle="transform: scaleX(-1)"
 			tooltipInactive={`${m.add_station_before()} (⇧+S)`}
@@ -273,7 +273,7 @@
 			}}
 		/>
 		<ModeButton
-			active={editorState.placementMode === 'station'}
+			active={editorState.placementMode === 'station' && editorState.pendingLineInsert?.before === false}
 			inactiveIcon="new_label"
 			tooltipInactive={`${m.add_station_after()} (S)`}
 			tooltipActive={`${m.cancel()} (Esc)`}
