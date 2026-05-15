@@ -1,5 +1,5 @@
 import { GRID_SIZE, LINE_SPACING } from '$lib/constants/schematic';
-import type { Station, RoutePoint, Line } from '$lib/types';
+import type { Station, RoutePoint } from '$lib/types';
 
 export function screenToSvg(e: MouseEvent, svg: SVGSVGElement): { x: number; y: number } {
 	const pt = svg.createSVGPoint();

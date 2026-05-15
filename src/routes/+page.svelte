@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { resolve, base } from '$app/paths';
 	import type { Pathname } from '$app/types';
 </script>
 
@@ -100,8 +100,9 @@
 			<h3 class="mb-8 text-center text-2xl font-bold text-on-surface">
 				{m.landing_showcase()}
 			</h3>
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
-				href={resolve('/assets/Marseille-global(1).svg')}
+				href="{base}/assets/Marseille-global(1).svg"
 				target="_blank"
 				class="block overflow-hidden rounded-xl border border-outline/20 transition-shadow hover:shadow-md"
 			>
@@ -111,6 +112,7 @@
 					class="w-full bg-white"
 				/>
 			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 		</section>
 
 		<section class="mx-auto mb-24 max-w-4xl">

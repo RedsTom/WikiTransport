@@ -4,16 +4,14 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 	import { LineService } from '$lib/services/LineService';
-	import { TransitTypeService } from '$lib/services/TransitTypeService';
 	import { EditorService } from '$lib/services/EditorService';
-	import type { Line } from '$lib/types';
+	import type { Line, RoutePoint } from '$lib/types';
 
-	import { Button, IconButton, Tooltip, StationSelector } from '$lib/components/ui';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import { db } from '$lib/services/Database';
 	import { StationService } from '$lib/services/StationService';
 	import { distToSegment } from '$lib/utils/schematic';
-	import type { RoutePoint } from '$lib/types';
 
 	const flipDurationMs = 200;
 
@@ -39,8 +37,8 @@
 		stationDndItems = lineStationsMap;
 	});
 
-	let collapsedTypes = $state(new SvelteSet<number>());
-	let collapsedLines = $state(new SvelteSet<number>());
+	let collapsedTypes = new SvelteSet<number>();
+	let collapsedLines = new SvelteSet<number>();
 
 	function toggleCollapse(typeId: number) {
 		if (collapsedTypes.has(typeId)) collapsedTypes.delete(typeId);
@@ -97,7 +95,7 @@
 				for (const item of items) {
 					if (item.stationId != null) stationIds.push(item.stationId);
 				}
-				const segAnchors = new Map<number, typeof anchors>();
+				const segAnchors = new SvelteMap<number, typeof anchors>();
 				for (const ap of anchors) {
 					let bestSeg = -1;
 					let bestDist = Infinity;

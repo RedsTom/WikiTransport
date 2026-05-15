@@ -1,3 +1,4 @@
+import { SvelteSet } from 'svelte/reactivity';
 import type { EditorState } from '$lib/store/editor.svelte';
 import type { Station, ViewStation } from '$lib/types';
 import { StationService } from './StationService';
@@ -157,7 +158,7 @@ export class EditorService {
 	 */
 	static toggleLineVisibility(state: EditorState, id: number) {
 		if (state.isGlobalView) {
-			const next = new Set(state.hiddenLineIds);
+			const next = new SvelteSet(state.hiddenLineIds);
 			if (next.has(id)) next.delete(id);
 			else next.add(id);
 			state.hiddenLineIds = next;
