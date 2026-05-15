@@ -257,7 +257,7 @@
 
 <div class="flex h-screen w-full flex-col overflow-hidden bg-surface text-on-surface">
 	<header
-		class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface-variant px-4"
+		class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface px-4"
 	>
 		<div class="flex items-center gap-4">
 			<IconButton onclick={() => goto(resolve(`/project/${projectId}`))}>
