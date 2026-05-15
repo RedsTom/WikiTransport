@@ -159,7 +159,7 @@
 		{#if selectedLineChip}
 			<Tooltip text={`${m.deselect_line()} (D)`}>
 				<IconButton
-					class="!h-6 !w-6 shrink-0"
+					class="shrink-0"
 					onclick={() => {
 						editorState.selectedLineId = null;
 					}}
@@ -239,7 +239,7 @@
 		{#if editorState.selectedStationId !== null}
 			<Tooltip text={m.deselect_station()}>
 				<IconButton
-					class="!h-6 !w-6 shrink-0"
+					class="shrink-0"
 					onclick={() => {
 						editorState.selectedStationId = null;
 					}}
@@ -255,18 +255,18 @@
 	<!-- Action buttons -->
 	{#if addToLineVisible}
 		<Tooltip text={m.add_station_to_line()}>
-			<IconButton class="!h-6 !w-6 shrink-0 !text-primary" onclick={handleAddToLine}>
+			<IconButton class="shrink-0 !text-primary" onclick={handleAddToLine}>
 				<span class="material-symbols-outlined text-sm">add_circle</span>
 			</IconButton>
 		</Tooltip>
 	{:else if beforeAfterVisible}
 		<Tooltip text={`${m.add_station_before()} (⇧+S)`}>
-			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(true)}>
+			<IconButton class="shrink-0" onclick={() => startAddPlacement(true)}>
 				<span class="material-symbols-outlined -scale-x-[100%] text-sm">new_label</span>
 			</IconButton>
 		</Tooltip>
 		<Tooltip text={`${m.add_station_after()} (S)`}>
-			<IconButton class="!h-6 !w-6 shrink-0" onclick={() => startAddPlacement(false)}>
+			<IconButton class="shrink-0" onclick={() => startAddPlacement(false)}>
 				<span class="material-symbols-outlined text-sm">new_label</span>
 			</IconButton>
 		</Tooltip>
@@ -277,7 +277,7 @@
 				: `${m.add_station()} (S)`}
 		>
 			<IconButton
-				class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'station'
+				class="shrink-0 {editorState.placementMode === 'station'
 					? '!bg-error !text-on-error'
 					: ''}"
 				onclick={onaddstation}
@@ -293,7 +293,7 @@
 		text={editorState.placementMode === 'anchor' ? `${m.cancel()} (Esc)` : `${m.add_anchor()} (A)`}
 	>
 		<IconButton
-			class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'anchor'
+			class="shrink-0 {editorState.placementMode === 'anchor'
 				? '!bg-error !text-on-error'
 				: ''}"
 			onclick={onaddanchor}
