@@ -335,7 +335,11 @@
 							<div class="ml-2 flex flex-col gap-0.5 border-l-2 border-outline/10 pl-2">
 								{#if stationDndItems[line.id!]}
 									<div
-										use:dndzone={{ items: stationDndItems[line.id!], flipDurationMs, dropTargetStyle: DND_DROP_TARGET_STYLE }}
+										use:dndzone={{
+											items: stationDndItems[line.id!],
+											flipDurationMs,
+											dropTargetStyle: DND_DROP_TARGET_STYLE
+										}}
 										onconsider={handleStationDndConsider}
 										onfinalize={handleStationDndFinalize}
 										class="flex flex-col gap-0.5"

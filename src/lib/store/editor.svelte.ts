@@ -54,6 +54,67 @@ export class EditorState {
 	deleteLineOpen = $state(false);
 	deleteAnchorOpen = $state(false);
 
+	/* eslint-disable svelte/prefer-svelte-reactivity */
+	stationMap = $derived(new Map(this.stations.filter((s) => s.id != null).map((s) => [s.id!, s])));
+	lineMap = $derived(new Map(this.lines.filter((l) => l.id != null).map((l) => [l.id!, l])));
+	transitTypeMap = $derived(
+		new Map(this.transitTypes.filter((t) => t.id != null).map((t) => [t.id!, t]))
+	);
+	viewStationMap = $derived(
+		this.activeViewId != null
+			? new Map(
+					this.viewStations
+						.filter((vs) => vs.viewId === this.activeViewId)
+						.map((vs) => [vs.stationId, vs])
+				)
+			: new Map()
+	);
+
+	routePointsByLine = $derived.by(() => {
+		const map = new Map<number, RoutePoint[]>();
+		for (const rp of this.routePoints) {
+			if (rp.lineId == null) continue;
+			let arr = map.get(rp.lineId);
+			if (!arr) {
+				arr = [];
+				map.set(rp.lineId, arr);
+			}
+			arr.push(rp);
+		}
+		for (const [, arr] of map) arr.sort((a, b) => a.order - b.order);
+		return map;
+	});
+
+	routePointsByStation = $derived.by(() => {
+		const map = new Map<number, RoutePoint[]>();
+		for (const rp of this.routePoints) {
+			if (rp.stationId == null) continue;
+			let arr = map.get(rp.stationId);
+			if (!arr) {
+				arr = [];
+				map.set(rp.stationId, arr);
+			}
+			arr.push(rp);
+		}
+		return map;
+	});
+
+	anchorPointsByLine = $derived.by(() => {
+		const map = new Map<number, AnchorPoint[]>();
+		for (const ap of this.anchorPoints) {
+			if (ap.lineId == null) continue;
+			let arr = map.get(ap.lineId);
+			if (!arr) {
+				arr = [];
+				map.set(ap.lineId, arr);
+			}
+			arr.push(ap);
+		}
+		for (const [, arr] of map) arr.sort((a, b) => a.order - b.order);
+		return map;
+	});
+	/* eslint-enable svelte/prefer-svelte-reactivity */
+
 	get activeView(): View | null {
 		return this.views.find((v) => v.id === this.activeViewId) ?? null;
 	}
@@ -63,12 +124,10 @@ export class EditorState {
 	}
 
 	stationPosition(station: Station): { x: number; y: number } {
-		if (this.isGlobalView) {
+		if (this.isGlobalView || station.id == null) {
 			return { x: station.schematicX, y: station.schematicY };
 		}
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
+		const vs = this.viewStationMap.get(station.id);
 		if (vs) return { x: vs.schematicX, y: vs.schematicY };
 		return { x: station.schematicX, y: station.schematicY };
 	}
@@ -77,24 +136,6 @@ export class EditorState {
 		if (this.isGlobalView) return this.hiddenLineIds;
 		const view = this.activeView;
 		return new SvelteSet(view?.hiddenLineIds ?? []);
-	}
-
-	get effectiveHiddenStationIds(): Set<number> {
-		if (this.isGlobalView) return new SvelteSet<number>();
-		const view = this.activeView;
-		const base = new SvelteSet(view?.hiddenStationIds ?? []);
-		const hiddenLineSet = new SvelteSet(view?.hiddenLineIds ?? []);
-		for (const st of this.stations) {
-			if (!st.id) continue;
-			if (base.has(st.id)) continue;
-			const lineIds = this.routePoints
-				.filter((rp) => rp.stationId === st.id)
-				.map((rp) => rp.lineId);
-			if (lineIds.length > 0 && lineIds.every((lid) => hiddenLineSet.has(lid))) {
-				base.add(st.id);
-			}
-		}
-		return base;
 	}
 
 	stationLabelDirection(station: Station): string {
@@ -139,16 +180,31 @@ export class EditorState {
 		defaultValue: T
 	): T {
 		const s = station as unknown as Record<string, unknown>;
-		if (this.isGlobalView) return (s[field] as T) ?? defaultValue;
-		const vs = this.viewStations.find(
-			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
-		);
+		if (this.isGlobalView || station.id == null) return (s[field] as T) ?? defaultValue;
+		const vs = this.viewStationMap.get(station.id);
 		if (vs)
 			return (
 				((vs as unknown as Record<string, unknown>)[field] as T) ?? (s[field] as T) ?? defaultValue
 			);
 		return (s[field] as T) ?? defaultValue;
 	}
+
+	effectiveHiddenStationIds = $derived.by<Set<number>>(() => {
+		if (this.isGlobalView) return new SvelteSet<number>();
+		const view = this.activeView;
+		const base = new SvelteSet(view?.hiddenStationIds ?? []);
+		const hiddenLineSet = new SvelteSet(view?.hiddenLineIds ?? []);
+		for (const st of this.stations) {
+			if (!st.id) continue;
+			if (base.has(st.id)) continue;
+			const rps = this.routePointsByStation.get(st.id);
+			if (!rps || rps.length === 0) continue;
+			if (rps.every((rp) => hiddenLineSet.has(rp.lineId))) {
+				base.add(st.id);
+			}
+		}
+		return base;
+	});
 
 	toggleStationVisibility(id: number) {
 		if (this.isGlobalView) return;
@@ -206,25 +262,21 @@ export class EditorState {
 	}
 
 	async loadRoutePoints() {
-		const allPoints: RoutePoint[] = [];
-		for (const line of this.lines) {
-			if (line.id) {
-				const points = await StationService.getRoutePointsForLine(line.id);
-				allPoints.push(...points);
-			}
+		const lineIds = this.lines.map((l) => l.id).filter((id): id is number => id != null);
+		if (lineIds.length === 0) {
+			this.routePoints = [];
+			return;
 		}
-		this.routePoints = allPoints;
+		this.routePoints = await StationService.getRoutePointsForLines(lineIds);
 	}
 
 	async loadAnchorPoints(viewId?: number) {
-		const allAnchors: AnchorPoint[] = [];
-		for (const line of this.lines) {
-			if (line.id) {
-				const anchors = await AnchorPointService.getForLine(line.id, viewId);
-				allAnchors.push(...anchors);
-			}
+		const lineIds = this.lines.map((l) => l.id).filter((id): id is number => id != null);
+		if (lineIds.length === 0) {
+			this.anchorPoints = [];
+			return;
 		}
-		this.anchorPoints = allAnchors;
+		this.anchorPoints = await AnchorPointService.getForLines(lineIds, viewId);
 	}
 
 	async loadViews() {

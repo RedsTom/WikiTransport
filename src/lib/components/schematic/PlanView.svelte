@@ -12,7 +12,8 @@
 		screenToSvgRaw,
 		distToSegment,
 		closestPointOnSegment,
-		buildLineOffsets
+		buildSegmentTopology,
+		computeLineOffsets
 	} from '$lib/utils/schematic';
 	import SchematicGrid from './SchematicGrid.svelte';
 	import SchematicLines from './SchematicLines.svelte';
@@ -39,12 +40,14 @@
 
 	let allContentPoints = $derived.by(() => {
 		const points: { x: number; y: number }[] = [];
+		const hiddenStationIds = editorState.effectiveHiddenStationIds;
+		const hiddenLineIds = editorState.effectiveHiddenLineIds;
 		for (const s of editorState.stations) {
-			if (!editorState.isGlobalView && editorState.effectiveHiddenStationIds.has(s.id!)) continue;
+			if (s.id != null && !editorState.isGlobalView && hiddenStationIds.has(s.id)) continue;
 			points.push(editorState.stationPosition(s));
 		}
 		for (const a of editorState.anchorPoints) {
-			if (!editorState.isGlobalView && editorState.effectiveHiddenLineIds.has(a.lineId)) continue;
+			if (!editorState.isGlobalView && hiddenLineIds.has(a.lineId)) continue;
 			points.push({ x: a.schematicX, y: a.schematicY });
 		}
 		return points;
@@ -167,21 +170,20 @@
 			lineId = Number(lineEl.getAttribute('data-line'));
 		}
 
+		const hiddenLineIds = editorState.effectiveHiddenLineIds;
 		const lines = lineId
 			? editorState.lines.filter((l) => l.id === lineId)
-			: editorState.lines.filter((l) => l.id && !editorState.effectiveHiddenLineIds.has(l.id));
+			: editorState.lines.filter((l) => l.id && !hiddenLineIds.has(l.id));
 
 		let best: { lineId: number; dist: number; order: number; cx: number; cy: number } | null = null;
 
 		for (const line of lines) {
-			if (!line.id || editorState.effectiveHiddenLineIds.has(line.id)) continue;
-			const rps = editorState.routePoints
-				.filter((rp) => rp.lineId === line.id)
-				.sort((a, b) => a.order - b.order);
+			if (!line.id || hiddenLineIds.has(line.id)) continue;
+			const rps = editorState.routePointsByLine.get(line.id) ?? [];
 			if (rps.length < 2) continue;
 			for (let i = 0; i < rps.length - 1; i++) {
-				const sA = editorState.stations.find((s) => s.id === rps[i].stationId);
-				const sB = editorState.stations.find((s) => s.id === rps[i + 1].stationId);
+				const sA = editorState.stationMap.get(rps[i].stationId);
+				const sB = editorState.stationMap.get(rps[i + 1].stationId);
 				if (!sA || !sB) continue;
 				const pA = editorState.stationPosition(sA);
 				const pB = editorState.stationPosition(sB);
@@ -243,7 +245,8 @@
 				existingPoints.length > 0 ? Math.max(...existingPoints.map((rp) => rp.order)) : 0;
 			await StationService.addStationToLine(editorState.selectedLineId, stationId, maxOrder + 1);
 		}
-		await EditorService.reloadAll(editorState);
+		await editorState.loadStations();
+		await editorState.loadRoutePoints();
 		editorState.selectedStationId = stationId;
 		editorState.rightTab = 'station';
 		editorState.placementMode = null;
@@ -271,18 +274,17 @@
 		];
 
 		for (const line of editorState.lines) {
-			const alreadyOnLine = editorState.routePoints.some(
-				(rp) => rp.lineId === line.id && rp.stationId === stationId
+			const alreadyOnLine = (editorState.routePointsByStation.get(stationId) ?? []).some(
+				(rp) => rp.lineId === line.id
 			);
 			if (!alreadyOnLine) {
 				items.push({
 					label: m.add_to_line({ lineName: line.name }),
 					action: async () => {
-						const maxOrder = editorState.routePoints
-							.filter((rp) => rp.lineId === line.id)
-							.reduce((max, rp) => Math.max(max, rp.order), 0);
+						const rps = editorState.routePointsByLine.get(line.id!) ?? [];
+						const maxOrder = rps.reduce((max, rp) => Math.max(max, rp.order), 0);
 						await StationService.addStationToLine(line.id!, stationId, maxOrder + 1);
-						await EditorService.reloadAll(editorState);
+						await editorState.loadRoutePoints();
 					}
 				});
 			}
@@ -455,13 +457,22 @@
 		editorState.rightTab = 'station';
 	}
 
-	let lineOffsets = $derived(
-		buildLineOffsets(
-			editorState.stations,
+	let segmentTopology = $derived(
+		buildSegmentTopology(
 			editorState.routePoints,
 			editorState.lines,
 			editorState.effectiveHiddenLineIds,
-			(s) => editorState.stationPosition(s)
+			editorState.lineMap
+		)
+	);
+
+	let lineOffsets = $derived(
+		computeLineOffsets(
+			segmentTopology,
+			editorState.stationMap,
+			(s) => editorState.stationPosition(s),
+			editorState.lines,
+			editorState.effectiveHiddenLineIds
 		)
 	);
 </script>

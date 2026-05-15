@@ -15,8 +15,8 @@
 
 	function sortLineIds(lineIds: number[]): number[] {
 		return [...lineIds].sort((a, b) => {
-			const la = editorState.lines.find((l) => l.id === a);
-			const lb = editorState.lines.find((l) => l.id === b);
+			const la = editorState.lineMap.get(a);
+			const lb = editorState.lineMap.get(b);
 			if (!la || !lb) return a - b;
 			if (la.transitTypeId !== lb.transitTypeId)
 				return (la.transitTypeId ?? -1) - (lb.transitTypeId ?? -1);
@@ -52,10 +52,8 @@
 		/>
 		{@const hasSubtitle = !!station.subtitle}
 		{@const servingLineIds = [
-			...new Set(
-				editorState.routePoints.filter((rp) => rp.stationId === station.id).map((rp) => rp.lineId)
-			)
-		].filter((id) => editorState.lines.some((l) => l.id === id))}
+			...new Set((editorState.routePointsByStation.get(station.id!) ?? []).map((rp) => rp.lineId))
+		].filter((id) => editorState.lineMap.has(id))}
 		{@const hiddenLineIdsSet = editorState.effectiveHiddenLineIds}
 		{@const hiddenInterchangeIds = editorState.stationHiddenInterchangeLineIds(station)}
 		{@const hiddenInterchangeIdsSet = new Set(hiddenInterchangeIds)}
@@ -133,8 +131,8 @@
 
 		{#if interchangeBadgeLineIds.length > 0}
 			{#each interchangeBadgeLineIds as lid, i (lid)}
-				{@const line = editorState.lines.find((l) => l.id === lid)}
-				{@const tt = editorState.transitTypes.find((t) => t.id === line?.transitTypeId)}
+				{@const line = editorState.lineMap.get(lid)}
+				{@const tt = line ? editorState.transitTypeMap.get(line.transitTypeId!) : undefined}
 				{@const shape = (tt?.iconShape ?? 'square') as IconShape}
 				{@const cx = badgeLayout.horizontal
 					? badgeLayout.startX + i * 23 + 10

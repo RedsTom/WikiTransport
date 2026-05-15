@@ -11,18 +11,14 @@
 {#each editorState.lines as line (line.id)}
 	{@const isHidden = editorState.effectiveHiddenLineIds.has(line.id!)}
 	{#if !isHidden}
-		{@const points = editorState.routePoints
-			.filter((rp) => rp.lineId === line.id)
-			.sort((a, b) => a.order - b.order)}
+		{@const points = editorState.routePointsByLine.get(line.id!) ?? []}
 		{@const segOffMap = lineOffsets.get(line.id!)}
-		{@const lineAnchors = editorState.anchorPoints
-			.filter((ap) => ap.lineId === line.id)
-			.sort((a, b) => a.order - b.order)}
+		{@const lineAnchors = editorState.anchorPointsByLine.get(line.id!) ?? []}
 		{@const allCoords = (() => {
 			const coords: { x: number; y: number; order: number }[] = [];
 			for (let i = 0; i < points.length; i++) {
 				const rp = points[i];
-				const s = editorState.stations.find((st) => st.id === rp.stationId);
+				const s = editorState.stationMap.get(rp.stationId);
 				if (!s) continue;
 				const pos = editorState.stationPosition(s);
 				let offX = 0,

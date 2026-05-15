@@ -41,6 +41,11 @@ export class StationService {
 		return await db.routePoints.where({ lineId }).sortBy('order');
 	}
 
+	static async getRoutePointsForLines(lineIds: number[]): Promise<RoutePoint[]> {
+		if (lineIds.length === 0) return [];
+		return await db.routePoints.where('lineId').anyOf(lineIds).toArray();
+	}
+
 	static async addStationToLine(
 		lineId: number,
 		stationId: number,

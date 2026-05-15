@@ -12,6 +12,15 @@ export class AnchorPointService {
 		return await collection.sortBy('order');
 	}
 
+	static async getForLines(lineIds: number[], viewId?: number): Promise<AnchorPoint[]> {
+		if (lineIds.length === 0) return [];
+		const items = await db.anchorPoints.where('lineId').anyOf(lineIds).toArray();
+		if (viewId !== undefined) {
+			return items.filter((ap) => ap.viewId === viewId);
+		}
+		return items.filter((ap) => ap.viewId === undefined || ap.viewId === null);
+	}
+
 	static async getAllForView(viewId?: number): Promise<AnchorPoint[]> {
 		if (viewId === undefined) {
 			return await db.anchorPoints
