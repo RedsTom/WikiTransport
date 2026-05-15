@@ -13,6 +13,7 @@
 	/* eslint-disable svelte/no-unnecessary-state-wrap */
 	import { db } from '$lib/services/Database';
 	import { StationService } from '$lib/services/StationService';
+	import { distToSegment } from '$lib/utils/schematic';
 	import type { RoutePoint } from '$lib/types';
 
 	const flipDurationMs = 200;
@@ -97,10 +98,50 @@
 
 	async function handleStationDndFinalize(e: CustomEvent<DndEvent<DndItem>>) {
 		const items = e.detail.items;
+		const lineId = items[0]?.lineId;
 		for (let i = 0; i < items.length; i++) {
-			await db.routePoints.update(items[i].id, { order: i });
+			const id = items[i].id;
+			if (id === undefined) continue;
+			await db.routePoints.update(id, { order: i });
+		}
+		if (lineId != null && items.length >= 2) {
+			const anchors = await db.anchorPoints.where({ lineId }).toArray();
+			if (anchors.length > 0) {
+				const stationIds: number[] = [];
+				for (const item of items) {
+					if (item.stationId != null) stationIds.push(item.stationId);
+				}
+				const segAnchors = new Map<number, typeof anchors>();
+				for (const ap of anchors) {
+					let bestSeg = -1;
+					let bestDist = Infinity;
+					for (let i = 0; i < stationIds.length - 1; i++) {
+						const stA = editorState.stations.find((s) => s.id === stationIds[i]);
+						const stB = editorState.stations.find((s) => s.id === stationIds[i + 1]);
+						if (!stA || !stB) continue;
+						const dist = distToSegment(ap.schematicX, ap.schematicY, stA.schematicX, stA.schematicY, stB.schematicX, stB.schematicY);
+						if (dist < bestDist) {
+							bestDist = dist;
+							bestSeg = i;
+						}
+					}
+					if (bestSeg >= 0) {
+						if (!segAnchors.has(bestSeg)) segAnchors.set(bestSeg, []);
+						segAnchors.get(bestSeg)!.push(ap);
+					}
+				}
+				for (const [segIdx, group] of segAnchors) {
+					group.sort((a, b) => a.order - b.order);
+					const n = group.length;
+					for (let i = 0; i < n; i++) {
+						const newOrder = segIdx + (i + 1) / (n + 1);
+						await db.anchorPoints.update(group[i].id!, { order: newOrder });
+					}
+				}
+			}
 		}
 		await editorState.loadRoutePoints();
+		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
 		isDraggingStation = false;
 	}
 
@@ -444,32 +485,32 @@
 					onkeydown={(e) => e.key === 'Enter' && selectStation(station.id!)}
 				>
 					<span class="material-symbols-outlined text-sm">location_on</span>
-				<span class="flex-1 truncate text-sm font-medium">{station.name}</span>
-				{#if !editorState.isGlobalView}
-					<div
-						class="opacity-0 transition-opacity group-hover:opacity-100"
-						onclick={(e: MouseEvent) => e.stopPropagation()}
-						role="none"
-					>
-						<Tooltip
-							text={editorState.effectiveHiddenStationIds.has(station.id!)
-								? m.show_line()
-								: m.hide_line()}
+					<span class="flex-1 truncate text-sm font-medium">{station.name}</span>
+					{#if !editorState.isGlobalView}
+						<div
+							class="opacity-0 transition-opacity group-hover:opacity-100"
+							onclick={(e: MouseEvent) => e.stopPropagation()}
+							role="none"
 						>
-							<IconButton
-								onclick={() => {
-									editorState.toggleStationVisibility(station.id!);
-								}}
+							<Tooltip
+								text={editorState.effectiveHiddenStationIds.has(station.id!)
+									? m.show_line()
+									: m.hide_line()}
 							>
-								<span class="material-symbols-outlined text-sm">
-									{editorState.effectiveHiddenStationIds.has(station.id!)
-										? 'visibility_off'
-										: 'visibility'}
-								</span>
-							</IconButton>
-						</Tooltip>
-					</div>
-				{/if}
+								<IconButton
+									onclick={() => {
+										editorState.toggleStationVisibility(station.id!);
+									}}
+								>
+									<span class="material-symbols-outlined text-sm">
+										{editorState.effectiveHiddenStationIds.has(station.id!)
+											? 'visibility_off'
+											: 'visibility'}
+									</span>
+								</IconButton>
+							</Tooltip>
+						</div>
+					{/if}
 				</div>
 			{/each}
 			{#if filteredStations.length === 0}
