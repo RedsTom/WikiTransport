@@ -405,11 +405,20 @@
 		if (draggedStationId !== null) {
 			if (didDragStation) {
 				const station = editorState.stations.find((s) => s.id === draggedStationId);
-				if (station && editorState.isGlobalView) {
-					await StationService.updateStation(station.id!, {
-						schematicX: station.schematicX,
-						schematicY: station.schematicY
-					});
+				if (station) {
+					if (editorState.isGlobalView) {
+						await StationService.updateStation(station.id!, {
+							schematicX: station.schematicX,
+							schematicY: station.schematicY
+						});
+					} else if (editorState.activeViewId !== null) {
+						await EditorService.updateViewStationPosition(
+							editorState,
+							station.id!,
+							station.schematicX,
+							station.schematicY
+						);
+					}
 				}
 			}
 			draggedStationId = null;

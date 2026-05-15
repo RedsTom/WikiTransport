@@ -98,65 +98,69 @@ export class EditorService {
 		anchorDx?: number,
 		anchorDy?: number
 	) {
-		if (state.isGlobalView) {
-			const changes: Record<string, unknown> = { schematicX, schematicY };
-			if (labelDirection !== undefined) changes.labelDirection = labelDirection;
-			if (labelAnchor !== undefined) changes.labelAnchor = labelAnchor;
-			if (subtitleAlign !== undefined) changes.subtitleAlign = subtitleAlign;
-			if (anchorDx !== undefined) changes.anchorDx = anchorDx;
-			if (anchorDy !== undefined) changes.anchorDy = anchorDy;
-			await StationService.updateStation(stationId, changes as Partial<Station>);
-			const st = state.stations.find((s) => s.id === stationId);
-			if (st) {
-				st.schematicX = schematicX;
-				st.schematicY = schematicY;
-				if (labelDirection !== undefined) st.labelDirection = labelDirection;
-				if (labelAnchor !== undefined) st.labelAnchor = labelAnchor;
-				if (subtitleAlign !== undefined) st.subtitleAlign = subtitleAlign;
-				if (anchorDx !== undefined) st.anchorDx = anchorDx;
-				if (anchorDy !== undefined) st.anchorDy = anchorDy;
+		try {
+			if (state.isGlobalView) {
+				const changes: Record<string, unknown> = { schematicX, schematicY };
+				if (labelDirection !== undefined) changes.labelDirection = labelDirection;
+				if (labelAnchor !== undefined) changes.labelAnchor = labelAnchor;
+				if (subtitleAlign !== undefined) changes.subtitleAlign = subtitleAlign;
+				if (anchorDx !== undefined) changes.anchorDx = anchorDx;
+				if (anchorDy !== undefined) changes.anchorDy = anchorDy;
+				await StationService.updateStation(stationId, changes as Partial<Station>);
+				const st = state.stations.find((s) => s.id === stationId);
+				if (st) {
+					st.schematicX = schematicX;
+					st.schematicY = schematicY;
+					if (labelDirection !== undefined) st.labelDirection = labelDirection;
+					if (labelAnchor !== undefined) st.labelAnchor = labelAnchor;
+					if (subtitleAlign !== undefined) st.subtitleAlign = subtitleAlign;
+					if (anchorDx !== undefined) st.anchorDx = anchorDx;
+					if (anchorDy !== undefined) st.anchorDy = anchorDy;
+				}
+			} else if (state.activeViewId !== null) {
+				await ViewStationService.setPosition(
+					state.activeViewId,
+					stationId,
+					schematicX,
+					schematicY,
+					labelDirection,
+					labelAnchor,
+					subtitleAlign,
+					anchorDx,
+					anchorDy
+				);
+				const existing = state.viewStations.find(
+					(vs) => vs.viewId === state.activeViewId && vs.stationId === stationId
+				);
+				const vsUpdates: Record<string, unknown> = { schematicX, schematicY };
+				if (labelDirection !== undefined) vsUpdates.labelDirection = labelDirection;
+				if (labelAnchor !== undefined) vsUpdates.labelAnchor = labelAnchor;
+				if (subtitleAlign !== undefined) vsUpdates.subtitleAlign = subtitleAlign;
+				if (anchorDx !== undefined) vsUpdates.anchorDx = anchorDx;
+				if (anchorDy !== undefined) vsUpdates.anchorDy = anchorDy;
+				if (existing) {
+					Object.assign(existing, vsUpdates);
+				} else {
+					state.viewStations = [
+						...state.viewStations,
+						{
+							id: undefined,
+							viewId: state.activeViewId,
+							stationId,
+							...vsUpdates
+						} as unknown as ViewStation
+					];
+				}
 			}
-		} else if (state.activeViewId !== null) {
-			await ViewStationService.setPosition(
-				state.activeViewId,
-				stationId,
-				schematicX,
-				schematicY,
-				labelDirection,
-				labelAnchor,
-				subtitleAlign,
-				anchorDx,
-				anchorDy
-			);
-			const existing = state.viewStations.find(
-				(vs) => vs.viewId === state.activeViewId && vs.stationId === stationId
-			);
-			const vsUpdates: Record<string, unknown> = { schematicX, schematicY };
-			if (labelDirection !== undefined) vsUpdates.labelDirection = labelDirection;
-			if (labelAnchor !== undefined) vsUpdates.labelAnchor = labelAnchor;
-			if (subtitleAlign !== undefined) vsUpdates.subtitleAlign = subtitleAlign;
-			if (anchorDx !== undefined) vsUpdates.anchorDx = anchorDx;
-			if (anchorDy !== undefined) vsUpdates.anchorDy = anchorDy;
-			if (existing) {
-				Object.assign(existing, vsUpdates);
-			} else {
-				state.viewStations = [
-					...state.viewStations,
-					{
-						id: undefined,
-						viewId: state.activeViewId,
-						stationId,
-						...vsUpdates
-					} as unknown as ViewStation
-				];
-			}
+		} catch (err) {
+			console.error('EditorService.updateViewStationPosition failed', err);
 		}
 	}
 
 	/**
 	 * Toggle line visibility in either global or view mode.
 	 */
-	static toggleLineVisibility(state: EditorState, id: number) {
+	static async toggleLineVisibility(state: EditorState, id: number) {
 		if (state.isGlobalView) {
 			const next = new SvelteSet(state.hiddenLineIds);
 			if (next.has(id)) next.delete(id);
@@ -169,7 +173,11 @@ export class EditorService {
 				? view.hiddenLineIds.filter((x) => x !== id)
 				: [...view.hiddenLineIds, id];
 			view.hiddenLineIds = ids;
-			ViewService.update(view.id!, { hiddenLineIds: ids });
+			try {
+				await ViewService.update(view.id!, { hiddenLineIds: ids });
+			} catch (err) {
+				console.error('toggleLineVisibility failed', err);
+			}
 		}
 	}
 

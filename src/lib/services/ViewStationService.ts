@@ -13,19 +13,25 @@ export class ViewStationService {
 		stationId: number,
 		updates: ViewStationUpdate
 	): Promise<void> {
-		const existing = await db.viewStations.where({ viewId, stationId }).first();
-		if (existing) {
-			await db.viewStations.update(existing.id!, updates);
-		} else {
-			const s = await db.stations.get(stationId);
-			if (!s) return;
-			await db.viewStations.add({
-				viewId,
-				stationId,
-				schematicX: updates.schematicX ?? s.schematicX,
-				schematicY: updates.schematicY ?? s.schematicY,
-				...updates
-			} as ViewStation);
+		try {
+			await db.transaction('rw', db.viewStations, db.stations, async () => {
+				const existing = await db.viewStations.where({ viewId, stationId }).first();
+				if (existing) {
+					await db.viewStations.update(existing.id!, updates);
+				} else {
+					const s = await db.stations.get(stationId);
+					if (!s) return;
+					await db.viewStations.add({
+						viewId,
+						stationId,
+						schematicX: updates.schematicX ?? s.schematicX,
+						schematicY: updates.schematicY ?? s.schematicY,
+						...updates
+					} as ViewStation);
+				}
+			});
+		} catch (err) {
+			console.error('ViewStationService.updateViewStation failed', err);
 		}
 	}
 

@@ -25,7 +25,6 @@
 	let posY = $state(0);
 	let ratioLocked = $state(false);
 	let lockedRatio = $state(1);
-	let updatingFromLock = $state(false);
 	let deleteConfirmOpen = $state(false);
 
 	let selectedStation = $derived(
@@ -166,15 +165,23 @@
 
 	async function updateStation(name: string) {
 		if (selectedStation?.id) {
-			await StationService.updateStation(selectedStation.id, { name });
-			await editorState.loadStations();
+			try {
+				await StationService.updateStation(selectedStation.id, { name });
+				await editorState.loadStations();
+			} catch (err) {
+				console.error('updateStation failed', err);
+			}
 		}
 	}
 
 	async function updateSubtitle(subtitle: string) {
 		if (selectedStation?.id) {
-			await StationService.updateStation(selectedStation.id, { subtitle: subtitle || undefined });
-			await editorState.loadStations();
+			try {
+				await StationService.updateStation(selectedStation.id, { subtitle: subtitle || undefined });
+				await editorState.loadStations();
+			} catch (err) {
+				console.error('updateSubtitle failed', err);
+			}
 		}
 	}
 
@@ -190,29 +197,33 @@
 			if (v !== undefined) cleanVs[k] = v;
 		}
 
-		if (editorState.isGlobalView) {
-			await StationService.updateStation(station.id, partialStation);
-			await editorState.loadStations();
-		} else if (editorState.activeViewId !== null && viewStationUpdateFn) {
-			await viewStationUpdateFn(editorState.activeViewId, station.id);
-			const existing = editorState.viewStations.find(
-				(vs) => vs.viewId === editorState.activeViewId && vs.stationId === station.id
-			);
-			if (existing) {
-				Object.assign(existing, cleanVs);
-			} else {
-				editorState.viewStations = [
-					...editorState.viewStations,
-					{
-						id: undefined,
-						viewId: editorState.activeViewId,
-						stationId: station.id,
-						schematicX: station.schematicX,
-						schematicY: station.schematicY,
-						...cleanVs
-					} as import('$lib/types').ViewStation
-				];
+		try {
+			if (editorState.isGlobalView) {
+				await StationService.updateStation(station.id, partialStation);
+				await editorState.loadStations();
+			} else if (editorState.activeViewId !== null && viewStationUpdateFn) {
+				await viewStationUpdateFn(editorState.activeViewId, station.id);
+				const existing = editorState.viewStations.find(
+					(vs) => vs.viewId === editorState.activeViewId && vs.stationId === station.id
+				);
+				if (existing) {
+					Object.assign(existing, cleanVs);
+				} else {
+					editorState.viewStations = [
+						...editorState.viewStations,
+						{
+							id: undefined,
+							viewId: editorState.activeViewId,
+							stationId: station.id,
+							schematicX: station.schematicX,
+							schematicY: station.schematicY,
+							...cleanVs
+						} as import('$lib/types').ViewStation
+					];
+				}
 			}
+		} catch (err) {
+			console.error('applyStationUpdate failed', err);
 		}
 	}
 
@@ -251,23 +262,31 @@
 	}
 
 	async function setAnchorDx(d: number) {
-		if (ratioLocked && !updatingFromLock) {
-			updatingFromLock = true;
-			anchorDy = Math.round(d / lockedRatio);
-			await commitAnchorDy(anchorDy);
-			updatingFromLock = false;
+		if (ratioLocked) {
+			const newDy = Math.round(d / lockedRatio);
+			anchorDy = newDy;
+			anchorDx = d;
+			await commitAnchorPair(d, newDy);
+		} else {
+			await commitAnchorDx(d);
 		}
-		await commitAnchorDx(d);
 	}
 
 	async function setAnchorDy(d: number) {
-		if (ratioLocked && !updatingFromLock) {
-			updatingFromLock = true;
-			anchorDx = Math.round(d * lockedRatio);
-			await commitAnchorDx(anchorDx);
-			updatingFromLock = false;
+		if (ratioLocked) {
+			const newDx = Math.round(d * lockedRatio);
+			anchorDx = newDx;
+			anchorDy = d;
+			await commitAnchorPair(newDx, d);
+		} else {
+			await commitAnchorDy(d);
 		}
-		await commitAnchorDy(d);
+	}
+
+	async function commitAnchorPair(dx: number, dy: number) {
+		await applyStationUpdate({ anchorDx: dx, anchorDy: dy }, (vid, sid) =>
+			ViewStationService.updateViewStation(vid, sid, { anchorDx: dx, anchorDy: dy })
+		);
 	}
 
 	async function commitAnchorDx(d: number) {
