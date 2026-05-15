@@ -195,7 +195,12 @@ export class EditorService {
 	/**
 	 * Update an anchor point's position and reload.
 	 */
-	static async updateAnchorPosition(state: EditorState, id: number, schematicX: number, schematicY: number) {
+	static async updateAnchorPosition(
+		state: EditorState,
+		id: number,
+		schematicX: number,
+		schematicY: number
+	) {
 		await AnchorPointService.update(id, { schematicX, schematicY });
 		const anchor = state.anchorPoints.find((a) => a.id === id);
 		if (anchor) {

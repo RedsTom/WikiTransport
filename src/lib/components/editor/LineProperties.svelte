@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { dragHandleZone, dragHandle, type DndEvent } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
@@ -271,7 +271,7 @@
 
 		{#if dndItems.length > 0}
 			<div
-				use:dndzone={{ items: dndItems, flipDurationMs }}
+				use:dragHandleZone={{ items: dndItems, flipDurationMs }}
 				onconsider={handleDndConsider}
 				onfinalize={handleDndFinalize}
 				class="flex flex-col gap-0.5"
@@ -295,7 +295,10 @@
 							<span class="material-symbols-outlined text-sm">location_on</span>
 							<span>{item.stationName}</span>
 						{:else}
-							<span class="cursor-grab text-on-surface-variant active:cursor-grabbing">
+							<span
+								use:dragHandle
+								class="cursor-grab text-on-surface-variant active:cursor-grabbing"
+							>
 								<span class="material-symbols-outlined text-base">menu</span>
 							</span>
 							<span class="flex-1 truncate"

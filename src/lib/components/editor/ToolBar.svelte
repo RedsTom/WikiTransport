@@ -277,7 +277,9 @@
 				: `${m.add_station()} (S)`}
 		>
 			<IconButton
-				class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
+				class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'station'
+					? '!bg-error !text-on-error'
+					: ''}"
 				onclick={onaddstation}
 			>
 				<span class="material-symbols-outlined text-sm"
@@ -291,7 +293,9 @@
 		text={editorState.placementMode === 'anchor' ? `${m.cancel()} (Esc)` : `${m.add_anchor()} (A)`}
 	>
 		<IconButton
-			class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'anchor' ? '!bg-error !text-on-error' : ''}"
+			class="!h-6 !w-6 shrink-0 {editorState.placementMode === 'anchor'
+				? '!bg-error !text-on-error'
+				: ''}"
 			onclick={onaddanchor}
 		>
 			<span class="material-symbols-outlined text-sm"

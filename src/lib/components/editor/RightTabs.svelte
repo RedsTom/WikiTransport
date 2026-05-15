@@ -6,7 +6,8 @@
 	function toggle(tab: 'general' | 'type' | 'line' | 'station') {
 		if (tab === 'type' && !editorState.selectedTransitTypeId) return;
 		if (tab === 'line' && !editorState.selectedLineId) return;
-		if (tab === 'station' && !editorState.selectedStationId && !editorState.selectedAnchorId) return;
+		if (tab === 'station' && !editorState.selectedStationId && !editorState.selectedAnchorId)
+			return;
 		editorState.rightTab = editorState.rightTab === tab ? null : tab;
 	}
 
@@ -15,11 +16,15 @@
 	let hasStation = $derived(!!editorState.selectedStationId || !!editorState.selectedAnchorId);
 </script>
 
-<aside class="flex w-12 shrink-0 flex-col items-center gap-2 border-l border-outline/20 bg-surface pt-2">
+<aside
+	class="flex w-12 shrink-0 flex-col items-center gap-2 border-l border-outline/20 bg-surface pt-2"
+>
 	<Tooltip text={m.general()}>
 		<IconButton
 			onclick={() => toggle('general')}
-			class={editorState.rightTab === 'general' ? '!bg-secondary-container !text-on-secondary-container' : ''}
+			class={editorState.rightTab === 'general'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
 		>
 			<span class="material-symbols-outlined">settings</span>
 		</IconButton>
@@ -28,7 +33,9 @@
 		<IconButton
 			disabled={!hasType}
 			onclick={() => toggle('type')}
-			class={editorState.rightTab === 'type' ? '!bg-secondary-container !text-on-secondary-container' : ''}
+			class={editorState.rightTab === 'type'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
 		>
 			<span class="material-symbols-outlined">palette</span>
 		</IconButton>
@@ -37,7 +44,9 @@
 		<IconButton
 			disabled={!hasLine}
 			onclick={() => toggle('line')}
-			class={editorState.rightTab === 'line' ? '!bg-secondary-container !text-on-secondary-container' : ''}
+			class={editorState.rightTab === 'line'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
 		>
 			<span class="material-symbols-outlined">route</span>
 		</IconButton>
@@ -46,7 +55,9 @@
 		<IconButton
 			disabled={!hasStation}
 			onclick={() => toggle('station')}
-			class={editorState.rightTab === 'station' ? '!bg-secondary-container !text-on-secondary-container' : ''}
+			class={editorState.rightTab === 'station'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
 		>
 			<span class="material-symbols-outlined">location_on</span>
 		</IconButton>

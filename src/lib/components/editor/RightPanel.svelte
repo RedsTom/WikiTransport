@@ -35,10 +35,7 @@
 				{m.station()}
 			{/if}
 		</h2>
-		<button
-			class="m3-icon-button"
-			onclick={() => (editorState.rightTab = null)}
-		>
+		<button class="m3-icon-button" onclick={() => (editorState.rightTab = null)}>
 			<span class="material-symbols-outlined">chevron_right</span>
 		</button>
 	</div>

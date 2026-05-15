@@ -72,7 +72,9 @@
 		white-space: nowrap;
 		pointer-events: none;
 		opacity: 0;
-		transition: opacity 0.12s ease, display 0.12s ease allow-discrete;
+		transition:
+			opacity 0.12s ease,
+			display 0.12s ease allow-discrete;
 	}
 	.component-tooltip:popover-open {
 		opacity: 1;

@@ -119,7 +119,14 @@
 						const stA = editorState.stations.find((s) => s.id === stationIds[i]);
 						const stB = editorState.stations.find((s) => s.id === stationIds[i + 1]);
 						if (!stA || !stB) continue;
-						const dist = distToSegment(ap.schematicX, ap.schematicY, stA.schematicX, stA.schematicY, stB.schematicX, stB.schematicY);
+						const dist = distToSegment(
+							ap.schematicX,
+							ap.schematicY,
+							stA.schematicX,
+							stA.schematicY,
+							stB.schematicX,
+							stB.schematicY
+						);
 						if (dist < bestDist) {
 							bestDist = dist;
 							bestSeg = i;
@@ -202,10 +209,7 @@
 				{m.stations()}
 			{/if}
 		</h2>
-		<button
-			class="m3-icon-button"
-			onclick={() => (editorState.leftTab = null)}
-		>
+		<button class="m3-icon-button" onclick={() => (editorState.leftTab = null)}>
 			<span class="material-symbols-outlined">chevron_left</span>
 		</button>
 	</div>
