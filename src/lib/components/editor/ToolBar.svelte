@@ -261,13 +261,37 @@
 		</Tooltip>
 	{:else if beforeAfterVisible}
 		<Tooltip text={`${m.add_station_before()} (⇧+S)`}>
-			<IconButton class="shrink-0" onclick={() => startAddPlacement(true)}>
-				<span class="material-symbols-outlined -scale-x-[100%] text-sm">new_label</span>
+			<IconButton
+				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
+				onclick={() => {
+					if (editorState.placementMode === 'station') {
+						editorState.placementMode = null;
+						editorState.pendingLineInsert = null;
+					} else {
+						startAddPlacement(true);
+					}
+				}}
+			>
+				<span class="material-symbols-outlined -scale-x-[100%] text-sm"
+					>{editorState.placementMode === 'station' ? 'close' : 'new_label'}</span
+				>
 			</IconButton>
 		</Tooltip>
 		<Tooltip text={`${m.add_station_after()} (S)`}>
-			<IconButton class="shrink-0" onclick={() => startAddPlacement(false)}>
-				<span class="material-symbols-outlined text-sm">new_label</span>
+			<IconButton
+				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
+				onclick={() => {
+					if (editorState.placementMode === 'station') {
+						editorState.placementMode = null;
+						editorState.pendingLineInsert = null;
+					} else {
+						startAddPlacement(false);
+					}
+				}}
+			>
+				<span class="material-symbols-outlined text-sm"
+					>{editorState.placementMode === 'station' ? 'close' : 'new_label'}</span
+				>
 			</IconButton>
 		</Tooltip>
 	{:else}
