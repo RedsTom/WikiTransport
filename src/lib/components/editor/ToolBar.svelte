@@ -263,7 +263,7 @@
 		<ModeButton
 			active={editorState.placementMode === 'station'}
 			inactiveIcon="new_label"
-			iconClass="-scale-x-[100%]"
+			iconStyle="transform: scaleX(-1)"
 			tooltipInactive={`${m.add_station_before()} (⇧+S)`}
 			tooltipActive={`${m.cancel()} (Esc)`}
 			onactive={() => startAddPlacement(true)}

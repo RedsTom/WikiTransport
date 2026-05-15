@@ -9,7 +9,7 @@
 		inactiveIcon = '',
 		tooltipActive = '',
 		tooltipInactive = '',
-		iconClass = ''
+		iconStyle = ''
 	}: {
 		active?: boolean;
 		onactive?: () => void;
@@ -18,7 +18,7 @@
 		inactiveIcon?: string;
 		tooltipActive?: string;
 		tooltipInactive?: string;
-		iconClass?: string;
+		iconStyle?: string;
 	} = $props();
 </script>
 
@@ -30,7 +30,7 @@
 			else onactive();
 		}}
 	>
-		<span class="material-symbols-outlined text-sm {iconClass}"
+		<span class="material-symbols-outlined text-sm" style={iconStyle}
 			>{active ? activeIcon : inactiveIcon}</span
 		>
 	</IconButton>
