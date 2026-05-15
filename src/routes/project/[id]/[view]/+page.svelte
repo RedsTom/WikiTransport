@@ -15,6 +15,8 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 	import RightPanel from '$lib/components/editor/RightPanel.svelte';
+	import LeftTabs from '$lib/components/editor/LeftTabs.svelte';
+	import RightTabs from '$lib/components/editor/RightTabs.svelte';
 	import ToolBar from '$lib/components/editor/ToolBar.svelte';
 	import PlanView from '$lib/components/schematic/PlanView.svelte';
 
@@ -263,7 +265,10 @@
 		<!-- Main Workspace -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="flex flex-1 overflow-hidden" tabindex="-1" onkeydown={handleKeydown}>
-			<LeftPanel />
+			<LeftTabs />
+			{#if editorState.leftTab !== null}
+				<LeftPanel />
+			{/if}
 
 			<main
 				class="relative flex flex-1 items-center justify-center overflow-hidden bg-surface-variant text-on-surface-variant"
@@ -301,7 +306,10 @@
 				<ToolBar onaddstation={handleTogglePlacement} onaddanchor={handleToggleAnchor} />
 			</main>
 
-			<RightPanel />
+			{#if editorState.rightTab !== null}
+				<RightPanel />
+			{/if}
+			<RightTabs />
 		</div>
 	</div>
 

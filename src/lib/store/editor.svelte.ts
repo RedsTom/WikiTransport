@@ -33,8 +33,8 @@ export class EditorState {
 	);
 	isSwitchingView = $state(false);
 
-	leftTab = $state<'lines' | 'types' | 'stations'>('lines');
-	rightTab = $state<'general' | 'line' | 'station'>('general');
+	leftTab = $state<'lines' | 'types' | 'stations' | null>(null);
+	rightTab = $state<'general' | 'type' | 'line' | 'station' | null>(null);
 
 	selectedTransitTypeId = $state<number | null>(null);
 	selectedLineId = $state<number | null>(null);
@@ -138,12 +138,15 @@ export class EditorState {
 		field: keyof Station | keyof ViewStation,
 		defaultValue: T
 	): T {
-		const s = station as Record<string, unknown>;
+		const s = station as unknown as Record<string, unknown>;
 		if (this.isGlobalView) return (s[field] as T) ?? defaultValue;
 		const vs = this.viewStations.find(
 			(vs) => vs.viewId === this.activeViewId && vs.stationId === station.id
 		);
-		if (vs) return ((vs as Record<string, unknown>)[field] as T) ?? (s[field] as T) ?? defaultValue;
+		if (vs)
+			return (
+				((vs as unknown as Record<string, unknown>)[field] as T) ?? (s[field] as T) ?? defaultValue
+			);
 		return (s[field] as T) ?? defaultValue;
 	}
 
@@ -168,8 +171,8 @@ export class EditorState {
 		this.views = [];
 		this.viewStations = [];
 		this.activeViewId = null;
-		this.leftTab = 'lines';
-		this.rightTab = 'general';
+		this.leftTab = null;
+		this.rightTab = null;
 		this.selectedTransitTypeId = null;
 		this.selectedLineId = null;
 		this.selectedStationId = null;

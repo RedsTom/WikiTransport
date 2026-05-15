@@ -173,6 +173,7 @@
 		editorState.selectedTransitTypeId = id;
 		editorState.selectedLineId = null;
 		editorState.selectedStationId = null;
+		editorState.rightTab = 'type';
 	}
 
 	function selectStation(id: number) {
@@ -180,12 +181,6 @@
 		editorState.selectedAnchorId = null;
 		editorState.rightTab = 'station';
 	}
-
-	const tabDefs = [
-		{ key: 'lines', label: m.lines() },
-		{ key: 'types', label: m.line_types() },
-		{ key: 'stations', label: m.stations() }
-	] as const;
 
 	let stationSearch = $state('');
 
@@ -197,22 +192,6 @@
 </script>
 
 <aside class="flex w-80 shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface">
-	<div class="flex shrink-0 border-b border-outline/20" role="tablist">
-		{#each tabDefs as tab (tab.key)}
-			<button
-				role="tab"
-				aria-selected={editorState.leftTab === tab.key}
-				class="flex-1 shrink-0 px-3 py-2.5 text-sm font-bold whitespace-nowrap transition-colors {editorState.leftTab ===
-				tab.key
-					? 'border-b-2 border-primary text-primary'
-					: 'text-on-surface-variant hover:text-on-surface'}"
-				onclick={() => (editorState.leftTab = tab.key)}
-			>
-				{tab.label}
-			</button>
-		{/each}
-	</div>
-
 	<div class="min-h-0 flex-1 overflow-y-auto p-2">
 		{#if editorState.leftTab === 'lines'}
 			{#if editorState.transitTypes.length === 0}
