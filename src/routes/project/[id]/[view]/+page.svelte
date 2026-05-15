@@ -22,7 +22,6 @@
 
 	import {
 		CircularProgress,
-		IconButton,
 		Dialog,
 		Button,
 		TextField,
@@ -189,10 +188,13 @@
 			class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface-variant px-4"
 		>
 			<div class="flex items-center gap-4">
-				<IconButton onclick={() => goto(resolve('/projects'))}>
-					<span class="material-symbols-outlined">arrow_back</span>
-				</IconButton>
-				<h1 class="text-base font-medium">{editorState.project?.name}</h1>
+				<a
+					href={resolve('/')}
+					class="flex items-center gap-2 text-base font-bold text-on-surface no-underline transition-opacity hover:opacity-70"
+				>
+					<img src="/assets/logo.svg" alt="WikiTransport" class="h-6 w-6" />
+					{m.app_title()}
+				</a>
 
 				<!-- View Tabs -->
 				<div class="ml-6 flex items-center gap-0.5">
@@ -233,6 +235,13 @@
 			</div>
 
 			<div class="flex items-center gap-2">
+				<Button
+					variant="tonal"
+					onclick={() => goto(resolve('/projects'))}
+				>
+					<span class="material-symbols-outlined">arrow_back</span>
+					{m.my_projects()}
+				</Button>
 				<Button
 					variant="tonal"
 					onclick={() =>
