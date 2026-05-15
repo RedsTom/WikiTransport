@@ -46,4 +46,4 @@ export const DASH_PATTERNS = [
 	{ value: '8,4,2,4', label: 'dash_dot' }
 ] as const;
 
-export const DND_DROP_TARGET_STYLE = { boxShadow: '0 0 0 2px var(--color-primary)', borderRadius: '8px' } as const;
+export const DND_DROP_TARGET_STYLE = { boxShadow: '0 0 0 2px color-mix(in srgb, var(--color-primary) 40%, transparent)', borderRadius: '8px' } as const;
