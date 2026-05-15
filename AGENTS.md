@@ -26,13 +26,22 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 
 ### Component Architecture
 
-- `src/lib/components/editor/` — Editor panels (LeftPanel, RightPanel, ToolBar, StationProperties, LineProperties, TypeProperties, ProjectProperties)
-- `src/lib/components/schematic/` — SVG plan rendering (PlanView)
+- `src/lib/components/editor/` — Editor panels
+  - `OverviewTab.svelte`, `TypesTab.svelte`, `StationsTab.svelte` (left panel tabs)
+  - `RightTabs.svelte` (right panel tab switcher)
+  - `StationProperties.svelte`, `LineProperties.svelte`, `TypeProperties.svelte`, `ProjectProperties.svelte`
+  - `properties/AnchorProperties.svelte` — extracted anchor editing
+  - `ToolBar.svelte`, `LeftPanel.svelte`, `RightPanel.svelte`
+- `src/lib/components/schematic/` — SVG plan rendering (PlanView, SchematicGrid, SchematicLines, etc.)
 - `src/lib/components/ui/` — Reusable UI primitives (Button, Dialog, TextField, Select, Slider, IconButton, Tooltip, StationSelector, ContextMenu)
+  - `Dialog.svelte` now accepts `icon: Snippet` prop + auto-focuses `[autofocus]` after `showModal()`
+  - Dialogs: provide `{#snippet icon()}` with a colored icon + `<Button variant="filled" autofocus>` on the confirm action
 - `src/lib/store/editor.svelte.ts` — Global editor state via Svelte 5 `$state` runes
+  - `leftTab` type: `'overview' | 'types' | 'stations' | null` (was `'lines'`)
 - `src/lib/services/` — Dexie.js indexedDB operations
 - `src/lib/types/models.ts` — Data models
-- `src/lib/constants/schematic.ts` — Rendering constants (GRID_SIZE, POINT_RADIUS, LINE_WIDTH, etc.)
+- `src/lib/constants/schematic.ts` — Rendering constants + `buildLineOffsets()` (shared single source of truth)
+- `src/lib/utils/svg-export/badge-layout.ts` — Badge positioning logic (extracted from renderers/PlanView)
 
 ### SVG Export & Preview
 
@@ -52,6 +61,12 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 - Two-part positioning: anchor (`station` | `label`) + direction (8-directional: N/NE/E/SE/S/SW/W/NW)
 - When `badgeAnchor='label'` with E/W direction, use `getBadgeCenteringOffset()` to center label + badges as a group
 - UI controls in StationProperties.svelte (anchor toggle + 3×3 direction grid, visible when `hasInterchangeBadges`)
+
+### Anchor Drag & Drop
+
+- Use `dragHandleZone` + `use:dragHandle` pattern (svelte-dnd-action)
+- Single dndzone with all items; only anchors get drag handles, stations are non-draggable
+- Per-segment dndzones don't work because the library uses `parentNode` to exclude sibling zones from cross-zone candidates
 
 ### UI Conventions
 
@@ -83,8 +98,6 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 10. Diamond shapes: use `side = radius / sqrt(2)` for visual consistency
 11. When `badgeAnchor='label'`, compute `badgeOffsetX` and use `adjustedLayout` for both label and badges
 12. For translations with styled elements, use before/after key splitting pattern
-
----
 
 ## Refactoring — Code Organization & Architecture
 
@@ -170,3 +183,9 @@ src/lib/
 ### Badge Layout Duplication
 
 The `getBadgeLayout` function is defined identically in both `PlanView.svelte` and `svg-export.ts`. When refactoring, extract to a shared utility — the canonical location is in `src/lib/utils/svg-export/` (since SVG export rendering is more complex), imported by PlanView. This is the single source of truth for badge positioning.
+
+### Git Workflow
+
+- Work on `dev` branch; main is protected (Netlify build triggers on push to main)
+- Merge `dev` → `main` only when the user explicitly requests it
+- `git checkout main && git merge dev && git push origin main`
