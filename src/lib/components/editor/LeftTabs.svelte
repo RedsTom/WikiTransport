@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Tooltip, IconButton } from '$lib/components/ui';
 
-	function toggle(tab: 'lines' | 'types' | 'stations') {
+	function toggle(tab: 'overview' | 'types' | 'stations') {
 		editorState.leftTab = editorState.leftTab === tab ? null : tab;
 	}
 </script>
@@ -11,14 +11,14 @@
 <aside
 	class="flex w-12 shrink-0 flex-col items-center gap-2 border-r border-outline/20 bg-surface pt-2"
 >
-	<Tooltip text={m.lines()}>
+	<Tooltip text={m.overview()}>
 		<IconButton
-			onclick={() => toggle('lines')}
-			class={editorState.leftTab === 'lines'
+			onclick={() => toggle('overview')}
+			class={editorState.leftTab === 'overview'
 				? '!bg-secondary-container !text-on-secondary-container'
 				: ''}
 		>
-			<span class="material-symbols-outlined">account_tree</span>
+			<span class="material-symbols-outlined">dashboard</span>
 		</IconButton>
 	</Tooltip>
 	<Tooltip text={m.line_types()}>

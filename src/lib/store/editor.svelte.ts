@@ -33,7 +33,7 @@ export class EditorState {
 	);
 	isSwitchingView = $state(false);
 
-	leftTab = $state<'lines' | 'types' | 'stations' | null>(null);
+	leftTab = $state<'overview' | 'types' | 'stations' | null>(null);
 	rightTab = $state<'general' | 'type' | 'line' | 'station' | null>(null);
 
 	selectedTransitTypeId = $state<number | null>(null);
