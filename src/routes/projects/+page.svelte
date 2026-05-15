@@ -47,8 +47,11 @@
 </svelte:head>
 
 <div class="mx-auto max-w-4xl p-6">
-	<div class="mb-8 flex items-center justify-between">
-		<h1 class="text-3xl font-bold text-on-surface">{m.app_title()}</h1>
+	<header class="mb-8 flex items-center justify-between">
+		<span class="flex items-center gap-2 text-xl font-bold text-on-surface">
+			<img src="/assets/logo.svg" alt="WikiTransport" class="h-8 w-8" />
+			{m.app_title()}
+		</span>
 
 		<div class="flex items-center gap-6">
 			<!-- Language Selector -->
@@ -74,7 +77,7 @@
 				{m.new_project()}
 			</Fab>
 		</div>
-	</div>
+	</header>
 
 	<h2 class="mb-4 text-xl text-on-surface-variant">{m.my_projects()}</h2>
 
