@@ -7,14 +7,13 @@
 	import { ContextMenu, CircularProgress } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		screenToSvg,
 		screenToSvgRaw,
 		distToSegment,
-		closestPointOnSegment
+		closestPointOnSegment,
+		buildLineOffsets
 	} from '$lib/utils/schematic';
-	import { LINE_SPACING } from '$lib/constants/schematic';
 	import SchematicGrid from './SchematicGrid.svelte';
 	import SchematicLines from './SchematicLines.svelte';
 	import SchematicStations from './SchematicStations.svelte';
@@ -456,68 +455,15 @@
 		editorState.rightTab = 'station';
 	}
 
-	type SegOffsetMap = Map<number, Map<string, { x: number; y: number }>>;
-
-	let lineOffsets: SegOffsetMap = $derived.by(() => {
-		const segMap = new SvelteMap<string, { dx: number; dy: number; lineIds: number[] }>();
-
-		for (const line of editorState.lines) {
-			if (!line.id || editorState.effectiveHiddenLineIds.has(line.id)) continue;
-			const stIds = editorState.routePoints
-				.filter((rp) => rp.lineId === line.id)
-				.sort((a, b) => a.order - b.order)
-				.map((rp) => rp.stationId);
-			for (let i = 0; i < stIds.length - 1; i++) {
-				const a = stIds[i],
-					b = stIds[i + 1];
-				const key = `${Math.min(a, b)},${Math.max(a, b)}`;
-				let entry = segMap.get(key);
-				if (!entry) {
-					const sA = editorState.stations.find((s) => s.id === a);
-					const sB = editorState.stations.find((s) => s.id === b);
-					if (!sA || !sB) continue;
-					const pA = editorState.stationPosition(sA);
-					const pB = editorState.stationPosition(sB);
-					entry = { dx: pB.x - pA.x, dy: pB.y - pA.y, lineIds: [] };
-					segMap.set(key, entry);
-				}
-				entry.lineIds.push(line.id);
-			}
-		}
-
-		for (const [, entry] of segMap) {
-			entry.lineIds.sort((a, b) => {
-				const la = editorState.lines.find((l) => l.id === a);
-				const lb = editorState.lines.find((l) => l.id === b);
-				return (la?.transitTypeId ?? -1) - (lb?.transitTypeId ?? -1) || a - b;
-			});
-		}
-
-		const result: SegOffsetMap = new SvelteMap();
-		for (const line of editorState.lines) {
-			if (line.id && !editorState.effectiveHiddenLineIds.has(line.id)) {
-				result.set(line.id, new SvelteMap());
-			}
-		}
-
-		for (const [key, info] of segMap) {
-			const { dx, dy, lineIds } = info;
-			const len = Math.sqrt(dx * dx + dy * dy);
-			if (len === 0 || lineIds.length <= 1) continue;
-			const perpX = dy / len;
-			const perpY = -dx / len;
-
-			for (let idx = 0; idx < lineIds.length; idx++) {
-				const lineId = lineIds[idx];
-				const off = (idx - (lineIds.length - 1) / 2) * LINE_SPACING;
-				const lineSegMap = result.get(lineId);
-				if (!lineSegMap) continue;
-				lineSegMap.set(key, { x: perpX * off, y: perpY * off });
-			}
-		}
-
-		return result;
-	});
+	let lineOffsets = $derived(
+		buildLineOffsets(
+			editorState.stations,
+			editorState.routePoints,
+			editorState.lines,
+			editorState.effectiveHiddenLineIds,
+			(s) => editorState.stationPosition(s)
+		)
+	);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

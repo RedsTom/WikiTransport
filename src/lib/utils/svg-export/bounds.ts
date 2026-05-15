@@ -1,7 +1,7 @@
 import type { Station } from '$lib/types';
 import type { ExportData } from './types';
 import { DIR_CFG } from '$lib/constants/schematic';
-import { getLabelLayout } from '../schematic';
+import { getLabelLayout, partitionLineIdsByVisibility } from '../schematic';
 import { measureText } from '../textMeasure';
 import {
 	stationPos,
@@ -16,23 +16,6 @@ import {
 	BADGE_GAP
 } from './renderers';
 import { getLegendDimensions } from './legend';
-
-function lineNamesForStation(
-	stationId: number,
-	data: ExportData,
-	hiddenLines: Set<number>
-): { visibleLineIds: number[]; hiddenLineIds: number[] } {
-	const servingLineIds = data.routePoints
-		.filter((rp) => rp.stationId === stationId)
-		.map((rp) => rp.lineId);
-	const visibleLineIds: number[] = [];
-	const hiddenLineIds: number[] = [];
-	for (const lid of servingLineIds) {
-		if (hiddenLines.has(lid)) hiddenLineIds.push(lid);
-		else visibleLineIds.push(lid);
-	}
-	return { visibleLineIds, hiddenLineIds };
-}
 
 function getStationLabelExtent(
 	station: Station,
@@ -62,7 +45,11 @@ function getStationLabelExtent(
 	const textH = titleFontSize + (hasSubtitle ? subFontSize + 4 : 0);
 
 	const hiddenLines = new Set(data.hiddenLineIds);
-	const { hiddenLineIds: hids } = lineNamesForStation(station.id!, data, hiddenLines);
+	const { hiddenLineIds: hids } = partitionLineIdsByVisibility(
+		data.routePoints,
+		station.id!,
+		hiddenLines
+	);
 	const nBadges = hids.length;
 
 	const actualBadgeCount = nBadges;

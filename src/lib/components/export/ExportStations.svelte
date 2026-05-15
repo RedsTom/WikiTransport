@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ExportData } from '$lib/utils/svg-export';
 	import { measureText } from '$lib/utils/textMeasure';
-	import { getLabelLayout } from '$lib/utils/schematic';
+	import { getLabelLayout, partitionLineIdsByVisibility } from '$lib/utils/schematic';
 	import {
 		stationPos,
 		stationLabelDir,
@@ -23,27 +23,17 @@
 		data: ExportData;
 		isGlobal: boolean;
 	} = $props();
-
-	function lineNamesForStation(stationId: number) {
-		const servingLineIds = data.routePoints
-			.filter((rp) => rp.stationId === stationId)
-			.map((rp) => rp.lineId);
-		const hiddenLines = new Set(data.hiddenLineIds);
-		const visibleLineIds: number[] = [];
-		const hiddenLineIds: number[] = [];
-		for (const lid of servingLineIds) {
-			if (hiddenLines.has(lid)) hiddenLineIds.push(lid);
-			else visibleLineIds.push(lid);
-		}
-		return { visibleLineIds, hiddenLineIds };
-	}
 </script>
 
 {#each data.stations as station (station.id)}
 	{@const hiddenStations = new Set(data.hiddenStationIds)}
 	{@const isHidden = hiddenStations.has(station.id!)}
 	{@const pos = stationPos(station, data.viewStations, isGlobal)}
-	{@const { visibleLineIds, hiddenLineIds: rawHiddenIds } = lineNamesForStation(station.id!)}
+	{@const { visibleLineIds, hiddenLineIds: rawHiddenIds } = partitionLineIdsByVisibility(
+		data.routePoints,
+		station.id!,
+		new Set(data.hiddenLineIds)
+	)}
 	{@const isInterchange = visibleLineIds.length > 1}
 	{@const hasHidden = rawHiddenIds.length > 0}
 	{@const circleColor =
