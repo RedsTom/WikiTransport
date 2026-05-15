@@ -140,6 +140,7 @@
 			editorState.selectedStationId = null;
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
+			editorState.rightTab = 'line';
 			return;
 		}
 
@@ -245,6 +246,7 @@
 		}
 		await EditorService.reloadAll(editorState);
 		editorState.selectedStationId = stationId;
+		editorState.rightTab = 'station';
 		editorState.placementMode = null;
 	}
 
@@ -255,6 +257,7 @@
 				icon: 'edit',
 				action: () => {
 					editorState.selectedStationId = stationId;
+					editorState.rightTab = 'station';
 				}
 			},
 			{
@@ -332,6 +335,7 @@
 			const lineEl = target.closest('[data-line]') as SVGElement;
 			const lineId = Number(lineEl.getAttribute('data-line'));
 			editorState.selectedLineId = lineId;
+			editorState.rightTab = 'line';
 			ctxMenu = {
 				x: e.clientX,
 				y: e.clientY,
@@ -449,6 +453,7 @@
 		editorState.selectedStationId = id;
 		editorState.selectedAnchorId = null;
 		editorState.selectedTransitTypeId = null;
+		editorState.rightTab = 'station';
 	}
 
 	type SegOffsetMap = Map<number, Map<string, { x: number; y: number }>>;

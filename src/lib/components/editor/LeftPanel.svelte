@@ -159,12 +159,14 @@
 	function selectLine(id: number) {
 		editorState.selectedLineId = id;
 		editorState.selectedTransitTypeId = null;
+		editorState.rightTab = 'line';
 	}
 
 	function selectStationOnLine(stationId: number, lineId: number) {
 		editorState.selectedLineId = lineId;
 		editorState.selectedStationId = stationId;
 		editorState.selectedAnchorId = null;
+		editorState.rightTab = 'station';
 	}
 
 	function selectType(id: number) {
@@ -176,6 +178,7 @@
 	function selectStation(id: number) {
 		editorState.selectedStationId = id;
 		editorState.selectedAnchorId = null;
+		editorState.rightTab = 'station';
 	}
 
 	const tabDefs = [
