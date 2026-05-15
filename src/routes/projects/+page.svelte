@@ -48,10 +48,12 @@
 
 <div class="mx-auto max-w-4xl p-6">
 	<header class="mb-8 flex items-center justify-between">
-		<span class="flex items-center gap-2 text-xl font-bold text-on-surface">
-			<img src="/assets/logo.svg" alt="WikiTransport" class="h-8 w-8" />
-			{m.app_title()}
-		</span>
+		<div class="flex items-center gap-4">
+			<Button variant="tonal" onclick={() => goto(resolve('/'))}>
+				<span class="material-symbols-outlined">arrow_back</span>
+				{m.app_title()}
+			</Button>
+		</div>
 
 		<div class="flex items-center gap-6">
 			<!-- Language Selector -->
