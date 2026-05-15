@@ -5,7 +5,7 @@
 	import { StationService } from '$lib/services/StationService';
 	import { SvelteMap } from 'svelte/reactivity';
 
-	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
+	import { IconButton, Tooltip, StationSelector, ModeButton } from '$lib/components/ui';
 
 	let {
 		onaddstation = () => {},
@@ -260,71 +260,52 @@
 			</IconButton>
 		</Tooltip>
 	{:else if beforeAfterVisible}
-		<Tooltip text={`${m.add_station_before()} (⇧+S)`}>
-			<IconButton
-				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
-				onclick={() => {
-					if (editorState.placementMode === 'station') {
-						editorState.placementMode = null;
-						editorState.pendingLineInsert = null;
-					} else {
-						startAddPlacement(true);
-					}
-				}}
-			>
-				<span class="material-symbols-outlined -scale-x-[100%] text-sm"
-					>{editorState.placementMode === 'station' ? 'close' : 'new_label'}</span
-				>
-			</IconButton>
-		</Tooltip>
-		<Tooltip text={`${m.add_station_after()} (S)`}>
-			<IconButton
-				class="shrink-0 {editorState.placementMode === 'station' ? '!bg-error !text-on-error' : ''}"
-				onclick={() => {
-					if (editorState.placementMode === 'station') {
-						editorState.placementMode = null;
-						editorState.pendingLineInsert = null;
-					} else {
-						startAddPlacement(false);
-					}
-				}}
-			>
-				<span class="material-symbols-outlined text-sm"
-					>{editorState.placementMode === 'station' ? 'close' : 'new_label'}</span
-				>
-			</IconButton>
-		</Tooltip>
+		<ModeButton
+			active={editorState.placementMode === 'station'}
+			inactiveIcon="new_label"
+			iconClass="-scale-x-[100%]"
+			tooltipInactive={`${m.add_station_before()} (⇧+S)`}
+			tooltipActive={`${m.cancel()} (Esc)`}
+			onactive={() => startAddPlacement(true)}
+			oninactive={() => {
+				editorState.placementMode = null;
+				editorState.pendingLineInsert = null;
+			}}
+		/>
+		<ModeButton
+			active={editorState.placementMode === 'station'}
+			inactiveIcon="new_label"
+			tooltipInactive={`${m.add_station_after()} (S)`}
+			tooltipActive={`${m.cancel()} (Esc)`}
+			onactive={() => startAddPlacement(false)}
+			oninactive={() => {
+				editorState.placementMode = null;
+				editorState.pendingLineInsert = null;
+			}}
+		/>
 	{:else}
-		<Tooltip
-			text={editorState.placementMode === 'station'
-				? `${m.cancel()} (Esc)`
-				: `${m.add_station()} (S)`}
-		>
-			<IconButton
-				class="shrink-0 {editorState.placementMode === 'station'
-					? '!bg-error !text-on-error'
-					: ''}"
-				onclick={onaddstation}
-			>
-				<span class="material-symbols-outlined text-sm"
-					>{editorState.placementMode === 'station' ? 'close' : 'add_location'}</span
-				>
-			</IconButton>
-		</Tooltip>
+		<ModeButton
+			active={editorState.placementMode === 'station'}
+			inactiveIcon="add_location"
+			tooltipInactive={`${m.add_station()} (S)`}
+			tooltipActive={`${m.cancel()} (Esc)`}
+			onactive={onaddstation}
+			oninactive={() => {
+				editorState.placementMode = null;
+				editorState.pendingLineInsert = null;
+			}}
+		/>
 	{/if}
 
-	<Tooltip
-		text={editorState.placementMode === 'anchor' ? `${m.cancel()} (Esc)` : `${m.add_anchor()} (A)`}
-	>
-		<IconButton
-			class="shrink-0 {editorState.placementMode === 'anchor'
-				? '!bg-error !text-on-error'
-				: ''}"
-			onclick={onaddanchor}
-		>
-			<span class="material-symbols-outlined text-sm"
-				>{editorState.placementMode === 'anchor' ? 'close' : 'anchor'}</span
-			>
-		</IconButton>
-	</Tooltip>
+	<ModeButton
+		active={editorState.placementMode === 'anchor'}
+		inactiveIcon="anchor"
+		tooltipInactive={`${m.add_anchor()} (A)`}
+		tooltipActive={`${m.cancel()} (Esc)`}
+		onactive={onaddanchor}
+		oninactive={() => {
+			editorState.placementMode = null;
+			editorState.pendingLineInsert = null;
+		}}
+	/>
 </div>
