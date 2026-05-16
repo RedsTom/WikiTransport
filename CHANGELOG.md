@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0-beta (2026-05-16)
+
+**EN:** Changelog section on the projects page with version history and beta version naming
+
+- Added a dedicated changelog section on the projects page with expand/collapse per version
+- Created bilingual changelog files for all past versions (0.1.0 through 0.6.0)
+- Standardized all version names to `-beta` suffix for consistency
+- Added loading spinner while projects load from IndexedDB
+- Redesigned the deploy workflow with automated changelog generation
+
+**FR:** Section journal des modifications sur la page projets avec nomenclature beta
+
+- Ajout d'une section dédiée au journal des modifications sur la page projets
+- Création de fichiers bilingues pour toutes les versions passées (0.1.0 à 0.6.0)
+- Uniformisation des versions avec le suffixe `-beta`
+- Ajout d'un indicateur de chargement sur la page projets
+- Refonte du workflow de déploiement avec génération automatique du journal
+
 ## 0.6.0-beta (2026-05-16)
 
 **EN:** Performance optimizations and project export/import in .wtp format
