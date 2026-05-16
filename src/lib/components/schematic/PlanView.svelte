@@ -380,7 +380,17 @@
 			const station = editorState.stations.find((s) => s.id === draggedStationId);
 			if (station) {
 				const pos = screenToSvg(e, svg);
-				EditorService.updateViewStationPosition(editorState, station.id!, pos.x, pos.y);
+				station.schematicX = pos.x;
+				station.schematicY = pos.y;
+				if (!editorState.isGlobalView && editorState.activeViewId !== null) {
+					const vs = editorState.viewStations.find(
+						(vs) => vs.viewId === editorState.activeViewId && vs.stationId === station.id
+					);
+					if (vs) {
+						vs.schematicX = pos.x;
+						vs.schematicY = pos.y;
+					}
+				}
 			}
 		} else if (draggedAnchorId !== null) {
 			const anchor = editorState.anchorPoints.find((a) => a.id === draggedAnchorId);

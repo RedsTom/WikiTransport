@@ -23,7 +23,7 @@ export class TransitDatabase extends Dexie {
 	constructor() {
 		super('TransitDB');
 
-		this.version(5).stores({
+		this.version(6).stores({
 			projects: '++id, name, updatedAt',
 			transitTypes: '++id, projectId',
 			lines: '++id, projectId, transitTypeId, zIndex',
@@ -31,7 +31,7 @@ export class TransitDatabase extends Dexie {
 			routePoints: '++id, lineId, stationId, order',
 			anchorPoints: '++id, lineId, order, viewId',
 			views: '++id, projectId',
-			viewStations: '++id, viewId, stationId'
+			viewStations: '++id, viewId, [viewId+stationId]'
 		});
 	}
 }

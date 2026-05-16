@@ -98,6 +98,7 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 10. Diamond shapes: use `side = radius / sqrt(2)` for visual consistency
 11. When `badgeAnchor='label'`, compute `badgeOffsetX` and use `adjustedLayout` for both label and badges
 12. For translations with styled elements, use before/after key splitting pattern
+13. Plan before building — for multi-step tasks, present a plan (files, order, i18n keys) before writing code. Wait for approval.
 
 ## Refactoring — Code Organization & Architecture
 

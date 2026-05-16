@@ -163,5 +163,16 @@
 	"landing_feature_types": "Metro, tram, bus, train — customize colors, dash patterns, line types, and station styles.",
 	"landing_feature_svg": "Export SVGs with legend, interchange badges, and customizable styling.",
 	"landing_showcase": "Example maps",
-	"landing_local": "100% local — no server, no telemetry, your data never leaves your device."
+	"landing_local": "100% local — no server, no telemetry, your data never leaves your device.",
+	"export_project": "Export project",
+	"import_project": "Import",
+	"import_title": "Import Project",
+	"import_new": "Create as new project",
+	"import_update": "Update existing project",
+	"import_select_project": "Select a project...",
+	"import_confirm": "This will replace all data for \"{name}\". Continue?",
+	"import_success": "Project imported successfully!",
+	"import_invalid_file": "Invalid project file.",
+	"import_failed": "Import failed. The file may be corrupted.",
+	"export_success": "Project exported successfully!"
 }

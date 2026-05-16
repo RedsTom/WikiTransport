@@ -162,5 +162,16 @@
 	"landing_feature_types": "Métro, tram, bus, train — personnalisez couleurs, motifs, types de ligne et styles de station.",
 	"landing_feature_svg": "Exportez des SVG avec légende, badges de correspondance et style personnalisable.",
 	"landing_showcase": "Exemples de plans",
-	"landing_local": "100% local — pas de serveur, aucune télémétrie, vos données ne quittent jamais votre appareil."
+	"landing_local": "100% local — pas de serveur, aucune télémétrie, vos données ne quittent jamais votre appareil.",
+	"export_project": "Exporter le projet",
+	"import_project": "Importer",
+	"import_title": "Importer un projet",
+	"import_new": "Créer comme nouveau projet",
+	"import_update": "Mettre à jour un projet existant",
+	"import_select_project": "Sélectionner un projet...",
+	"import_confirm": "Cela remplacera toutes les données de \"{name}\". Continuer ?",
+	"import_success": "Projet importé avec succès !",
+	"import_invalid_file": "Fichier de projet invalide.",
+	"import_failed": "L'import a échoué. Le fichier est peut-être corrompu.",
+	"export_success": "Projet exporté avec succès !"
 }

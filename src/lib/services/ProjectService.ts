@@ -38,15 +38,27 @@ export class ProjectService {
 	static async deleteProject(id: number): Promise<void> {
 		await db.transaction(
 			'rw',
-			[db.projects, db.transitTypes, db.lines, db.stations, db.routePoints],
+			[
+				db.projects,
+				db.transitTypes,
+				db.lines,
+				db.stations,
+				db.routePoints,
+				db.anchorPoints,
+				db.views,
+				db.viewStations
+			],
 			async () => {
-				await db.routePoints
-					.where('lineId')
-					.anyOf(await db.lines.where({ projectId: id }).primaryKeys())
-					.delete();
+				const lineKeys = await db.lines.where({ projectId: id }).primaryKeys();
+				const viewKeys = await db.views.where({ projectId: id }).primaryKeys();
+
+				await db.routePoints.where('lineId').anyOf(lineKeys).delete();
+				await db.anchorPoints.where('lineId').anyOf(lineKeys).delete();
+				await db.viewStations.where('viewId').anyOf(viewKeys).delete();
 				await db.lines.where({ projectId: id }).delete();
 				await db.transitTypes.where({ projectId: id }).delete();
 				await db.stations.where({ projectId: id }).delete();
+				await db.views.where({ projectId: id }).delete();
 				await db.projects.delete(id);
 			}
 		);
