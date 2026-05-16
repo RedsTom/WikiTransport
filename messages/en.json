@@ -174,5 +174,9 @@
 	"import_success": "Project imported successfully!",
 	"import_invalid_file": "Invalid project file.",
 	"import_failed": "Import failed. The file may be corrupted.",
-	"export_success": "Project exported successfully!"
+	"export_success": "Project exported successfully!",
+	"changelog": "Changelog",
+	"show_more": "Show more",
+	"show_less": "Show less",
+	"version_badge": "v{version}"
 }

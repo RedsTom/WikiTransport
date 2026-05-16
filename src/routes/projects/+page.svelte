@@ -8,11 +8,31 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { ProjectExportService } from '$lib/services/ProjectExportService';
+	import { changelogs, type LocalizedChangelog } from '$lib/data/changelogs';
 	import type { Project } from '$lib/types';
 
-	import { Button, Fab, IconButton, Dialog, TextField, NativeSelect } from '$lib/components/ui';
+	import { Button, Fab, IconButton, Dialog, TextField, NativeSelect, CircularProgress } from '$lib/components/ui';
+
+	let expandedVersions = $state<Record<string, boolean>>({});
+
+	function toggleVersion(v: string) {
+		expandedVersions[v] = !expandedVersions[v];
+	}
+
+	let currentLocale = $derived(page.url.pathname.includes('/fr') ? 'fr' : 'en');
+
+	function localizeEntry(entry: LocalizedChangelog) {
+		return {
+			version: entry.version,
+			date: entry.date,
+			title: currentLocale === 'fr' ? entry.titleFr : entry.titleEn,
+			summary: currentLocale === 'fr' ? entry.summaryFr : entry.summaryEn,
+			content: currentLocale === 'fr' ? entry.contentFr : entry.contentEn
+		};
+	}
 
 	let projects = $state<Project[]>([]);
+	let projectsLoading = $state(true);
 
 	let isDialogOpen = $state(false);
 	let newProjectName = $state('');
@@ -38,7 +58,9 @@
 	});
 
 	async function loadProjects() {
+		projectsLoading = true;
 		projects = await ProjectService.getAllProjects();
+		projectsLoading = false;
 	}
 
 	async function handleCreateProject() {
@@ -190,7 +212,11 @@
 
 	<h2 class="mb-4 text-xl text-on-surface-variant">{m.my_projects()}</h2>
 
-	{#if projects.length === 0}
+	{#if projectsLoading}
+		<div class="flex items-center justify-center py-16">
+			<CircularProgress class="h-8 w-8" />
+		</div>
+	{:else if projects.length === 0}
 		<div class="rounded-xl border border-outline/20 bg-surface-variant p-12 text-center">
 			<span class="material-symbols-outlined mb-2 block text-4xl text-on-surface-variant">map</span>
 			<p class="text-on-surface-variant">{m.no_projects()}</p>
@@ -226,6 +252,55 @@
 							<span class="material-symbols-outlined">delete</span>
 						</IconButton>
 					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	{#if changelogs.length > 0}
+		<hr class="my-8 border-outline/10" />
+
+		<h2 class="mb-4 text-xl text-on-surface-variant">{m.changelog()}</h2>
+
+		<div class="flex flex-col gap-3">
+			{#each changelogs as entry (entry.version)}
+				{@const loc = localizeEntry(entry)}
+				<div
+					class="rounded-xl border border-outline/10 bg-surface p-4 shadow-xs transition-shadow hover:shadow-sm"
+				>
+					<div class="flex items-start justify-between gap-3">
+						<div class="flex min-w-0 items-center gap-3">
+							<span
+								class="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 font-mono text-xs text-primary"
+							>
+								{m.version_badge({ version: loc.version })}
+							</span>
+							<h3 class="truncate text-base font-semibold text-on-surface">{loc.title}</h3>
+						</div>
+						<span class="shrink-0 text-xs text-on-surface-variant">{loc.date}</span>
+					</div>
+
+					<div class="mt-3">
+						{#if expandedVersions[entry.version]}
+							<div class="text-sm leading-relaxed whitespace-pre-wrap text-on-surface">
+								{loc.content}
+							</div>
+						{:else}
+							<p class="text-sm leading-relaxed text-on-surface-variant italic">
+								{loc.summary}
+							</p>
+						{/if}
+					</div>
+
+					<button
+						class="mt-2 flex items-center gap-1 text-sm text-primary transition-opacity hover:opacity-80"
+						onclick={() => toggleVersion(entry.version)}
+					>
+						<span class="material-symbols-outlined text-base"
+							>{expandedVersions[entry.version] ? 'expand_less' : 'expand_more'}</span
+						>
+						{expandedVersions[entry.version] ? m.show_less() : m.show_more()}
+					</button>
 				</div>
 			{/each}
 		</div>

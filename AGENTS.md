@@ -190,3 +190,55 @@ The `getBadgeLayout` function is defined identically in both `PlanView.svelte` a
 - Work on `dev` branch; main is protected (Netlify build triggers on push to main)
 - Merge `dev` → `main` only when the user explicitly requests it
 - `git checkout main && git merge dev && git push origin main`
+
+---
+
+## Command: `deploy`
+
+When the user says "deploy", perform a full release cycle:
+
+1. **Read git log** since the last release (look for the last `chore: release` commit or version tag)
+2. **Summarize commits** into changelog content (in French for FR, English for EN)
+3. **Create version files**:
+   - `src/lib/data/changelogs/en/{version}.md` — English changelog
+   - `src/lib/data/changelogs/fr/{version}.md` — French changelog
+   - `CHANGELOG.md` — combined multi-lang changelog (update root file)
+4. **Bump version** in `package.json` (follow semver: `major.minor.patch` or `-beta` suffix)
+5. **Commit** with message `chore: release v{version}`
+6. **Merge**: `git checkout main && git merge dev && git push origin main`
+7. **Return to dev**: `git checkout dev`
+8. **Report** the deployed version and what was shipped
+
+### Version format
+
+- Development builds: `{major}.{minor}.{patch}-beta` (e.g., `0.6.0-beta`, `0.7.0-beta`)
+- Stable releases: `{major}.{minor}.{patch}` (drop the `-beta` suffix)
+
+### Changelog file format (per locale)
+
+Each version has a bilingual file pair in `src/lib/data/changelogs/{en,fr}/`:
+
+```md
+# Release Title Here
+
+Summary: One clear, non-technical line describing what this release brings
+
+Date: YYYY-MM-DD
+
+- Bullet point one
+- Bullet point two
+```
+
+Rules:
+- `Summary:` line is shown when collapsed on the projects page (must be clear and user-friendly, no technical jargon)
+- Content after `Date:` is shown when expanded (can include technical details)
+- Keep titles short and meaningful
+- Always create BOTH `en/{version}.md` and `fr/{version}.md` with the same structure
+
+### CHANGELOG.md format (root)
+
+The root `CHANGELOG.md` contains a simplified summary of each release (bilingual).
+
+### Auto-discovery
+
+The changelog section on the projects page automatically picks up new versions via `import.meta.glob` in `src/lib/data/changelogs/index.ts` — no manual registration needed.
