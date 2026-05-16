@@ -8,6 +8,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { ProjectExportService } from '$lib/services/ProjectExportService';
+	import { ProjectImportService } from '$lib/services/ProjectImportService';
 	import { changelogs, type LocalizedChangelog } from '$lib/data/changelogs';
 	import type { Project } from '$lib/types';
 
@@ -108,7 +109,7 @@
 		importError = '';
 		try {
 			importBuffer = await file.arrayBuffer();
-			const preview = await ProjectExportService.previewProject(importBuffer);
+			const preview = await ProjectImportService.previewProject(importBuffer);
 			importProjectName = preview.name;
 			importNewName = preview.name ?? '';
 			importNewCity = preview.city ?? '';
@@ -139,7 +140,7 @@
 			const targetId = importMode === 'update' ? Number(importTargetProjectId) : undefined;
 			const overrides =
 				importMode === 'new' ? { name: importNewName, city: importNewCity } : undefined;
-			const newId = await ProjectExportService.importProject(
+			const newId = await ProjectImportService.importProject(
 				importBuffer,
 				importMode,
 				targetId,

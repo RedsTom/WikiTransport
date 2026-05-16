@@ -5,9 +5,8 @@
 	import { ViewStationService } from '$lib/services/ViewStationService';
 	import { EditorService } from '$lib/services/EditorService';
 
-	import { Button, TextField, Dialog, Tooltip, NumberInput } from '$lib/components/ui';
-	import { DIR_ARROWS, ANCHOR_ICONS } from '$lib/constants/schematic';
-	import DirectionGrid from './properties/DirectionGrid.svelte';
+	import { Button, TextField, Dialog, NumberInput } from '$lib/components/ui';
+	import StationLabelControls from './properties/StationLabelControls.svelte';
 	import InterchangeBadgeControls from './properties/InterchangeBadgeControls.svelte';
 	import AnchorProperties from './properties/AnchorProperties.svelte';
 	import type { InterchangeBadgeMode, InterchangeBadgeDirection, Line } from '$lib/types';
@@ -265,7 +264,6 @@
 		if (ratioLocked) {
 			const newDy = Math.round(d / lockedRatio);
 			anchorDy = newDy;
-			anchorDx = d;
 			await commitAnchorPair(d, newDy);
 		} else {
 			await commitAnchorDx(d);
@@ -276,7 +274,6 @@
 		if (ratioLocked) {
 			const newDx = Math.round(d * lockedRatio);
 			anchorDx = newDx;
-			anchorDy = d;
 			await commitAnchorPair(newDx, d);
 		} else {
 			await commitAnchorDy(d);
@@ -329,9 +326,6 @@
 		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
 			<div class="flex items-center justify-between text-sm text-on-surface-variant">
 				<span>{m.position()}</span>
-				<Tooltip text={m.view_specific_property()}>
-					<span class="material-symbols-outlined text-xs text-outline">tune</span>
-				</Tooltip>
 			</div>
 			<div class="flex gap-2">
 				<NumberInput
@@ -349,78 +343,21 @@
 			</div>
 		</div>
 
-		{#if selectedStation?.subtitle}
-			<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-				<div class="flex items-center justify-between text-sm text-on-surface-variant">
-					<span>{m.subtitle_alignment()}</span>
-					<Tooltip text={m.view_specific_property()}>
-						<span class="material-symbols-outlined text-xs text-outline">tune</span>
-					</Tooltip>
-				</div>
-				<div class="flex w-full overflow-hidden rounded-md border border-outline/20">
-					{#each [{ value: 'left', icon: 'format_align_left' }, { value: 'center', icon: 'format_align_center' }, { value: 'right', icon: 'format_align_right' }] as opt (opt.value)}
-						<button
-							class="flex flex-1 items-center justify-center border-r border-outline/20 py-1.5 text-base transition-colors last:border-r-0 {subtitleAlign ===
-							opt.value
-								? 'bg-primary-container text-primary'
-								: 'text-on-surface-variant hover:bg-surface-variant'}"
-							onclick={() => setSubtitleAlign(subtitleAlign === opt.value ? '' : opt.value)}
-						>
-							<span class="material-symbols-outlined">{opt.icon}</span>
-						</button>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<DirectionGrid
-			title={m.label_direction()}
-			tooltip={m.view_specific_property()}
-			selectedDir={labelDir}
-			iconMap={DIR_ARROWS}
-			onchange={setLabelDirection}
+		<StationLabelControls
+			subtitle={stationSubtitle}
+			{subtitleAlign}
+			{labelDir}
+			{labelAnchor}
+			{anchorDx}
+			{anchorDy}
+			{ratioLocked}
+			onsubtitlealign={setSubtitleAlign}
+			onlabeldir={setLabelDirection}
+			onlabelanchor={setLabelAnchor}
+			onanchordx={setAnchorDx}
+			onanchordy={setAnchorDy}
+			ontoggleratio={toggleRatioLock}
 		/>
-
-		<DirectionGrid
-			title={m.label_positioning()}
-			tooltip={m.view_specific_property()}
-			selectedDir={labelAnchor}
-			iconMap={ANCHOR_ICONS}
-			onchange={setLabelAnchor}
-		/>
-
-		<div class="flex flex-col gap-2 rounded-lg bg-surface-variant/40 p-3">
-			<div class="flex items-center justify-between text-sm text-on-surface-variant">
-				<span>{m.label_distance()}</span>
-				<Tooltip text={m.view_specific_property()}>
-					<span class="material-symbols-outlined text-xs text-outline">tune</span>
-				</Tooltip>
-			</div>
-			<div class="flex items-end gap-2">
-				<NumberInput
-					label={m.anchor_x({ dx: anchorDx })}
-					bind:value={anchorDx}
-					onchange={() => setAnchorDx(anchorDx)}
-					class="flex-1"
-				/>
-				<button
-					class="mb-0.5 flex aspect-square w-8 items-center justify-center rounded-md border p-1 text-base transition-colors {ratioLocked
-						? 'border-primary bg-primary-container text-primary'
-						: 'border-outline/20 text-on-surface-variant hover:border-outline hover:text-on-surface'}"
-					onclick={toggleRatioLock}
-					title={ratioLocked ? m.unlock_ratio() : m.lock_ratio()}
-				>
-					<span class="material-symbols-outlined text-sm">{ratioLocked ? 'lock' : 'lock_open'}</span
-					>
-				</button>
-				<NumberInput
-					label={m.anchor_y({ dy: anchorDy })}
-					bind:value={anchorDy}
-					onchange={() => setAnchorDy(anchorDy)}
-					class="flex-1"
-				/>
-			</div>
-		</div>
 
 		{#if hasInterchangeBadges}
 			<InterchangeBadgeControls

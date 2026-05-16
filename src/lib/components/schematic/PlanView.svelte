@@ -15,19 +15,14 @@
 		buildSegmentTopology,
 		computeLineOffsets
 	} from '$lib/utils/schematic';
+	import { useViewport } from '$lib/utils/useViewport.svelte';
 	import SchematicGrid from './SchematicGrid.svelte';
 	import SchematicLines from './SchematicLines.svelte';
 	import SchematicStations from './SchematicStations.svelte';
 	import SchematicAnchors from './SchematicAnchors.svelte';
 
-	let viewBoxX = $state(0);
-	let viewBoxY = $state(0);
-	let viewBoxWidth = $state(1000);
-	let viewBoxHeight = $state(1000);
-
-	let isDraggingPan = $state(false);
-	let lastMouseX = $state(0);
-	let lastMouseY = $state(0);
+	let svgEl = $state<SVGSVGElement | null>(null);
+	let viewport = useViewport(() => svgEl);
 
 	let draggedStationId = $state<number | null>(null);
 	let draggedAnchorId = $state<number | null>(null);
@@ -36,87 +31,9 @@
 	let dragStartScreenY = 0;
 
 	let ctxMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
-	let svgEl = $state<SVGSVGElement | null>(null);
-
-	let allContentPoints = $derived.by(() => {
-		const points: { x: number; y: number }[] = [];
-		const hiddenStationIds = editorState.effectiveHiddenStationIds;
-		const hiddenLineIds = editorState.effectiveHiddenLineIds;
-		for (const s of editorState.stations) {
-			if (s.id != null && !editorState.isGlobalView && hiddenStationIds.has(s.id)) continue;
-			points.push(editorState.stationPosition(s));
-		}
-		for (const a of editorState.anchorPoints) {
-			if (!editorState.isGlobalView && hiddenLineIds.has(a.lineId)) continue;
-			points.push({ x: a.schematicX, y: a.schematicY });
-		}
-		return points;
-	});
-
-	let isTooFar = $derived.by(() => {
-		if (allContentPoints.length === 0) return false;
-		const vx = viewBoxX,
-			vy = viewBoxY;
-		const vw = viewBoxWidth,
-			vh = viewBoxHeight;
-		return !allContentPoints.some(
-			(p) => p.x >= vx && p.x <= vx + vw && p.y >= vy && p.y <= vy + vh
-		);
-	});
-
-	function fitContent() {
-		if (!svgEl) return;
-		if (allContentPoints.length === 0) {
-			viewBoxX = 0;
-			viewBoxY = 0;
-			viewBoxWidth = 1000;
-			viewBoxHeight = 1000;
-			return;
-		}
-		const minX = Math.min(...allContentPoints.map((p) => p.x));
-		const maxX = Math.max(...allContentPoints.map((p) => p.x));
-		const minY = Math.min(...allContentPoints.map((p) => p.y));
-		const maxY = Math.max(...allContentPoints.map((p) => p.y));
-		const padding = 200;
-		const cx = (minX + maxX) / 2;
-		const cy = (minY + maxY) / 2;
-		let cw = Math.max(maxX - minX + padding * 2, 200);
-		let ch = Math.max(maxY - minY + padding * 2, 200);
-		const ar = svgEl.clientWidth / svgEl.clientHeight;
-		if (cw / ch > ar) {
-			ch = cw / ar;
-		} else {
-			cw = ch * ar;
-		}
-		viewBoxX = cx - cw / 2;
-		viewBoxY = cy - ch / 2;
-		viewBoxWidth = cw;
-		viewBoxHeight = ch;
-	}
 
 	onMount(() => {
-		requestAnimationFrame(() => fitContent());
-	});
-
-	$effect(() => {
-		if (editorState.isSwitchingView) return;
-		const key = editorState.activeViewId === null ? 'global' : String(editorState.activeViewId);
-		const vb = { x: viewBoxX, y: viewBoxY, width: viewBoxWidth, height: viewBoxHeight };
-		editorState.viewBoxRecords[key] = vb;
-		editorState.currentViewBox = vb;
-	});
-
-	$effect(() => {
-		const key = editorState.activeViewId === null ? 'global' : String(editorState.activeViewId);
-		const saved = editorState.viewBoxRecords[key];
-		if (saved) {
-			viewBoxX = saved.x;
-			viewBoxY = saved.y;
-			viewBoxWidth = saved.width;
-			viewBoxHeight = saved.height;
-		} else {
-			fitContent();
-		}
+		requestAnimationFrame(() => viewport.fitContent());
 	});
 
 	function handleMouseDown(e: MouseEvent) {
@@ -146,9 +63,7 @@
 			return;
 		}
 
-		isDraggingPan = true;
-		lastMouseX = e.clientX;
-		lastMouseY = e.clientY;
+		viewport.startPan(e.clientX, e.clientY);
 	}
 
 	function startDragAnchor(e: MouseEvent, id: number) {
@@ -161,8 +76,8 @@
 	}
 
 	async function placeAnchorAtClick(e: MouseEvent) {
-		const svgEl = e.currentTarget as SVGSVGElement;
-		const pos = screenToSvgRaw(e, svgEl);
+		const svg = e.currentTarget as SVGSVGElement;
+		const pos = screenToSvgRaw(e, svg);
 		const target = e.target as SVGElement;
 		const lineEl = target.closest('[data-line]');
 		let lineId: number | null = null;
@@ -399,19 +314,13 @@
 				anchor.schematicX = pos.x;
 				anchor.schematicY = pos.y;
 			}
-		} else if (isDraggingPan) {
-			const dx = e.clientX - lastMouseX;
-			const dy = e.clientY - lastMouseY;
-			const scale = viewBoxWidth / svg.clientWidth;
-			viewBoxX -= dx * scale;
-			viewBoxY -= dy * scale;
-			lastMouseX = e.clientX;
-			lastMouseY = e.clientY;
+		} else {
+			viewport.movePan(e.clientX, e.clientY);
 		}
 	}
 
 	async function handleMouseUp() {
-		isDraggingPan = false;
+		viewport.stopPan();
 		if (draggedStationId !== null) {
 			if (didDragStation) {
 				const station = editorState.stations.find((s) => s.id === draggedStationId);
@@ -443,24 +352,6 @@
 			}
 			draggedAnchorId = null;
 		}
-	}
-
-	function handleWheel(e: WheelEvent) {
-		e.preventDefault();
-		const zoomSpeed = 0.1;
-		const zoomDir = e.deltaY > 0 ? 1 : -1;
-		const zoomFactor = 1 + zoomDir * zoomSpeed;
-
-		const svg = e.currentTarget as SVGSVGElement;
-		const pt = svg.createSVGPoint();
-		pt.x = e.clientX;
-		pt.y = e.clientY;
-		const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
-		viewBoxX = svgP.x - (svgP.x - viewBoxX) * zoomFactor;
-		viewBoxY = svgP.y - (svgP.y - viewBoxY) * zoomFactor;
-		viewBoxWidth *= zoomFactor;
-		viewBoxHeight *= zoomFactor;
 	}
 
 	function startDragStation(e: MouseEvent, id: number) {
@@ -505,7 +396,7 @@
 		if (e.key === ' ' || e.key === 'Space') {
 			e.preventDefault();
 			e.stopPropagation();
-			fitContent();
+			viewport.fitContent();
 		}
 	}}
 	onmousedown={(e) => {
@@ -522,15 +413,20 @@
 			: editorState.placementMode === 'anchor'
 				? 'cursor-copy'
 				: 'cursor-grab active:cursor-grabbing'}"
-		viewBox="{viewBoxX} {viewBoxY} {viewBoxWidth} {viewBoxHeight}"
+		viewBox="{viewport.viewBoxX} {viewport.viewBoxY} {viewport.viewBoxWidth} {viewport.viewBoxHeight}"
 		onmousedown={handleMouseDown}
 		onmousemove={handleMouseMove}
 		onmouseup={handleMouseUp}
 		onmouseleave={handleMouseUp}
-		onwheel={handleWheel}
+		onwheel={viewport.handleWheel}
 		oncontextmenu={handleContextMenu}
 	>
-		<SchematicGrid {viewBoxX} {viewBoxY} {viewBoxWidth} {viewBoxHeight} />
+		<SchematicGrid
+			viewBoxX={viewport.viewBoxX}
+			viewBoxY={viewport.viewBoxY}
+			viewBoxWidth={viewport.viewBoxWidth}
+			viewBoxHeight={viewport.viewBoxHeight}
+		/>
 		<SchematicLines {lineOffsets} />
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
@@ -542,7 +438,7 @@
 		</div>
 	{/if}
 
-	{#if isTooFar}
+	{#if viewport.isTooFar}
 		<div class="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-8">
 			<div
 				class="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-500 shadow-lg"

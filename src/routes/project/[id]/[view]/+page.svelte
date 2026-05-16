@@ -11,7 +11,6 @@
 	import { StationService } from '$lib/services/StationService';
 	import { LineService } from '$lib/services/LineService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ViewService } from '$lib/services/ViewService';
 	import { EditorService } from '$lib/services/EditorService';
 	import LeftPanel from '$lib/components/editor/LeftPanel.svelte';
 	import RightPanel from '$lib/components/editor/RightPanel.svelte';
@@ -19,29 +18,14 @@
 	import RightTabs from '$lib/components/editor/RightTabs.svelte';
 	import ToolBar from '$lib/components/editor/ToolBar.svelte';
 	import PlanView from '$lib/components/schematic/PlanView.svelte';
+	import ViewManager from '$lib/components/editor/ViewManager.svelte';
 
-	import {
-		CircularProgress,
-		Dialog,
-		Button,
-		IconButton,
-		TextField,
-		ContextMenu
-	} from '$lib/components/ui';
+	import { CircularProgress, Dialog, Button, IconButton } from '$lib/components/ui';
 
 	let projectId = $derived(Number(page.params.id));
 	let viewParam = $derived(page.params.view ?? 'global');
 	let isGlobal = $derived(viewParam === 'global');
 	let isLoading = $state(true);
-	let viewDialogOpen = $state(false);
-	let newViewName = $state('');
-
-	let viewContextMenu = $state<{ x: number; y: number; viewId: number } | null>(null);
-	let viewDeleteId = $state<number | null>(null);
-	let viewDeleteOpen = $state(false);
-	let viewRenameId = $state<number | null>(null);
-	let viewRenameName = $state('');
-	let viewRenameOpen = $state(false);
 
 	function handleTogglePlacement() {
 		if (editorState.placementMode === 'station') {
@@ -115,32 +99,6 @@
 		}
 	}
 
-	async function handleCreateView() {
-		if (!newViewName.trim()) return;
-		const viewId = await EditorService.createView(editorState, newViewName.trim());
-		newViewName = '';
-		viewDialogOpen = false;
-		goto(resolve(`/project/${projectId}/${viewId}`), { replaceState: true });
-	}
-
-	async function handleRenameView() {
-		if (viewRenameId === null || !viewRenameName.trim()) return;
-		await ViewService.update(viewRenameId, { name: viewRenameName.trim() });
-		await editorState.loadViews();
-		viewRenameId = null;
-	}
-
-	async function handleDeleteView() {
-		if (viewDeleteId === null) return;
-		const wasActive = viewDeleteId === editorState.activeViewId;
-		await EditorService.deleteView(editorState, viewDeleteId);
-		viewDeleteId = null;
-		viewDeleteOpen = false;
-		if (wasActive) {
-			goto(resolve(`/project/${projectId}/global`), { replaceState: true });
-		}
-	}
-
 	async function switchView(viewId: number | null) {
 		editorState.isSwitchingView = true;
 		const oldKey = editorState.activeViewId === null ? 'global' : String(editorState.activeViewId);
@@ -184,7 +142,6 @@
 	</div>
 {:else}
 	<div class="flex h-screen w-full flex-col overflow-hidden">
-		<!-- Top Bar -->
 		<header
 			class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 bg-surface px-4"
 		>
@@ -193,43 +150,7 @@
 					<span class="material-symbols-outlined">arrow_back</span>
 				</IconButton>
 				<h1 class="text-base font-medium">{editorState.project?.name}</h1>
-
-				<!-- View Tabs -->
-				<div class="ml-6 flex items-center gap-0.5">
-					<button
-						class="rounded-md px-3 py-1 text-xs font-bold transition-colors {editorState.activeViewId ===
-						null
-							? 'bg-primary/20 text-primary'
-							: 'text-on-surface-variant hover:text-on-surface'}"
-						onclick={() => switchView(null)}
-					>
-						{m.global_view()}
-					</button>
-					{#each editorState.views as view (view.id)}
-						<button
-							class="rounded-md px-3 py-1 text-xs font-bold transition-colors {editorState.activeViewId ===
-							view.id
-								? 'bg-primary/20 text-primary'
-								: 'text-on-surface-variant hover:text-on-surface'}"
-							onclick={() => switchView(view.id!)}
-							oncontextmenu={(e) => {
-								e.preventDefault();
-								viewContextMenu = { x: e.clientX, y: e.clientY, viewId: view.id! };
-							}}
-						>
-							{view.name}
-						</button>
-					{/each}
-					<button
-						class="ml-1 rounded-md px-2 py-1 text-xs font-bold text-on-surface-variant transition-colors hover:text-on-surface"
-						onclick={() => {
-							newViewName = '';
-							viewDialogOpen = true;
-						}}
-					>
-						+ {m.new_view()}
-					</button>
-				</div>
+				<ViewManager {projectId} onSwitchView={switchView} />
 			</div>
 
 			<div class="flex items-center gap-2">
@@ -262,7 +183,6 @@
 			</div>
 		</header>
 
-		<!-- Main Workspace -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="flex flex-1 overflow-hidden" tabindex="-1" onkeydown={handleKeydown}>
 			<LeftTabs />
@@ -313,7 +233,6 @@
 		</div>
 	</div>
 
-	<!-- Delete station confirmation -->
 	<Dialog bind:open={editorState.deleteStationOpen}>
 		{#snippet icon()}
 			<span class="material-symbols-outlined">delete</span>
@@ -343,7 +262,6 @@
 		{/snippet}
 	</Dialog>
 
-	<!-- Delete line confirmation -->
 	<Dialog bind:open={editorState.deleteLineOpen}>
 		{#snippet icon()}
 			<span class="material-symbols-outlined">delete</span>
@@ -373,7 +291,6 @@
 		{/snippet}
 	</Dialog>
 
-	<!-- Delete anchor confirmation -->
 	<Dialog bind:open={editorState.deleteAnchorOpen}>
 		{#snippet icon()}
 			<span class="material-symbols-outlined">delete</span>
@@ -400,102 +317,6 @@
 					}
 				}}>{m.delete()}</Button
 			>
-		{/snippet}
-	</Dialog>
-
-	<!-- View context menu -->
-	{#if viewContextMenu}
-		<ContextMenu
-			x={viewContextMenu.x}
-			y={viewContextMenu.y}
-			items={[
-				{
-					label: m.rename_view(),
-					icon: 'edit',
-					action: () => {
-						const v = editorState.views.find((v) => v.id === viewContextMenu!.viewId);
-						if (v) {
-							viewRenameName = v.name;
-							viewRenameId = v.id!;
-							viewRenameOpen = true;
-						}
-					}
-				},
-				{
-					label: m.delete_view_confirm(),
-					icon: 'delete',
-					action: () => {
-						viewDeleteId = viewContextMenu!.viewId;
-						viewDeleteOpen = true;
-					}
-				}
-			]}
-			onclose={() => (viewContextMenu = null)}
-		/>
-	{/if}
-
-	<!-- Rename view dialog -->
-	<Dialog bind:open={viewRenameOpen}>
-		{#snippet icon()}
-			<span class="material-symbols-outlined">edit</span>
-		{/snippet}
-		{#snippet title()}{m.rename_view_title({
-				name: editorState.views.find((v) => v.id === viewRenameId)?.name ?? ''
-			})}{/snippet}
-		<TextField
-			label={m.view_name()}
-			bind:value={viewRenameName}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter') handleRenameView();
-			}}
-		/>
-		{#snippet actions()}
-			<Button
-				variant="text"
-				onclick={() => {
-					viewRenameOpen = false;
-					viewRenameId = null;
-				}}>{m.cancel()}</Button
-			>
-			<Button variant="filled" autofocus onclick={handleRenameView}>{m.rename()}</Button>
-		{/snippet}
-	</Dialog>
-
-	<!-- Delete view confirmation -->
-	<Dialog bind:open={viewDeleteOpen}>
-		{#snippet icon()}
-			<span class="material-symbols-outlined">delete</span>
-		{/snippet}
-		{#snippet title()}{m.delete()}{/snippet}
-		<p>{m.delete_view_confirm()}</p>
-		{#snippet actions()}
-			<Button
-				variant="text"
-				onclick={() => {
-					viewDeleteOpen = false;
-					viewDeleteId = null;
-				}}>{m.cancel()}</Button
-			>
-			<Button variant="filled" autofocus onclick={handleDeleteView}>{m.delete()}</Button>
-		{/snippet}
-	</Dialog>
-
-	<!-- New View dialog -->
-	<Dialog bind:open={viewDialogOpen}>
-		{#snippet icon()}
-			<span class="material-symbols-outlined">add</span>
-		{/snippet}
-		{#snippet title()}{m.new_view()}{/snippet}
-		<TextField
-			label={m.view_name()}
-			bind:value={newViewName}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter') handleCreateView();
-			}}
-		/>
-		{#snippet actions()}
-			<Button variant="text" onclick={() => (viewDialogOpen = false)}>{m.cancel()}</Button>
-			<Button variant="filled" autofocus onclick={handleCreateView}>{m.create()}</Button>
 		{/snippet}
 	</Dialog>
 {/if}

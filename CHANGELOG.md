@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1-beta (2026-05-16)
+
+**EN:** Internal codebase refactoring — no visible changes for end users
+
+- Extracted viewport state from PlanView into a reusable `useViewport.svelte.ts` module
+- Created `StationLabelControls` and `ViewManager` components to reduce large file sizes
+- Split `ProjectExportService` into dedicated export and import services
+
+**FR:** Refonte interne du code — aucun changement visible pour les utilisateurs
+
+- Extraction de la gestion du viewport de PlanView vers un module `useViewport.svelte.ts`
+- Création des composants `StationLabelControls` et `ViewManager`
+- Séparation de `ProjectExportService` en services d'export et d'import
+
 ## 0.9.0-beta (2026-05-16)
 
 **EN:** Social embed previews — links now show a rich preview on Discord, Twitter, and other platforms

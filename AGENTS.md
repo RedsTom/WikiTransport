@@ -213,6 +213,7 @@ When the user says "deploy", perform a full release cycle:
 
 - Development builds: `{major}.{minor}.{patch}-beta` (e.g., `0.6.0-beta`, `0.7.0-beta`)
 - Stable releases: `{major}.{minor}.{patch}` (drop the `-beta` suffix)
+- Refactoring-only releases (no user-facing changes) bump `patch` — the changelog title/summary should make it clear there are no visible changes for end users (e.g., "Codebase refactoring — no visible changes")
 
 ### Changelog file format (per locale)
 
