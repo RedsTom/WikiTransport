@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import type { Pathname } from '$app/types';
 	import { resolve } from '$app/paths';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { locales } from '$lib/paraglide/runtime';
+	import { setLocale, useLocale } from '$lib/locale.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { ProjectExportService } from '$lib/services/ProjectExportService';
@@ -28,7 +27,7 @@
 		expandedVersions[v] = !expandedVersions[v];
 	}
 
-	let currentLocale = $derived(page.url.pathname.includes('/fr') ? 'fr' : 'en');
+	let currentLocale = $derived(useLocale());
 
 	function localizeEntry(entry: LocalizedChangelog) {
 		return {
@@ -188,19 +187,16 @@
 
 		<div class="flex items-center gap-6">
 			<div class="flex items-center gap-2">
-				{#each locales as locale (locale)}
-					<a
-						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
-						data-sveltekit-reload
-						class="text-sm font-bold uppercase transition-colors hover:text-primary {page.url.pathname.includes(
-							`/${locale}`
-						) ||
-						(locale === 'en' && !page.url.pathname.includes('/fr'))
+				{#each locales as l (l)}
+					<button
+						onclick={() => setLocale(l)}
+						class="text-sm font-bold uppercase transition-colors hover:text-primary {useLocale() ===
+						l
 							? 'text-primary'
 							: 'text-on-surface-variant opacity-70'}"
 					>
-						{locale}
-					</a>
+						{l}
+					</button>
 				{/each}
 			</div>
 

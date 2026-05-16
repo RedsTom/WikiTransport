@@ -1,14 +1,17 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import type { Pathname } from '$app/types';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { useLocale } from '$lib/locale.svelte';
 	import '$lib/components/ui/m3.css';
 	import './layout.css';
 	import './theme.css';
 
 	let { children } = $props();
+
+	$effect(() => {
+		const locale = useLocale();
+		document.documentElement.lang = locale;
+	});
 </script>
 
 <svelte:head>
@@ -24,14 +27,8 @@
 	<meta name="twitter:image" content={`${page.url.origin}/assets/Global%20View.png`} />
 </svelte:head>
 
-<div class="min-h-screen bg-surface font-sans text-on-surface">
-	{@render children()}
-</div>
-
-<div style="display:none">
-	{#each locales as locale (locale)}
-		<a href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)} data-sveltekit-reload
-			>{locale}</a
-		>
-	{/each}
-</div>
+{#key useLocale()}
+	<div class="min-h-screen bg-surface font-sans text-on-surface">
+		{@render children()}
+	</div>
+{/key}

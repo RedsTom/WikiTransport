@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { Pathname } from '$app/types';
 	import { resolve } from '$app/paths';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { locales } from '$lib/paraglide/runtime';
+	import { setLocale, useLocale } from '$lib/locale.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onMount } from 'svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -166,19 +166,16 @@
 					<span class="material-symbols-outlined">download</span>
 					{m.export()}
 				</Button>
-				{#each locales as locale (locale)}
-					<a
-						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
-						data-sveltekit-reload
-						class="text-sm font-bold uppercase transition-colors hover:text-primary {page.url.pathname.includes(
-							`/${locale}`
-						) ||
-						(locale === 'en' && !page.url.pathname.includes('/fr'))
+				{#each locales as l (l)}
+					<button
+						onclick={() => setLocale(l)}
+						class="text-sm font-bold uppercase transition-colors hover:text-primary {useLocale() ===
+						l
 							? 'text-primary'
 							: 'text-on-surface-variant opacity-70'}"
 					>
-						{locale}
-					</a>
+						{l}
+					</button>
 				{/each}
 			</div>
 		</header>

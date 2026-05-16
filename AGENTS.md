@@ -21,7 +21,7 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 - Translation files: `messages/en.json` and `messages/fr.json`
 - Import: `import * as m from '$lib/paraglide/messages.js'`
 - When adding a string, ALWAYS add the key to BOTH `en.json` and `fr.json`
-- Language switching via `<a data-sveltekit-reload>` links only (never `setLocale({ reload: false })`)
+- Language switching via `<button onclick={() => setLocale(l)}>` (import `{ setLocale, useLocale }` from `$lib/locale.svelte`). No URL prefixes (`strategy: ['cookie', 'baseLocale']`), so `localizeHref`/`data-sveltekit-reload` are never used. The root layout wraps `{@render children()}` in `{#key useLocale()}` to trigger re-renders on locale change.
 - For styled elements in translations (e.g. `<kbd>`), split into before/after keys so the styled element has CSS classes
 
 ### Component Architecture
@@ -238,6 +238,7 @@ When the user says "deploy", perform the "refactor" command, then perform a full
 - Development builds: `{major}.{minor}.{patch}-beta` (e.g., `0.6.0-beta`, `0.7.0-beta`)
 - Stable releases: `{major}.{minor}.{patch}` (drop the `-beta` suffix)
 - Refactoring-only releases (no user-facing changes) bump `patch` — the changelog title/summary should make it clear there are no visible changes for end users (e.g., "Codebase refactoring — no visible changes")
+- Bug fixes are minor changes since there are no new features but only corrections of old ones
 
 ### Changelog file format (per locale)
 

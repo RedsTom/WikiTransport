@@ -1,11 +1,10 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { locales } from '$lib/paraglide/runtime';
+	import { setLocale, useLocale } from '$lib/locale.svelte';
 	import { Button } from '$lib/components/ui';
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve, base } from '$app/paths';
-	import type { Pathname } from '$app/types';
 </script>
 
 <svelte:head>
@@ -20,19 +19,16 @@
 		</span>
 		<div class="flex items-center gap-4">
 			<div class="flex items-center gap-2">
-				{#each locales as locale (locale)}
-					<a
-						href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
-						data-sveltekit-reload
-						class="text-sm font-bold uppercase transition-colors hover:text-primary {page.url.pathname.includes(
-							`/${locale}`
-						) ||
-						(locale === 'en' && !page.url.pathname.includes('/fr'))
+				{#each locales as l (l)}
+					<button
+						onclick={() => setLocale(l)}
+						class="text-sm font-bold uppercase transition-colors hover:text-primary {useLocale() ===
+						l
 							? 'text-primary'
 							: 'text-on-surface-variant opacity-70'}"
 					>
-						{locale}
-					</a>
+						{l}
+					</button>
 				{/each}
 			</div>
 			<Button variant="filled" onclick={() => goto(resolve('/projects'))}>

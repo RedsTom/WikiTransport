@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0-beta (2026-05-16)
+
+**EN:** Language persistence fix — no more resets to English when navigating between pages
+
+- Language no longer resets to English when clicking internal links
+- Switched from URL-prefix-based locale detection (`/fr/...`) to cookie-only strategy
+- Replaced `<a data-sveltekit-reload>` with `<button>` for instant, no-reload language switching
+- Root layout uses `{#key useLocale()}` to re-render all translated content on locale change
+
+**FR:** Correction de la persistance de la langue — fin des réinitialisations en anglais
+
+- La langue ne se réinitialise plus en anglais lors de la navigation entre les pages
+- Passage d'une détection par préfixe d'URL (`/fr/...`) à une stratégie uniquement par cookie
+- Remplacement des `<a data-sveltekit-reload>` par des `<button>` pour un changement instantané
+- Le layout racine utilise `{#key useLocale()}` pour réafficher tout le contenu traduit
+
 ## 0.10.0-beta (2026-05-16)
 
 **EN:** Context menus everywhere — right-click on anything for instant actions
