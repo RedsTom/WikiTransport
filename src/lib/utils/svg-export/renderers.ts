@@ -138,3 +138,27 @@ export function getInterchangeHiddenLineIds(data: ExportData): Set<number> {
 export function getTransitType(line: Line, data: ExportData): TransitType | undefined {
 	return data.transitTypes.find((t) => t.id === line.transitTypeId);
 }
+
+import { buildTunnels, computeLineOffsets } from '$lib/utils/schematic';
+import type { Point } from '$lib/utils/schematic';
+
+export function buildRenderingData(
+	data: ExportData,
+	isGlobal: boolean
+): { basePaths: Map<number, Point[]>; tunnelOffsets: Map<string, Map<number, Point>> } {
+	const hiddenLineIds = new Set(data.hiddenLineIds);
+	const { basePaths, tunnels } = buildTunnels(
+		data.lines,
+		data.routePoints,
+		data.anchorPoints,
+		(id) => {
+			const s = data.stations.find((st) => st.id === id);
+			return s ? stationPos(s, data.viewStations, isGlobal) : null;
+		},
+		hiddenLineIds
+	);
+	const lineMap = new Map<number, { id?: number; transitTypeId?: number }>();
+	for (const l of data.lines) if (l.id != null) lineMap.set(l.id, l);
+	const tunnelOffsets = computeLineOffsets(tunnels, lineMap);
+	return { basePaths, tunnelOffsets };
+}

@@ -4,14 +4,23 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ContextMenu, CircularProgress, LinePicker, Dialog, Button, TextField } from '$lib/components/ui';
+	import {
+		ContextMenu,
+		CircularProgress,
+		LinePicker,
+		Dialog,
+		Button,
+		TextField
+	} from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import {
 		screenToSvg,
 		screenToSvgRaw,
 		distToSegment,
-		closestPointOnSegment
+		closestPointOnSegment,
+		buildTunnels,
+		computeLineOffsets
 	} from '$lib/utils/schematic';
 	import { useViewport } from '$lib/utils/useViewport.svelte';
 	import { useContextMenu } from '$lib/utils/useContextMenu.svelte';
@@ -417,6 +426,21 @@
 		editorState.selectedTransitTypeId = null;
 		editorState.rightTab = 'station';
 	}
+
+	let renderingData = $derived.by(() => {
+		const { basePaths, tunnels } = buildTunnels(
+			editorState.lines,
+			editorState.routePoints,
+			editorState.anchorPoints,
+			(id) => {
+				const s = editorState.stationMap.get(id);
+				return s ? editorState.stationPosition(s) : null;
+			},
+			editorState.effectiveHiddenLineIds
+		);
+		const tunnelOffsets = computeLineOffsets(tunnels, editorState.lineMap);
+		return { basePaths, tunnelOffsets };
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -459,7 +483,7 @@
 			viewBoxWidth={viewport.viewBoxWidth}
 			viewBoxHeight={viewport.viewBoxHeight}
 		/>
-		<SchematicLines />
+		<SchematicLines {renderingData} />
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
 	</svg>
@@ -529,7 +553,12 @@
 		</ContextMenu>
 	{/if}
 
-	<Dialog bind:open={stationNameDialogOpen} onclose={() => { stationNameDialogOpen = false; }}>
+	<Dialog
+		bind:open={stationNameDialogOpen}
+		onclose={() => {
+			stationNameDialogOpen = false;
+		}}
+	>
 		{#snippet icon()}
 			<span class="material-symbols-outlined text-blue-500">add_location</span>
 		{/snippet}
@@ -545,10 +574,19 @@
 		/>
 
 		{#snippet actions()}
-			<Button variant="text" onclick={() => { stationNameDialogOpen = false; }}>
+			<Button
+				variant="text"
+				onclick={() => {
+					stationNameDialogOpen = false;
+				}}
+			>
 				{m.cancel()}
 			</Button>
-			<Button variant="filled" disabled={!pendingStationName.trim()} onclick={handleConfirmStationName}>
+			<Button
+				variant="filled"
+				disabled={!pendingStationName.trim()}
+				onclick={handleConfirmStationName}
+			>
 				{m.create()}
 			</Button>
 		{/snippet}

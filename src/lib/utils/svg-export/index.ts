@@ -13,6 +13,7 @@ export {
 	getHiddenInterchangeLineIdsForStation,
 	getInterchangeBadgeModeForStation,
 	getInterchangeBadgeDirectionForStation,
+	buildRenderingData,
 	BADGE_SIZE,
 	BADGE_GAP,
 	LABEL_BADGE_GAP,
@@ -25,6 +26,7 @@ export { getLegendEntries, getLegendDimensions } from './legend';
 import { mount, unmount } from 'svelte';
 import ExportSvg from '$lib/components/export/ExportSvg.svelte';
 import { getContentBounds, extendBoundsForLegend } from './bounds';
+import { buildRenderingData } from './renderers';
 import type { ExportData, ExportOptions } from './types';
 
 function buildSvg(
@@ -34,6 +36,7 @@ function buildSvg(
 	preview: boolean
 ): string {
 	const mapBounds = getContentBounds(data, isGlobal);
+	const renderingData = buildRenderingData(data, isGlobal);
 
 	const legendExt = options.showLegend ? extendBoundsForLegend(data, mapBounds) : null;
 	const bounds = legendExt ? legendExt.bounds : mapBounds;
@@ -44,7 +47,7 @@ function buildSvg(
 
 	const component = mount(ExportSvg, {
 		target,
-		props: { data, isGlobal, bounds, legendExt, preview }
+		props: { data, isGlobal, bounds, legendExt, preview, renderingData }
 	});
 
 	const svgEl = target.querySelector('svg');

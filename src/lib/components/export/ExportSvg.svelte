@@ -5,12 +5,15 @@
 	import ExportBadges from './ExportBadges.svelte';
 	import ExportLegend from './ExportLegend.svelte';
 
+	import type { Point } from '$lib/utils/schematic';
+
 	let {
 		data,
 		isGlobal,
 		bounds,
 		legendExt,
-		preview
+		preview,
+		renderingData
 	}: {
 		data: ExportData;
 		isGlobal: boolean;
@@ -23,6 +26,10 @@
 			legendHeight: number;
 		} | null;
 		preview: boolean;
+		renderingData: {
+			basePaths: Map<number, Point[]>;
+			tunnelOffsets: Map<string, Map<number, Point>>;
+		};
 	} = $props();
 
 	const cw = $derived(bounds.maxX - bounds.minX);
@@ -63,7 +70,7 @@
 >
 	<rect x={bounds.minX} y={bounds.minY} width={cw} height={ch} fill="#f8f8f8" />
 	<g id="lines">
-		<ExportLines {data} {isGlobal} />
+		<ExportLines {data} {isGlobal} {renderingData} />
 	</g>
 	<g id="stations">
 		<ExportStations {data} {isGlobal} />
