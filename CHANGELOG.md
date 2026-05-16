@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0-beta (2026-05-16)
+
+**EN:** Revamped landing page with updated screenshots and a brand-new README focused on the project vision
+
+- Updated homepage with cleaner asset references (new screenshot, renamed files)
+- Completely rewrote the README to be more inspiring, less technical
+- Added "Who is it for?" section for transit enthusiasts, planners, and creators
+
+**FR:** Nouvelle page d'accueil avec des captures à jour et un README repensé autour de la vision du projet
+
+- Mise à jour de la page d'accueil avec des références d'images plus propres
+- Réécriture complète du README pour donner plus envie
+- Ajout d'une section « Pour qui ? »
+
 ## 0.7.0-beta (2026-05-16)
 
 **EN:** Changelog section on the projects page with version history and beta version naming

@@ -69,7 +69,7 @@
 			</div>
 			<div class="flex-1">
 				<img
-					src="/assets/screenshot-editor.png"
+					src="/assets/Global View.png"
 					alt="WikiTransport editor screenshot"
 					class="w-full rounded-xl border border-outline/20 shadow-lg"
 				/>
@@ -102,12 +102,12 @@
 			</h3>
 			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
-				href="{base}/assets/Marseille-global(1).svg"
+				href="{base}/assets/Marseille-Global.svg"
 				target="_blank"
 				class="block overflow-hidden rounded-xl border border-outline/20 transition-shadow hover:shadow-md"
 			>
 				<img
-					src="/assets/Marseille-global(1).svg"
+					src="/assets/Marseille-Global.svg"
 					alt="Marseille global view"
 					class="w-full bg-white"
 				/>

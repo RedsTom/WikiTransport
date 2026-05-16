@@ -5,49 +5,53 @@
 <h1 align="center">WikiTransport</h1>
 
 <p align="center">
-  <em>A web-based schematic transit map editor — design clean, shareable transport network diagrams directly in your browser, no server needed.</em>
+  <em>Design clean, shareable transit maps directly in your browser — no server, no account, no fuss.</em>
 </p>
 
 <p align="center">
   <a href="https://github.com/RedsTom/WikiTransport">GitHub</a> ·
   <a href="#features">Features</a> ·
-  <a href="#getting-started">Getting Started</a> ·
-  <a href="#usage">Usage</a>
+  <a href="#getting-started">Getting Started</a>
+</p>
+
+<p align="center">
+  <a href="https://wikitransport.redstom.fr">Try it online →</a>
 </p>
 
 <br>
 
-![Editor screenshot](static/assets/screenshot-editor.png)
+![Global view editor](static/assets/Global%20View.png)
+
+---
+
+WikiTransport is a browser-based schematic map editor for metro, tram, bus, and rail networks.
+Think of it as a lightweight, client-only alternative to professional diagramming tools — made
+for transit enthusiasts, urban planners, students, and anyone who wants to draw beautiful
+transport maps without installing anything.
+
+Everything runs locally in your browser. Your projects stay on your machine.
+
+---
 
 ## Features
 
-- **Schematic editor** — SVG-based canvas with snap-to-grid, pan/zoom, drag & drop
-- **Octilinear routing** — Automatic 45° angle routing with parallel line management
-- **Lines & stations** — Create lines with custom colors, add stations, reorder via drag
-- **Transit types** — Group lines by mode (Metro, Tram, Bus, etc.) with distinct icon shapes
-- **Anchor points** — Add curve control points on lines for fine-tuned routing
-- **Views** — Create named views with per-view station positions and visibility toggles
-- **SVG export** — Export production-ready SVGs with legend, interchange badges, and customizable styling
-- **i18n** — English and French interface
-- **100% local** — All data stored locally in IndexedDB via Dexie, no server required, no telemetry
+- **SVG schematic editor** — Snap-to-grid canvas with smooth pan, zoom, and drag
+- **Octilinear routing** — Lines naturally follow 45° angles; parallel lines are managed automatically
+- **Lines, stations & anchor points** — Build networks with custom colors, icon shapes, and fine-tuned curves
+- **Transit types** — Group lines by mode (Metro, Tram, Bus, Funicular…) each with its own badge shape
+- **Views** — Create named variants with per-view station positions and hidden elements for focused exports
+- **Interchange badges** — Circle, square, diamond, or pill badges with 8-directional positioning
+- **SVG export** — Production-ready diagrams with legend, badges, and full styling
+- **Import / Export (.wtp)** — Share projects as ZIP files, compatible across devices
+- **Bilingual** — English & French interfaces
+- **100 % local, 100 % private** — No server, no sign-up, no telemetry, no data leaves your machine
 - **Open source** — MIT license
 
 ## Example maps
 
-![Marseille global](<static/assets/Marseille-global(1).svg>)
-
-## Tech stack
-
-| Tool                                                                  | Purpose                                        |
-| --------------------------------------------------------------------- | ---------------------------------------------- |
-| [Svelte 5](https://svelte.dev) + [Kit](https://kit.svelte.dev)        | UI framework (runes, snippets)                 |
-| [TypeScript](https://www.typescriptlang.org)                          | Type safety                                    |
-| [Tailwind CSS v4](https://tailwindcss.com)                            | Styling                                        |
-| [Dexie.js](https://dexie.org)                                         | IndexedDB wrapper (client-side storage)        |
-| [Melt UI](https://melt-ui.com)                                        | Accessible UI primitives (dropdowns, popovers) |
-| [Paraglide JS](https://inlang.com/paraglide)                          | i18n                                           |
-| [svelte-dnd-action](https://github.com/isaacHagoel/svelte-dnd-action) | Drag & drop reordering                         |
-| [Material Icons](https://fonts.google.com/icons)                      | Iconography                                    |
+| Global view (Marseille)                                      | Line detail (T2)                                     |
+| ------------------------------------------------------------ | ---------------------------------------------------- |
+| ![Marseille global view](static/assets/Marseille-Global.svg) | ![Marseille T2 line](static/assets/Marseille-T2.svg) |
 
 ## Getting started
 
@@ -68,26 +72,15 @@ Open the URL printed in the terminal (default `http://localhost:5173`).
 | `pnpm lint`    | Lint with Prettier + ESLint    |
 | `pnpm format`  | Format code with Prettier      |
 
-## Data model
+## Quick start
 
-```
-Project → TransitType → Line → RoutePoint → Station
-         → View → ViewStation
-         → AnchorPoint
-```
-
-Everything is stored in a single IndexedDB database (`TransitDB`) using
-Dexie. No backend or API required.
-
-## Usage
-
-1. **Create a project** — Give it a name and city
-2. **Add transit types** — Define modes (Metro, Bus, etc.) with icon shapes
-3. **Add lines** — Choose a type, set a color, give it a name
-4. **Place stations** — Click the add button (or press `S`), then click on the canvas
-5. **Build routes** — Drag stations onto a line's route list in the left panel
-6. **Style the map** — Adjust station positions, label directions, line z-order
-7. **Create views** — Make named variants with hidden lines and repositioned stations
+1. **Create a project** — Give it a name and a city
+2. **Add transit types** — Define the modes (Metro, Tram, Bus…) with icon shapes
+3. **Add lines** — Pick a type, choose a color, name your line
+4. **Place stations** — Press `S`, then click the canvas
+5. **Build routes** — Drag stations into a line's route list
+6. **Polish** — Adjust positions, label directions, line ordering, interchange badges
+7. **Export** — Save as SVG or share a `.wtp` project file
 
 ### Keyboard shortcuts
 
@@ -99,26 +92,12 @@ Dexie. No backend or API required.
 | `D`                    | Deselect all                       |
 | `Delete` / `Backspace` | Delete selected item               |
 
-## Project structure
+## Who is it for?
 
-```
-src/
-├── lib/
-│   ├── components/
-│   │   ├── editor/       # Editor panels (LeftPanel, RightPanel, ToolBar, properties)
-│   │   ├── schematic/    # PlanView (SVG canvas)
-│   │   └── ui/           # Reusable UI components (Button, Dialog, Select, etc.)
-│   ├── services/         # Dexie-backed CRUD services
-│   ├── store/            # EditorState (Svelte 5 runes)
-│   ├── types/            # TypeScript models
-│   └── utils/            # textMeasure utility
-├── routes/
-│   ├── +page.svelte      # Landing page
-│   ├── projects/         # Project list
-│   └── project/[id]/     # Editor page
-└── static/
-    └── assets/           # Images and assets
-```
+- **Transit enthusiasts** who want to draw their city's network or redesign it
+- **Urban planners & students** creating diagrams for presentations or theses
+- **Wikipedia editors** and **OpenStreetMap contributors** illustrating transit articles
+- **Game & worldbuilders** designing fictional transit systems
 
 ## License
 

@@ -11,7 +11,15 @@
 	import { changelogs, type LocalizedChangelog } from '$lib/data/changelogs';
 	import type { Project } from '$lib/types';
 
-	import { Button, Fab, IconButton, Dialog, TextField, NativeSelect, CircularProgress } from '$lib/components/ui';
+	import {
+		Button,
+		Fab,
+		IconButton,
+		Dialog,
+		TextField,
+		NativeSelect,
+		CircularProgress
+	} from '$lib/components/ui';
 
 	let expandedVersions = $state<Record<string, boolean>>({});
 

@@ -230,6 +230,7 @@ Date: YYYY-MM-DD
 ```
 
 Rules:
+
 - `Summary:` line is shown when collapsed on the projects page (must be clear and user-friendly, no technical jargon)
 - Content after `Date:` is shown when expanded (can include technical details)
 - Keep titles short and meaningful
