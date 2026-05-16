@@ -428,6 +428,7 @@
 	}
 
 	let renderingData = $derived.by(() => {
+		void editorState.tunnelOrderVersion;
 		const { basePaths, tunnels, stationPoints } = buildTunnels(
 			editorState.lines,
 			editorState.routePoints,
@@ -438,8 +439,8 @@
 			},
 			editorState.effectiveHiddenLineIds
 		);
-		const tunnelOffsets = computeLineOffsets(tunnels, editorState.lineMap);
-		return { basePaths, tunnelOffsets, stationPoints };
+		const tunnelOffsets = computeLineOffsets(tunnels, editorState.lineMap, editorState.tunnelOrder);
+		return { basePaths, tunnels, tunnelOffsets, stationPoints };
 	});
 </script>
 
@@ -484,6 +485,42 @@
 			viewBoxHeight={viewport.viewBoxHeight}
 		/>
 		<SchematicLines {renderingData} />
+		{#if editorState.hoveredTunnelKey}
+			{@const tunnel = renderingData.tunnels.get(editorState.hoveredTunnelKey)}
+			{@const x1 = tunnel
+				? tunnel.u.x
+				: Number(editorState.hoveredTunnelKey.split(';')[0].split(',')[0])}
+			{@const y1 = tunnel
+				? tunnel.u.y
+				: Number(editorState.hoveredTunnelKey.split(';')[0].split(',')[1])}
+			{@const x2 = tunnel
+				? tunnel.v.x
+				: Number(editorState.hoveredTunnelKey.split(';')[1].split(',')[0])}
+			{@const y2 = tunnel
+				? tunnel.v.y
+				: Number(editorState.hoveredTunnelKey.split(';')[1].split(',')[1])}
+			{@const dx = x2 - x1}
+			{@const dy = y2 - y1}
+			{@const len = Math.sqrt(dx * dx + dy * dy)}
+			{@const nx = len > 0 ? (-dy / len) * 18 : 0}
+			{@const ny = len > 0 ? (dx / len) * 18 : 0}
+			<path
+				d="M {x1 + nx} {y1 + ny} L {x2 + nx} {y2 + ny} M {x1 - nx} {y1 - ny} L {x2 - nx} {y2 - ny}"
+				fill="none"
+				stroke="rgba(100, 200, 255, 0.35)"
+				stroke-width="24"
+				stroke-linecap="round"
+				pointer-events="none"
+			/>
+			<path
+				d="M {x1} {y1} L {x2} {y2}"
+				fill="none"
+				stroke="rgba(100, 200, 255, 0.9)"
+				stroke-width="5"
+				stroke-linecap="round"
+				pointer-events="none"
+			/>
+		{/if}
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
 	</svg>

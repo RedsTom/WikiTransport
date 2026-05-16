@@ -6,6 +6,7 @@
 	import StationProperties from './StationProperties.svelte';
 	import TypeProperties from './TypeProperties.svelte';
 	import ProjectProperties from './ProjectProperties.svelte';
+	import TunnelProperties from './TunnelProperties.svelte';
 
 	let selectedLine = $derived(editorState.lines.find((l) => l.id === editorState.selectedLineId));
 	let selectedStation = $derived(
@@ -20,6 +21,7 @@
 	let hasLine = $derived(!!selectedLine);
 	let hasStation = $derived(!!selectedStation);
 	let hasAnchor = $derived(!!selectedAnchor);
+	let hasTunnel = $derived(!!editorState.selectedTunnel);
 </script>
 
 <aside class="flex w-80 shrink-0 flex-col border-l border-outline/20 bg-surface">
@@ -33,6 +35,8 @@
 				{m.line()}
 			{:else if editorState.rightTab === 'station'}
 				{m.station()}
+			{:else if editorState.rightTab === 'tunnel'}
+				{m.tunnel()}
 			{/if}
 		</h2>
 		<button class="m3-icon-button" onclick={() => (editorState.rightTab = null)}>
@@ -50,6 +54,8 @@
 			<LineProperties />
 		{:else if editorState.rightTab === 'station' && (hasStation || hasAnchor)}
 			<StationProperties />
+		{:else if editorState.rightTab === 'tunnel' && hasTunnel}
+			<TunnelProperties />
 		{/if}
 	</div>
 </aside>

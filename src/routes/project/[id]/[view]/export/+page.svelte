@@ -220,7 +220,8 @@
 				transitTypes,
 				viewStations,
 				hiddenLineIds,
-				hiddenStationIds
+				hiddenStationIds,
+				tunnelOrder: activeView?.tunnelOrder
 			};
 
 			isLoading = false;

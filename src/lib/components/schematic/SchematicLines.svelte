@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { editorState } from '$lib/store/editor.svelte';
 	import { getOffsetPath, createPathFromPoints, scaleDashPattern } from '$lib/utils/schematic';
-	import type { Point, Tunnel } from '$lib/utils/schematic';
+	import type { Point } from '$lib/utils/schematic';
 	import { LINE_WIDTH } from '$lib/constants/schematic';
 
 	let {

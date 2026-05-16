@@ -4,6 +4,7 @@
 	import OverviewTab from './OverviewTab.svelte';
 	import TypesTab from './TypesTab.svelte';
 	import StationsTab from './StationsTab.svelte';
+	import TunnelsTab from './TunnelsTab.svelte';
 </script>
 
 <aside class="flex w-80 shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface">
@@ -15,6 +16,8 @@
 				{m.line_types()}
 			{:else if editorState.leftTab === 'stations'}
 				{m.stations()}
+			{:else if editorState.leftTab === 'tunnels'}
+				{m.tunnels()}
 			{/if}
 		</h2>
 		<button class="m3-icon-button" onclick={() => (editorState.leftTab = null)}>
@@ -28,6 +31,8 @@
 			<TypesTab />
 		{:else if editorState.leftTab === 'stations'}
 			<StationsTab />
+		{:else if editorState.leftTab === 'tunnels'}
+			<TunnelsTab />
 		{/if}
 	</div>
 </aside>

@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Tooltip, IconButton } from '$lib/components/ui';
 
-	function toggle(tab: 'overview' | 'types' | 'stations') {
+	function toggle(tab: 'overview' | 'types' | 'stations' | 'tunnels') {
 		editorState.leftTab = editorState.leftTab === tab ? null : tab;
 	}
 </script>
@@ -39,6 +39,16 @@
 				: ''}
 		>
 			<span class="material-symbols-outlined">location_on</span>
+		</IconButton>
+	</Tooltip>
+	<Tooltip text={m.tunnels()}>
+		<IconButton
+			onclick={() => toggle('tunnels')}
+			class={editorState.leftTab === 'tunnels'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
+		>
+			<span class="material-symbols-outlined">layers</span>
 		</IconButton>
 	</Tooltip>
 </aside>

@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { SvelteSet } from 'svelte/reactivity';
 import { LineService } from '../services/LineService';
+import { buildTunnels } from '$lib/utils/schematic';
 import { StationService } from '../services/StationService';
 import { TransitTypeService } from '../services/TransitTypeService';
 import { AnchorPointService } from '../services/AnchorPointService';
@@ -33,14 +34,16 @@ export class EditorState {
 	);
 	isSwitchingView = $state(false);
 
-	leftTab = $state<'overview' | 'types' | 'stations' | null>(null);
-	rightTab = $state<'general' | 'type' | 'line' | 'station' | null>(null);
+	leftTab = $state<'overview' | 'types' | 'stations' | 'tunnels' | null>(null);
+	rightTab = $state<'general' | 'type' | 'line' | 'station' | 'tunnel' | null>(null);
 
 	selectedTransitTypeId = $state<number | null>(null);
 	selectedLineId = $state<number | null>(null);
 	selectedStationId = $state<number | null>(null);
 	selectedAnchorId = $state<number | null>(null);
+	selectedTunnelKey = $state<string | null>(null);
 	hoveredAnchorId = $state<number | null>(null);
+	hoveredTunnelKey = $state<string | null>(null);
 
 	placementMode = $state<'station' | 'anchor' | null>(null);
 	pendingLineInsert = $state<{ refStationId: number; before: boolean } | null>(null);
@@ -113,6 +116,49 @@ export class EditorState {
 		for (const [, arr] of map) arr.sort((a, b) => a.order - b.order);
 		return map;
 	});
+	tunnelInfo = $derived.by<{ key: string; lineIds: number[] }[]>(() => {
+		const { tunnels } = buildTunnels(
+			this.lines,
+			this.routePoints,
+			this.anchorPoints,
+			(id) => {
+				const s = this.stationMap.get(id);
+				return s ? this.stationPosition(s) : null;
+			},
+			this.effectiveHiddenLineIds
+		);
+		return Array.from(tunnels.entries()).map(([key, tunnel]) => ({
+			key,
+			lineIds: Array.from(tunnel.lines)
+		}));
+	});
+
+	get selectedTunnel(): { key: string; lineIds: number[] } | null {
+		return this.tunnelInfo.find((t) => t.key === this.selectedTunnelKey) ?? null;
+	}
+
+	globalTunnelOrder = $state<Record<string, number[]>>({});
+
+	get tunnelOrder(): Record<string, number[]> {
+		const viewOrder = this.activeView?.tunnelOrder;
+		if (!viewOrder) return { ...this.globalTunnelOrder };
+		return { ...this.globalTunnelOrder, ...viewOrder };
+	}
+
+	tunnelOrderVersion = $state(0);
+
+	setTunnelOrder(key: string, lineIds: number[]) {
+		const view = this.activeView;
+		if (view) {
+			const order = { ...(view.tunnelOrder ?? {}), [key]: lineIds };
+			view.tunnelOrder = order;
+			ViewService.update(view.id!, { tunnelOrder: order });
+		} else {
+			this.globalTunnelOrder = { ...this.globalTunnelOrder, [key]: lineIds };
+		}
+		this.tunnelOrderVersion++;
+	}
+
 	/* eslint-enable svelte/prefer-svelte-reactivity */
 
 	get activeView(): View | null {
@@ -233,6 +279,10 @@ export class EditorState {
 		this.selectedLineId = null;
 		this.selectedStationId = null;
 		this.selectedAnchorId = null;
+		this.selectedTunnelKey = null;
+		this.hoveredTunnelKey = null;
+		this.globalTunnelOrder = {};
+		this.tunnelOrderVersion = 0;
 		this.placementMode = null;
 		this.hiddenLineIds = new SvelteSet<number>();
 		this.stationToDelete = null;

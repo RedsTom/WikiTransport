@@ -8,7 +8,7 @@
 	import type { Line } from '$lib/types';
 	import { DND_DROP_TARGET_STYLE } from '$lib/constants/schematic';
 
-	import { Button, TextField, Dialog, Slider, IconButton } from '$lib/components/ui';
+	import { Button, TextField, Dialog, Slider, IconButton, NumberInput } from '$lib/components/ui';
 
 	const flipDurationMs = 200;
 
@@ -16,6 +16,7 @@
 	let lineColor = $state('#000000');
 	let lineStrokeWidth = $state(6);
 	let lineDashPattern = $state('');
+	let lineZIndex = $state(0);
 
 	let selectedLine = $derived(editorState.lines.find((l) => l.id === editorState.selectedLineId));
 
@@ -25,6 +26,7 @@
 			lineColor = selectedLine.color;
 			lineStrokeWidth = selectedLine.strokeWidth ?? 6;
 			lineDashPattern = selectedLine.dashPattern ?? '';
+			lineZIndex = selectedLine.zIndex;
 		}
 	});
 
@@ -225,21 +227,13 @@
 		/>
 	</div>
 
-	<div class="flex flex-col gap-2">
-		<label class="text-sm text-on-surface-variant" for="stroke-width-slider"
-			>{m.stroke_width()}</label
-		>
-		<div class="flex items-center gap-3">
-			<Slider
-				bind:value={lineStrokeWidth}
-				min={2}
-				max={16}
-				step={1}
-				onchange={() => updateLine({ strokeWidth: lineStrokeWidth })}
-			/>
-			<span class="w-5 text-center text-xs text-on-surface-variant">{lineStrokeWidth}</span>
-		</div>
-	</div>
+	<NumberInput
+		label={m.z_index()}
+		bind:value={lineZIndex}
+		min={0}
+		step={1}
+		onchange={() => updateLine({ zIndex: lineZIndex })}
+	/>
 
 	<div class="flex flex-col gap-2">
 		<label class="text-sm text-on-surface-variant" for="dash-pattern-select"

@@ -163,6 +163,6 @@ export function buildRenderingData(
 	);
 	const lineMap = new Map<number, { id?: number; transitTypeId?: number }>();
 	for (const l of data.lines) if (l.id != null) lineMap.set(l.id, l);
-	const tunnelOffsets = computeLineOffsets(tunnels, lineMap);
+	const tunnelOffsets = computeLineOffsets(tunnels, lineMap, data.tunnelOrder);
 	return { basePaths, tunnelOffsets, stationPoints };
 }
