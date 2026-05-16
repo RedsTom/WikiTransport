@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0-beta (2026-05-16)
+
+**EN:** Social embed previews — links now show a rich preview on Discord, Twitter, and other platforms
+
+- Added Open Graph and Twitter Card meta tags for rich link previews
+- Platforms like Discord display the site name, a screenshot preview, and a brief description
+- Description is translated in English and French depending on the viewer's language
+
+**FR:** Aperçus enrichis sur les réseaux — les liens affichent désormais un aperçu sur Discord, Twitter et autres plateformes
+
+- Ajout des meta tags Open Graph et Twitter Card pour les aperçus de liens
+- Discord affiche le nom du site, une capture d'écran et une description
+- La description est traduite selon la langue du visiteur
+
 ## 0.8.0-beta (2026-05-16)
 
 **EN:** Revamped landing page with updated screenshots and a brand-new README focused on the project vision
