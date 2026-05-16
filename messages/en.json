@@ -178,5 +178,6 @@
 	"changelog": "Changelog",
 	"show_more": "Show more",
 	"show_less": "Show less",
-	"version_badge": "v{version}"
+	"version_badge": "v{version}",
+	"og_description": "Create beautiful schematic transit maps in your browser — no server, no account, no fuss."
 }

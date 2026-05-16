@@ -177,5 +177,6 @@
 	"changelog": "Changelog",
 	"show_more": "Afficher plus",
 	"show_less": "Afficher moins",
-	"version_badge": "v{version}"
+	"version_badge": "v{version}",
+	"og_description": "Créez de magnifiques plans de transport schématiques dans votre navigateur — sans serveur, sans compte, sans tracas."
 }
