@@ -46,6 +46,10 @@ export class StationService {
 		return await db.routePoints.where('lineId').anyOf(lineIds).toArray();
 	}
 
+	static async removeStationFromLine(lineId: number, stationId: number): Promise<void> {
+		await db.routePoints.where({ lineId, stationId }).delete();
+	}
+
 	static async addStationToLine(
 		lineId: number,
 		stationId: number,

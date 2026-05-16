@@ -13,3 +13,4 @@ export { default as Tooltip } from './Tooltip.svelte';
 export { default as NumberInput } from './NumberInput.svelte';
 export { default as StationSelector } from './StationSelector.svelte';
 export { default as ModeButton } from './ModeButton.svelte';
+export { default as LinePicker } from './LinePicker.svelte';

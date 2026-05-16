@@ -4,7 +4,7 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ContextMenu, CircularProgress } from '$lib/components/ui';
+	import { ContextMenu, CircularProgress, LinePicker } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import {
@@ -16,6 +16,7 @@
 		computeLineOffsets
 	} from '$lib/utils/schematic';
 	import { useViewport } from '$lib/utils/useViewport.svelte';
+	import { useContextMenu } from '$lib/utils/useContextMenu.svelte';
 	import SchematicGrid from './SchematicGrid.svelte';
 	import SchematicLines from './SchematicLines.svelte';
 	import SchematicStations from './SchematicStations.svelte';
@@ -30,7 +31,8 @@
 	let dragStartScreenX = 0;
 	let dragStartScreenY = 0;
 
-	let ctxMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+	let ctxMenu = useContextMenu();
+	let pendingContextStationId = $state<number | null>(null);
 
 	onMount(() => {
 		requestAnimationFrame(() => viewport.fitContent());
@@ -75,69 +77,15 @@
 		editorState.selectedTransitTypeId = null;
 	}
 
-	async function placeAnchorAtClick(e: MouseEvent) {
-		const svg = e.currentTarget as SVGSVGElement;
-		const pos = screenToSvgRaw(e, svg);
-		const target = e.target as SVGElement;
-		const lineEl = target.closest('[data-line]');
-		let lineId: number | null = null;
-		if (lineEl) {
-			lineId = Number(lineEl.getAttribute('data-line'));
-		}
-
-		const hiddenLineIds = editorState.effectiveHiddenLineIds;
-		const lines = lineId
-			? editorState.lines.filter((l) => l.id === lineId)
-			: editorState.lines.filter((l) => l.id && !hiddenLineIds.has(l.id));
-
-		let best: { lineId: number; dist: number; order: number; cx: number; cy: number } | null = null;
-
-		for (const line of lines) {
-			if (!line.id || hiddenLineIds.has(line.id)) continue;
-			const rps = editorState.routePointsByLine.get(line.id) ?? [];
-			if (rps.length < 2) continue;
-			for (let i = 0; i < rps.length - 1; i++) {
-				const sA = editorState.stationMap.get(rps[i].stationId);
-				const sB = editorState.stationMap.get(rps[i + 1].stationId);
-				if (!sA || !sB) continue;
-				const pA = editorState.stationPosition(sA);
-				const pB = editorState.stationPosition(sB);
-				const dist = distToSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
-				if (!best || dist < best.dist) {
-					const cp = closestPointOnSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
-					best = {
-						lineId: line.id,
-						dist,
-						order: (rps[i].order + rps[i + 1].order) / 2,
-						cx: cp.x,
-						cy: cp.y
-					};
-				}
-			}
-		}
-
-		if (!best || best.dist > 60) return;
-
-		await AnchorPointService.create(
-			best.lineId,
-			best.cx,
-			best.cy,
-			best.order,
-			editorState.activeViewId ?? undefined
-		);
-		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
-	}
-
-	async function placeStationAtClick(e: MouseEvent) {
+	async function addStationAtPos(svgX: number, svgY: number) {
 		if (!editorState.project?.id) return;
-		const pos = screenToSvg(e, e.currentTarget as SVGSVGElement);
 		const stationId = await StationService.createStation(
 			editorState.project.id,
 			m.new_station({ n: editorState.stations.length + 1 }),
 			0,
 			0,
-			pos.x,
-			pos.y
+			svgX,
+			svgY
 		);
 		const pending = editorState.pendingLineInsert;
 		if (pending) {
@@ -167,8 +115,99 @@
 		editorState.placementMode = null;
 	}
 
+	async function placeStationAtClick(e: MouseEvent) {
+		if (!editorState.project?.id) return;
+		const pos = screenToSvg(e, e.currentTarget as SVGSVGElement);
+		await addStationAtPos(pos.x, pos.y);
+	}
+
+	async function addAnchorOnLine(svgX: number, svgY: number, lineId: number) {
+		const rps = editorState.routePointsByLine.get(lineId) ?? [];
+		if (rps.length < 2) return;
+		let best: { dist: number; order: number; cx: number; cy: number } | null = null;
+		for (let i = 0; i < rps.length - 1; i++) {
+			const sA = editorState.stationMap.get(rps[i].stationId);
+			const sB = editorState.stationMap.get(rps[i + 1].stationId);
+			if (!sA || !sB) continue;
+			const pA = editorState.stationPosition(sA);
+			const pB = editorState.stationPosition(sB);
+			const dist = distToSegment(svgX, svgY, pA.x, pA.y, pB.x, pB.y);
+			if (!best || dist < best.dist) {
+				const cp = closestPointOnSegment(svgX, svgY, pA.x, pA.y, pB.x, pB.y);
+				best = { dist, order: (rps[i].order + rps[i + 1].order) / 2, cx: cp.x, cy: cp.y };
+			}
+		}
+		if (!best || best.dist > 60) return;
+		await AnchorPointService.create(
+			lineId,
+			best.cx,
+			best.cy,
+			best.order,
+			editorState.activeViewId ?? undefined
+		);
+		await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+	}
+
+	async function placeAnchorAtClick(e: MouseEvent) {
+		const svg = e.currentTarget as SVGSVGElement;
+		const pos = screenToSvgRaw(e, svg);
+		const target = e.target as SVGElement;
+		const lineEl = target.closest('[data-line]');
+		const lineId = lineEl ? Number(lineEl.getAttribute('data-line')) : null;
+		if (lineId != null) {
+			await addAnchorOnLine(pos.x, pos.y, lineId);
+		} else {
+			const hiddenLineIds = editorState.effectiveHiddenLineIds;
+			let best: { lineId: number; dist: number; order: number; cx: number; cy: number } | null =
+				null;
+			for (const line of editorState.lines) {
+				if (!line.id || hiddenLineIds.has(line.id)) continue;
+				const rps = editorState.routePointsByLine.get(line.id) ?? [];
+				if (rps.length < 2) continue;
+				for (let i = 0; i < rps.length - 1; i++) {
+					const sA = editorState.stationMap.get(rps[i].stationId);
+					const sB = editorState.stationMap.get(rps[i + 1].stationId);
+					if (!sA || !sB) continue;
+					const pA = editorState.stationPosition(sA);
+					const pB = editorState.stationPosition(sB);
+					const dist = distToSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
+					if (!best || dist < best.dist) {
+						const cp = closestPointOnSegment(pos.x, pos.y, pA.x, pA.y, pB.x, pB.y);
+						best = {
+							lineId: line.id,
+							dist,
+							order: (rps[i].order + rps[i + 1].order) / 2,
+							cx: cp.x,
+							cy: cp.y
+						};
+					}
+				}
+			}
+			if (!best || best.dist > 60) return;
+			await AnchorPointService.create(
+				best.lineId,
+				best.cx,
+				best.cy,
+				best.order,
+				editorState.activeViewId ?? undefined
+			);
+			await editorState.loadAnchorPoints(editorState.activeViewId ?? undefined);
+		}
+	}
+
 	function buildStationContextMenu(stationId: number): ContextMenuItem[] {
-		const items: ContextMenuItem[] = [
+		const routePointLines = new Set(
+			(editorState.routePointsByStation.get(stationId) ?? [])
+				.map((rp) => rp.lineId)
+				.filter((id) => id !== null)
+		);
+		const linesToAdd = editorState.lines.filter(
+			(line) => line.id != null && !routePointLines.has(line.id)
+		);
+		const linesToRemove = editorState.lines.filter(
+			(line) => line.id != null && routePointLines.has(line.id)
+		);
+		return [
 			{
 				label: m.edit_station(),
 				icon: 'edit',
@@ -185,26 +224,22 @@
 					editorState.deleteStationOpen = true;
 				}
 			},
-			{ separator: true, label: '', action: () => {} }
-		];
-
-		for (const line of editorState.lines) {
-			const alreadyOnLine = (editorState.routePointsByStation.get(stationId) ?? []).some(
-				(rp) => rp.lineId === line.id
-			);
-			if (!alreadyOnLine) {
-				items.push({
-					label: m.add_to_line({ lineName: line.name }),
-					action: async () => {
-						const rps = editorState.routePointsByLine.get(line.id!) ?? [];
-						const maxOrder = rps.reduce((max, rp) => Math.max(max, rp.order), 0);
-						await StationService.addStationToLine(line.id!, stationId, maxOrder + 1);
-						await editorState.loadRoutePoints();
-					}
-				});
+			{ separator: true, label: '', action: () => {} },
+			{
+				label: m.add_station_to_line(),
+				icon: 'add_circle',
+				searchable: true,
+				disabled: linesToAdd.length === 0,
+				children: []
+			},
+			{
+				label: m.remove_from_line(),
+				icon: 'remove_circle',
+				searchable: true,
+				disabled: linesToRemove.length === 0,
+				children: []
 			}
-		}
-		return items;
+		];
 	}
 
 	function handleContextMenu(e: MouseEvent) {
@@ -217,28 +252,24 @@
 			if (!anchor) return;
 			editorState.selectedAnchorId = anchorId;
 			editorState.selectedStationId = null;
-			ctxMenu = {
-				x: e.clientX,
-				y: e.clientY,
-				items: [
-					{
-						label: m.edit_anchor(),
-						icon: 'edit',
-						action: () => {
-							editorState.selectedAnchorId = anchorId;
-						}
-					},
-					{ separator: true, label: '', action: () => {} },
-					{
-						label: m.delete_anchor(),
-						icon: 'delete',
-						action: () => {
-							editorState.anchorToDelete = anchorId;
-							editorState.deleteAnchorOpen = true;
-						}
+			ctxMenu.show(e, [
+				{
+					label: m.edit_anchor(),
+					icon: 'edit',
+					action: () => {
+						editorState.selectedAnchorId = anchorId;
 					}
-				]
-			};
+				},
+				{ separator: true, label: '', action: () => {} },
+				{
+					label: m.delete_anchor(),
+					icon: 'delete',
+					action: () => {
+						editorState.anchorToDelete = anchorId;
+						editorState.deleteAnchorOpen = true;
+					}
+				}
+			]);
 			return;
 		}
 
@@ -246,40 +277,46 @@
 			const stationId = Number(target.getAttribute('data-station-id'));
 			const station = editorState.stations.find((s) => s.id === stationId);
 			if (!station) return;
-			ctxMenu = { x: e.clientX, y: e.clientY, items: buildStationContextMenu(stationId) };
+			pendingContextStationId = stationId;
+			ctxMenu.show(e, buildStationContextMenu(stationId));
 		} else if (target.tagName === 'path' && target.closest('[data-line]')) {
 			const lineEl = target.closest('[data-line]') as SVGElement;
 			const lineId = Number(lineEl.getAttribute('data-line'));
 			editorState.selectedLineId = lineId;
 			editorState.rightTab = 'line';
-			ctxMenu = {
-				x: e.clientX,
-				y: e.clientY,
-				items: [
-					{ label: m.edit_line(), icon: 'edit', action: () => {} },
-					{ separator: true, label: '', action: () => {} },
-					{
-						label: m.delete_line(),
-						icon: 'delete',
-						action: () => {
-							editorState.lineToDelete = lineId;
-							editorState.deleteLineOpen = true;
-						}
+			const rawPos = screenToSvgRaw(e, svgEl!);
+			ctxMenu.show(e, [
+				{ label: m.edit_line(), icon: 'edit', action: () => {} },
+				{ separator: true, label: '', action: () => {} },
+				{
+					label: m.add_anchor(),
+					icon: 'anchor',
+					action: () => addAnchorOnLine(rawPos.x, rawPos.y, lineId)
+				},
+				{
+					label: m.delete_line(),
+					icon: 'delete',
+					action: () => {
+						editorState.lineToDelete = lineId;
+						editorState.deleteLineOpen = true;
 					}
-				]
-			};
+				}
+			]);
 		} else {
-			ctxMenu = {
-				x: e.clientX,
-				y: e.clientY,
-				items: [
-					{
-						label: m.deselect_all(),
-						icon: 'close',
-						action: () => EditorService.deselectAll(editorState)
-					}
-				]
-			};
+			const pos = screenToSvg(e, svgEl!);
+			ctxMenu.show(e, [
+				{
+					label: m.add_station(),
+					icon: 'add_location',
+					action: () => addStationAtPos(pos.x, pos.y)
+				},
+				{ separator: true, label: '', action: () => {} },
+				{
+					label: m.deselect_all(),
+					icon: 'close',
+					action: () => EditorService.deselectAll(editorState)
+				}
+			]);
 		}
 	}
 
@@ -452,12 +489,48 @@
 		</div>
 	{/if}
 
-	{#if ctxMenu}
+	{#if ctxMenu.open}
 		<ContextMenu
+			open={ctxMenu.open}
 			x={ctxMenu.x}
 			y={ctxMenu.y}
 			items={ctxMenu.items}
-			onclose={() => (ctxMenu = null)}
-		/>
+			onclose={() => ctxMenu.close()}
+		>
+			{#snippet submenu(item, close)}
+				{#if item.searchable && pendingContextStationId !== null}
+					{@const routePointLines = new Set(
+						(editorState.routePointsByStation.get(pendingContextStationId!) ?? [])
+							.map((rp) => rp.lineId)
+							.filter((id) => id !== null)
+					)}
+					{#if item.icon === 'add_circle'}
+						<LinePicker
+							onSelect={async (lineId) => {
+								const rps = editorState.routePointsByLine.get(lineId) ?? [];
+								const maxOrder = rps.reduce((max, rp) => Math.max(max, rp.order), 0);
+								await StationService.addStationToLine(
+									lineId,
+									pendingContextStationId!,
+									maxOrder + 1
+								);
+								await editorState.loadRoutePoints();
+								close();
+							}}
+							excludeLineIds={routePointLines}
+						/>
+					{:else if item.icon === 'remove_circle'}
+						<LinePicker
+							onSelect={async (lineId) => {
+								await StationService.removeStationFromLine(lineId, pendingContextStationId!);
+								await editorState.loadRoutePoints();
+								close();
+							}}
+							onlyShowLineIds={routePointLines}
+						/>
+					{/if}
+				{/if}
+			{/snippet}
+		</ContextMenu>
 	{/if}
 </div>

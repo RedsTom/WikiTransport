@@ -5,9 +5,12 @@
 	import { editorState } from '$lib/store/editor.svelte';
 	import { LineService } from '$lib/services/LineService';
 	import { EditorService } from '$lib/services/EditorService';
+	import { TransitTypeService } from '$lib/services/TransitTypeService';
 	import type { Line, RoutePoint } from '$lib/types';
 
-	import { IconButton, Tooltip, StationSelector } from '$lib/components/ui';
+	import { IconButton, Tooltip, StationSelector, ContextMenu, Dialog } from '$lib/components/ui';
+	import { useContextMenu } from '$lib/utils/useContextMenu.svelte';
+	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import { db } from '$lib/services/Database';
 	import { StationService } from '$lib/services/StationService';
@@ -167,6 +170,107 @@
 		editorState.selectedStationId = null;
 		editorState.rightTab = 'type';
 	}
+
+	let ctxMenu = useContextMenu();
+	let deleteTypeConfirmOpen = $state(false);
+
+	function buildTypeContextMenu(typeId: number): ContextMenuItem[] {
+		return [
+			{
+				label: m.edit_type(),
+				icon: 'edit',
+				action: () => selectType(typeId)
+			},
+			{
+				label: m.add_line(),
+				icon: 'add',
+				action: () => handleAddLine(typeId)
+			},
+			{ separator: true, label: '', action: () => {} },
+			{
+				label: m.delete(),
+				icon: 'delete',
+				action: () => {
+					editorState.selectedTransitTypeId = typeId;
+					deleteTypeConfirmOpen = true;
+				}
+			}
+		];
+	}
+
+	function buildLineContextMenu(lineId: number): ContextMenuItem[] {
+		const line = editorState.lines.find((l) => l.id === lineId);
+		return [
+			{
+				label: m.edit_line(),
+				icon: 'edit',
+				action: () => selectLine(lineId)
+			},
+			...(!editorState.isGlobalView
+				? [
+						{
+							label: editorState.effectiveHiddenLineIds.has(lineId) ? m.show_line() : m.hide_line(),
+							icon: editorState.effectiveHiddenLineIds.has(lineId)
+								? 'visibility'
+								: 'visibility_off',
+							action: () => EditorService.toggleLineVisibility(editorState, lineId)
+						}
+					]
+				: []),
+			{ separator: true, label: '', action: () => {} },
+			{
+				label: m.delete_line(),
+				icon: 'delete',
+				action: () => {
+					editorState.lineToDelete = lineId;
+					editorState.deleteLineOpen = true;
+				}
+			}
+		];
+	}
+
+	function buildStationMenuItem(
+		stationId: number,
+		lineId: number,
+		rpId: number | undefined
+	): ContextMenuItem[] {
+		return [
+			{
+				label: m.edit_station(),
+				icon: 'edit',
+				action: () => selectStationOnLine(stationId, lineId)
+			},
+			{ separator: true, label: '', action: () => {} },
+			{
+				label: m.remove_from_line(),
+				icon: 'remove_circle',
+				disabled: !rpId,
+				action: async () => {
+					if (rpId) {
+						await db.routePoints.delete(rpId);
+						await editorState.loadRoutePoints();
+					}
+				}
+			},
+			{
+				label: m.delete_station(),
+				icon: 'delete',
+				action: () => {
+					editorState.stationToDelete = stationId;
+					editorState.deleteStationOpen = true;
+				}
+			}
+		];
+	}
+
+	async function handleDeleteTypeConfirm() {
+		if (editorState.selectedTransitTypeId) {
+			await TransitTypeService.deleteType(editorState.selectedTransitTypeId);
+			editorState.selectedTransitTypeId = null;
+			await EditorService.reloadAll(editorState);
+		}
+		deleteTypeConfirmOpen = false;
+	}
 </script>
 
 {#if editorState.transitTypes.length === 0}
@@ -190,6 +294,11 @@
 				? 'bg-secondary-container text-on-secondary-container'
 				: 'hover:bg-surface-variant'}"
 			onclick={() => selectType(type.id!)}
+			oncontextmenu={(e: MouseEvent) => {
+				e.preventDefault();
+				e.stopPropagation();
+				ctxMenu.show(e, buildTypeContextMenu(type.id!));
+			}}
 			role="button"
 			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && selectType(type.id!)}
@@ -257,6 +366,11 @@
 								? 'bg-secondary-container text-on-secondary-container'
 								: 'hover:bg-surface-variant'}"
 							onclick={() => selectLine(line.id!)}
+							oncontextmenu={(e: MouseEvent) => {
+								e.preventDefault();
+								e.stopPropagation();
+								ctxMenu.show(e, buildLineContextMenu(line.id!));
+							}}
 							role="button"
 							tabindex="0"
 							onkeydown={(e) => e.key === 'Enter' && selectLine(line.id!)}
@@ -355,6 +469,11 @@
 													? 'bg-secondary-container text-on-secondary-container'
 													: 'hover:bg-surface-variant'}"
 												onclick={() => selectStationOnLine(rp.stationId, line.id!)}
+												oncontextmenu={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													ctxMenu.show(e, buildStationMenuItem(rp.stationId, line.id!, rp.id));
+												}}
 												role="button"
 												tabindex="0"
 												onkeydown={(e) =>
@@ -396,3 +515,32 @@
 		{/if}
 	</div>
 {/each}
+
+{#if ctxMenu.open}
+	<ContextMenu
+		open={ctxMenu.open}
+		x={ctxMenu.x}
+		y={ctxMenu.y}
+		items={ctxMenu.items}
+		onclose={() => ctxMenu.close()}
+	/>
+{/if}
+
+{#if deleteTypeConfirmOpen}
+	<Dialog bind:open={deleteTypeConfirmOpen}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined">delete</span>
+		{/snippet}
+		{#snippet title()}{m.delete()}{/snippet}
+		<p>{m.delete_type_confirm()}</p>
+		{#snippet actions()}
+			<button onclick={() => (deleteTypeConfirmOpen = false)} class="m3-button m3-button--text">
+				{m.cancel()}
+			</button>
+			<!-- svelte-ignore a11y_autofocus -->
+			<button autofocus onclick={handleDeleteTypeConfirm} class="m3-button m3-button--filled">
+				{m.delete()}
+			</button>
+		{/snippet}
+	</Dialog>
+{/if}

@@ -33,15 +33,18 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
   - `properties/AnchorProperties.svelte` — extracted anchor editing
   - `ToolBar.svelte`, `LeftPanel.svelte`, `RightPanel.svelte`
 - `src/lib/components/schematic/` — SVG plan rendering (PlanView, SchematicGrid, SchematicLines, etc.)
-- `src/lib/components/ui/` — Reusable UI primitives (Button, Dialog, TextField, Select, Slider, IconButton, Tooltip, StationSelector, ContextMenu)
+- `src/lib/components/ui/` — Reusable UI primitives (Button, Dialog, TextField, Select, Slider, IconButton, Tooltip, StationSelector, ContextMenu, LinePicker, DropdownMenu)
   - `Dialog.svelte` now accepts `icon: Snippet` prop + auto-focuses `[autofocus]` after `showModal()`
   - Dialogs: provide `{#snippet icon()}` with a colored icon + `<Button variant="filled" autofocus>` on the confirm action
+  - `LinePicker.svelte` — search + grouped lines by transit type with `onSelect(lineId)`, `excludeLineIds`, `onlyShowLineIds` props. Shared between ToolBar (Melt menu) and PlanView (context menu submenu)
 - `src/lib/store/editor.svelte.ts` — Global editor state via Svelte 5 `$state` runes
   - `leftTab` type: `'overview' | 'types' | 'stations' | null` (was `'lines'`)
 - `src/lib/services/` — Dexie.js indexedDB operations
 - `src/lib/types/models.ts` — Data models
 - `src/lib/constants/schematic.ts` — Rendering constants + `buildLineOffsets()` (shared single source of truth)
 - `src/lib/utils/svg-export/badge-layout.ts` — Badge positioning logic (extracted from renderers/PlanView)
+- `src/lib/utils/useContextMenu.svelte.ts` — Reactive context menu hook (`open`/`x`/`y`/`items`/`show`/`close`)
+- `src/lib/utils/useViewport.svelte.ts` — Viewport state (pan, zoom, fitContent, persist per view)
 
 ### SVG Export & Preview
 
@@ -62,6 +65,18 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 - When `badgeAnchor='label'` with E/W direction, use `getBadgeCenteringOffset()` to center label + badges as a group
 - UI controls in StationProperties.svelte (anchor toggle + 3×3 direction grid, visible when `hasInterchangeBadges`)
 
+### Context Menu System
+
+- `src/lib/utils/useContextMenu.svelte.ts` — state hook (`open`/`x`/`y`/`items`/`show`/`close`)
+- `src/lib/components/ui/ContextMenu.svelte` — floating-ui positioned menu with:
+  - `submenu?: Snippet<[item: ContextMenuItem, close: () => void]>` for custom submenu rendering
+  - Generic fallback submenu (searchable, groupLabel, separator items)
+  - Wrapping div handles `cancelClose()`/`scheduleClose()` 120ms hover delay regardless of snippet vs generic
+  - `ContextMenuItem` interface: `label`, `icon?`, `action?`, `separator?`, `disabled?`, `children?`, `searchable?`, `groupLabel?`
+- When `submenu` snippet is provided, render `<LinePicker>` or other component inside it
+- PlanView context menu: right-click actions capture SVG coordinates at right-click time via `screenToSvg(e, svgEl!)` or `screenToSvgRaw(e, svgEl!)`, then call `addStationAtPos()` / `addAnchorOnLine()` immediately (no placement mode toggle)
+- OverviewTab uses its own `useContextMenu` instance for type/line/station right-click menus
+
 ### Anchor Drag & Drop
 
 - Use `dragHandleZone` + `use:dragHandle` pattern (svelte-dnd-action)
@@ -75,6 +90,10 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 - Colors: CSS custom properties following Material 3 theming
 - Dialogs: `<Dialog>` with `{#snippet title()}` / `{#snippet actions()}`
 - Keyboard shortcuts: appended outside translation calls, e.g. `{m.cancel()} (Esc)`
+- ContextMenu: light background (`--color-surface`), dark text (`--color-on-surface`)
+- Default right-click disabled globally while custom menu is open
+- Submenu close uses 120ms timer to prevent accidental close during mouse travel
+- Line color shown as colored dot via hex `icon` value starting with `#`
 
 ### Svelte 5 Conventions
 
@@ -99,6 +118,11 @@ WikiTransport is a web-based schematic transit map editor. Users create metro/bu
 11. When `badgeAnchor='label'`, compute `badgeOffsetX` and use `adjustedLayout` for both label and badges
 12. For translations with styled elements, use before/after key splitting pattern
 13. Plan before building — for multi-step tasks, present a plan (files, order, i18n keys) before writing code. Wait for approval.
+14. Use `<LinePicker>` for all line selection UIs — shared between ToolBar (Melt dropdown menu) and PlanView/OverviewTab (context menu submenu via `{#snippet submenu}`)
+15. In non-global views, filter anchor points by `effectiveHiddenLineIds`
+16. Diamond shapes: use `side = radius / sqrt(2)` for visual consistency
+17. When `badgeAnchor='label'`, compute `badgeOffsetX` and use `adjustedLayout` for both label and badges
+18. For context menu actions that need coordinates (add station, add anchor), capture `screenToSvg(e, svgEl!)` at right-click time and close over the position in the action callback — never set `placementMode` from context menu
 
 ## Refactoring — Code Organization & Architecture
 
@@ -195,7 +219,7 @@ The `getBadgeLayout` function is defined identically in both `PlanView.svelte` a
 
 ## Command: `deploy`
 
-When the user says "deploy", perform a full release cycle:
+When the user says "deploy", perform the "refactor" command, then perform a full release cycle:
 
 1. **Read git log** since the last release (look for the last `chore: release` commit or version tag)
 2. **Summarize commits** into changelog content (in French for FR, English for EN)

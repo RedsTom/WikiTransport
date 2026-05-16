@@ -5,6 +5,7 @@
 	import { ViewService } from '$lib/services/ViewService';
 	import { Dialog, Button, TextField, ContextMenu } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
+	import { useContextMenu } from '$lib/utils/useContextMenu.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
@@ -19,7 +20,8 @@
 	let viewDialogOpen = $state(false);
 	let newViewName = $state('');
 
-	let viewContextMenu = $state<{ x: number; y: number; viewId: number } | null>(null);
+	let viewContextMenu = useContextMenu();
+	let viewContextMenuViewId = $state<number>(0);
 	let viewDeleteId = $state<number | null>(null);
 	let viewDeleteOpen = $state(false);
 	let viewRenameId = $state<number | null>(null);
@@ -71,8 +73,26 @@
 				: 'text-on-surface-variant hover:text-on-surface'}"
 			onclick={() => onSwitchView(view.id!)}
 			oncontextmenu={(e) => {
-				e.preventDefault();
-				viewContextMenu = { x: e.clientX, y: e.clientY, viewId: view.id! };
+				viewContextMenuViewId = view.id!;
+				viewContextMenu.show(e, [
+					{
+						label: m.rename_view(),
+						icon: 'edit',
+						action: () => {
+							viewRenameName = view.name;
+							viewRenameId = viewContextMenuViewId;
+							viewRenameOpen = true;
+						}
+					},
+					{
+						label: m.delete_view_confirm(),
+						icon: 'delete',
+						action: () => {
+							viewDeleteId = viewContextMenuViewId;
+							viewDeleteOpen = true;
+						}
+					}
+				] as ContextMenuItem[]);
 			}}
 		>
 			{view.name}
@@ -89,33 +109,13 @@
 	</button>
 </div>
 
-{#if viewContextMenu}
+{#if viewContextMenu.open}
 	<ContextMenu
+		open={viewContextMenu.open}
 		x={viewContextMenu.x}
 		y={viewContextMenu.y}
-		items={[
-			{
-				label: m.rename_view(),
-				icon: 'edit',
-				action: () => {
-					const v = editorState.views.find((v) => v.id === viewContextMenu!.viewId);
-					if (v) {
-						viewRenameName = v.name;
-						viewRenameId = v.id!;
-						viewRenameOpen = true;
-					}
-				}
-			},
-			{
-				label: m.delete_view_confirm(),
-				icon: 'delete',
-				action: () => {
-					viewDeleteId = viewContextMenu!.viewId;
-					viewDeleteOpen = true;
-				}
-			}
-		] as ContextMenuItem[]}
-		onclose={() => (viewContextMenu = null)}
+		items={viewContextMenu.items}
+		onclose={() => viewContextMenu.close()}
 	/>
 {/if}
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.10.0-beta (2026-05-16)
+
+**EN:** Context menus everywhere — right-click on anything for instant actions
+
+- Right-click on stations, lines, and types in the Overview tab for contextual actions
+- Right-click on the plan background to instantly add a station at that position
+- Right-click on a line to instantly add an anchor point on the line
+- Right-click on a station to remove it from a specific line
+- Extracted `LinePicker` component shared between toolbar and context menus
+- New translations: `remove_from_line`, `edit_type`
+
+**FR:** Des menus contextuels partout — faites un clic droit pour agir instantanément
+
+- Clic droit sur les stations, lignes et types dans l'onglet Aperçu
+- Clic droit sur le fond du plan pour ajouter une station à cet endroit
+- Clic droit sur une ligne pour ajouter un point d'ancrage sur la ligne
+- Clic droit sur une station pour la retirer d'une ligne spécifique
+- Composant `LinePicker` partagé entre la barre d'outils et les menus contextuels
+- Nouvelles traductions : `remove_from_line`, `edit_type`
+
 ## 0.9.1-beta (2026-05-16)
 
 **EN:** Internal codebase refactoring — no visible changes for end users
