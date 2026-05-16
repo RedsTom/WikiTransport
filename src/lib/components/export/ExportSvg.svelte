@@ -9,14 +9,12 @@
 		data,
 		isGlobal,
 		bounds,
-		lineOffsets,
 		legendExt,
 		preview
 	}: {
 		data: ExportData;
 		isGlobal: boolean;
 		bounds: { minX: number; minY: number; maxX: number; maxY: number };
-		lineOffsets: Map<number, Map<string, { x: number; y: number }>>;
 		legendExt: {
 			bounds: { minX: number; minY: number; maxX: number; maxY: number };
 			legendX: number;
@@ -65,7 +63,7 @@
 >
 	<rect x={bounds.minX} y={bounds.minY} width={cw} height={ch} fill="#f8f8f8" />
 	<g id="lines">
-		<ExportLines {data} {isGlobal} {lineOffsets} />
+		<ExportLines {data} {isGlobal} />
 	</g>
 	<g id="stations">
 		<ExportStations {data} {isGlobal} />

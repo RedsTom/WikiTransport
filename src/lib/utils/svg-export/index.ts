@@ -3,7 +3,6 @@ export type { BadgeLayout } from './renderers';
 export {
 	getBadgeLayout,
 	getTransitType,
-	buildLineOffsets,
 	stationPos,
 	stationLabelDir,
 	stationLabelAnchor,
@@ -26,7 +25,6 @@ export { getLegendEntries, getLegendDimensions } from './legend';
 import { mount, unmount } from 'svelte';
 import ExportSvg from '$lib/components/export/ExportSvg.svelte';
 import { getContentBounds, extendBoundsForLegend } from './bounds';
-import { buildLineOffsets } from './renderers';
 import type { ExportData, ExportOptions } from './types';
 
 function buildSvg(
@@ -36,7 +34,6 @@ function buildSvg(
 	preview: boolean
 ): string {
 	const mapBounds = getContentBounds(data, isGlobal);
-	const lineOffsets = buildLineOffsets(data, isGlobal);
 
 	const legendExt = options.showLegend ? extendBoundsForLegend(data, mapBounds) : null;
 	const bounds = legendExt ? legendExt.bounds : mapBounds;
@@ -47,7 +44,7 @@ function buildSvg(
 
 	const component = mount(ExportSvg, {
 		target,
-		props: { data, isGlobal, bounds, lineOffsets, legendExt, preview }
+		props: { data, isGlobal, bounds, legendExt, preview }
 	});
 
 	const svgEl = target.querySelector('svg');

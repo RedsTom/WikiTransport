@@ -7,7 +7,6 @@ import type {
 	InterchangeBadgeDirection
 } from '$lib/types';
 import type { ExportData } from './types';
-import { buildLineOffsets as buildLineOffsetsCore } from '$lib/utils/schematic';
 import {
 	BADGE_SIZE,
 	BADGE_GAP,
@@ -118,19 +117,6 @@ export function stationAnchorDy(
 	if (isGlobal) return station.anchorDy ?? 14;
 	const vs = viewStations.find((v) => v.stationId === station.id);
 	return vs?.anchorDy ?? station.anchorDy ?? 14;
-}
-
-export function buildLineOffsets(
-	data: ExportData,
-	isGlobal: boolean
-): Map<number, Map<string, { x: number; y: number }>> {
-	return buildLineOffsetsCore(
-		data.stations,
-		data.routePoints,
-		data.lines,
-		new Set(data.hiddenLineIds),
-		(s) => stationPos(s, data.viewStations, isGlobal)
-	);
 }
 
 export function getInterchangeHiddenLineIds(data: ExportData): Set<number> {

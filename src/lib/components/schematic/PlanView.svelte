@@ -11,9 +11,7 @@
 		screenToSvg,
 		screenToSvgRaw,
 		distToSegment,
-		closestPointOnSegment,
-		buildSegmentTopology,
-		computeLineOffsets
+		closestPointOnSegment
 	} from '$lib/utils/schematic';
 	import { useViewport } from '$lib/utils/useViewport.svelte';
 	import { useContextMenu } from '$lib/utils/useContextMenu.svelte';
@@ -419,25 +417,6 @@
 		editorState.selectedTransitTypeId = null;
 		editorState.rightTab = 'station';
 	}
-
-	let segmentTopology = $derived(
-		buildSegmentTopology(
-			editorState.routePoints,
-			editorState.lines,
-			editorState.effectiveHiddenLineIds,
-			editorState.lineMap
-		)
-	);
-
-	let lineOffsets = $derived(
-		computeLineOffsets(
-			segmentTopology,
-			editorState.stationMap,
-			(s) => editorState.stationPosition(s),
-			editorState.lines,
-			editorState.effectiveHiddenLineIds
-		)
-	);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -480,7 +459,7 @@
 			viewBoxWidth={viewport.viewBoxWidth}
 			viewBoxHeight={viewport.viewBoxHeight}
 		/>
-		<SchematicLines {lineOffsets} />
+		<SchematicLines />
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
 	</svg>
