@@ -2,8 +2,25 @@ import { db } from './Database';
 import JSZip from 'jszip';
 import type { AnchorPoint, RoutePoint, ViewStation } from '../types';
 
+const WTPC_MAGIC = new Uint8Array([0x57, 0x54, 0x50, 0x43]);
+
 export class ProjectExportService {
-	static async exportProject(projectId: number): Promise<Blob> {
+	static async exportProject(
+		projectId: number,
+		compact?: boolean
+	): Promise<{ blob: Blob; extension: string }> {
+		const zipBlob = await this.buildZip(projectId);
+
+		if (compact) {
+			const compressed = await this.gzipCompress(zipBlob);
+			const wtpc = new Blob([WTPC_MAGIC, compressed]);
+			return { blob: wtpc, extension: 'wtpc' };
+		}
+
+		return { blob: zipBlob, extension: 'wtp' };
+	}
+
+	private static async buildZip(projectId: number): Promise<Blob> {
 		const project = await db.projects.get(projectId);
 		if (!project) throw new Error('Project not found');
 
@@ -147,5 +164,10 @@ export class ProjectExportService {
 		);
 
 		return await zip.generateAsync({ type: 'blob' });
+	}
+
+	private static async gzipCompress(blob: Blob): Promise<Blob> {
+		const stream = blob.stream().pipeThrough(new CompressionStream('gzip'));
+		return new Response(stream).blob();
 	}
 }

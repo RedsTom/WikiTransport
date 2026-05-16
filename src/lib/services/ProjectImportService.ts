@@ -11,9 +11,12 @@ import type {
 	ViewStation
 } from '../types';
 
+const ZIP_MAGIC = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
+const WTPC_MAGIC = new Uint8Array([0x57, 0x54, 0x50, 0x43]);
+
 export class ProjectImportService {
 	static async previewProject(buffer: ArrayBuffer): Promise<{ name: string; city: string }> {
-		const zip = await JSZip.loadAsync(buffer);
+		const zip = await this.loadZip(buffer);
 		const raw = JSON.parse(await zip.file('project.json')!.async('string'));
 		return { name: raw.name, city: raw.city };
 	}
@@ -24,7 +27,7 @@ export class ProjectImportService {
 		targetProjectId?: number,
 		overrides?: { name?: string; city?: string }
 	): Promise<number> {
-		const zip = await JSZip.loadAsync(buffer);
+		const zip = await this.loadZip(buffer);
 
 		const rawProject: {
 			name?: string;
@@ -244,6 +247,32 @@ export class ProjectImportService {
 				return projectId;
 			}
 		);
+	}
+
+	private static async loadZip(buffer: ArrayBuffer): Promise<JSZip> {
+		const header = new Uint8Array(buffer.slice(0, 4));
+
+		if (this.magicEquals(header, WTPC_MAGIC)) {
+			const compressed = buffer.slice(4);
+			const decompressed = await this.gzipDecompress(compressed);
+			return await JSZip.loadAsync(decompressed);
+		}
+
+		if (this.magicEquals(header, ZIP_MAGIC)) {
+			return await JSZip.loadAsync(buffer);
+		}
+
+		throw new Error('Invalid project file: unrecognized format');
+	}
+
+	private static magicEquals(a: Uint8Array, b: Uint8Array): boolean {
+		return a.length === b.length && a.every((v, i) => v === b[i]);
+	}
+
+	private static async gzipDecompress(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+		const blob = new Blob([buffer]);
+		const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+		return new Response(stream).arrayBuffer();
 	}
 
 	private static async deleteProjectData(projectId: number): Promise<void> {

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.0-beta (2026-05-16)
+
+**EN:** Compact project export (.wtpc) — GZIP-compressed files for smaller exports
+
+- New `.wtpc` export format with GZIP compression for smaller file sizes
+- Click the download button on any project to choose between Normal (.wtp) and Compact (.wtpc)
+- Import auto-detects both formats automatically
+- New translations: `export_standard`, `export_compact`
+
+**FR:** Export de projet compact (.wtpc) — fichiers compressés GZIP pour des exports plus légers
+
+- Nouveau format `.wtpc` avec compression GZIP pour des fichiers plus légers
+- Cliquez sur le bouton de téléchargement d'un projet pour choisir entre Normal (.wtp) et Compact (.wtpc)
+- L'import détecte automatiquement les deux formats
+- Nouvelles traductions : `export_standard`, `export_compact`
+
 ## 0.11.0-beta (2026-05-16)
 
 **EN:** Language persistence fix — no more resets to English when navigating between pages

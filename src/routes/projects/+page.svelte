@@ -18,7 +18,8 @@
 		Dialog,
 		TextField,
 		NativeSelect,
-		CircularProgress
+		CircularProgress,
+		DropdownMenu
 	} from '$lib/components/ui';
 
 	let expandedVersions = $state<Record<string, boolean>>({});
@@ -86,14 +87,14 @@
 		deleteConfirmOpen = true;
 	}
 
-	async function handleExport(projectId: number) {
+	async function handleExport(projectId: number, compact: boolean) {
 		const project = projects.find((p) => p.id === projectId);
 		if (!project) return;
-		const blob = await ProjectExportService.exportProject(projectId);
+		const { blob, extension } = await ProjectExportService.exportProject(projectId, compact);
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `${project.name}.wtp`.replace(/\s+/g, '_');
+		a.download = `${project.name}.${extension}`.replace(/\s+/g, '_');
 		a.click();
 		URL.revokeObjectURL(url);
 	}
@@ -213,7 +214,13 @@
 		</div>
 	</header>
 
-	<input bind:this={fileInputEl} type="file" accept=".wtp" hidden onchange={handleFileSelected} />
+	<input
+		bind:this={fileInputEl}
+		type="file"
+		accept=".wtp,.wtpc"
+		hidden
+		onchange={handleFileSelected}
+	/>
 
 	<h2 class="mb-4 text-xl text-on-surface-variant">{m.my_projects()}</h2>
 
@@ -250,9 +257,24 @@
 								{m.open()}
 							</Button>
 						</div>
-						<IconButton onclick={() => handleExport(project.id!)}>
-							<span class="material-symbols-outlined">download</span>
-						</IconButton>
+						<DropdownMenu
+							items={[
+								{
+									label: m.export_standard(),
+									icon: 'download',
+									action: () => handleExport(project.id!, false)
+								},
+								{
+									label: m.export_compact(),
+									icon: 'compress',
+									action: () => handleExport(project.id!, true)
+								}
+							]}
+						>
+							<IconButton>
+								<span class="material-symbols-outlined">download</span>
+							</IconButton>
+						</DropdownMenu>
 						<IconButton onclick={() => confirmDelete(project.id!)}>
 							<span class="material-symbols-outlined">delete</span>
 						</IconButton>

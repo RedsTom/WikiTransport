@@ -176,6 +176,8 @@
 	"import_invalid_file": "Fichier de projet invalide.",
 	"import_failed": "L'import a échoué. Le fichier est peut-être corrompu.",
 	"export_success": "Projet exporté avec succès !",
+	"export_standard": "Normal (.wtp)",
+	"export_compact": "Compact (.wtpc)",
 	"changelog": "Changelog",
 	"show_more": "Afficher plus",
 	"show_less": "Afficher moins",
