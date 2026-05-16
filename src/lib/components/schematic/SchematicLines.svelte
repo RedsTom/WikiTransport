@@ -10,6 +10,7 @@
 		renderingData: {
 			basePaths: Map<number, Point[]>;
 			tunnelOffsets: Map<string, Map<number, Point>>;
+			stationPoints: Set<string>;
 		};
 	} = $props();
 </script>
@@ -18,7 +19,12 @@
 	{@const isHidden = editorState.effectiveHiddenLineIds.has(line.id!)}
 	{#if !isHidden}
 		{@const basePath = renderingData.basePaths.get(line.id!) ?? []}
-		{@const offsetPath = getOffsetPath(basePath, line.id!, renderingData.tunnelOffsets)}
+		{@const offsetPath = getOffsetPath(
+			basePath,
+			line.id!,
+			renderingData.tunnelOffsets,
+			renderingData.stationPoints
+		)}
 		{#if offsetPath.length > 1}
 			<path
 				d={createPathFromPoints(offsetPath)}

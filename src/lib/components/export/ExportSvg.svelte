@@ -29,6 +29,7 @@
 		renderingData: {
 			basePaths: Map<number, Point[]>;
 			tunnelOffsets: Map<string, Map<number, Point>>;
+			stationPoints: Set<string>;
 		};
 	} = $props();
 

@@ -75,11 +75,12 @@ interface Station {
 
 ## 3. Rendering Requirements
 
-Lines must be drawn connecting their route points and anchor points in the correct `order`. 
+Lines must be drawn connecting their route points and anchor points in the correct `order`.
 
 When multiple lines travel between the same two stations (forming a corridor), they must be drawn parallel to each other. The spacing between parallel lines should be consistent (`LINE_SPACING = 6` pixels).
 
 The visual output must satisfy these constraints:
+
 - Smooth transitions: No visible jogs, back-and-forth zigzagging, or bulges when a line changes direction or enters/leaves a shared corridor.
 - Octilinear geometry: All segments between points must be drawn using horizontal, vertical, or 45-degree diagonal lines.
 - Consistent offsets: A line's offset from the center of a corridor must remain consistent along the entire path between the two stations, regardless of any intermediate anchor points.
@@ -95,14 +96,17 @@ The visual output must satisfy these constraints:
 ## 5. What NOT To Do (Previous Failures)
 
 ### ❌ Station‑Split
+
 Duplicating the station point with different offsets for incoming vs outgoing sub‑segments. Creates visible back‑and‑forth jogs that extend outside the station circle.
 
 ### ❌ Averaging
+
 Averaging the incoming and outgoing corridor offsets at each station point. Creates visible bulges when corridor direction changes (e.g., horizontal corridor → diagonal corridor).
 
 ### ❌ Sub‑Segment Topology
+
 Computing separate offsets for each sub‑segment (between every consecutive point including anchors) instead of using station‑pair corridors. Causes lines that join mid‑segment at an anchor to get different offsets on different sides of the anchor.
 
 ### ❌ Offset Direction from Sub‑Segment
-Using the sub‑segment's own direction for the perpendicular. A diagonal sub‑segment between two vertical stations gets a different perpendicular direction than the vertical corridor, causing misaligned offsets.
 
+Using the sub‑segment's own direction for the perpendicular. A diagonal sub‑segment between two vertical stations gets a different perpendicular direction than the vertical corridor, causing misaligned offsets.

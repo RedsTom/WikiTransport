@@ -428,7 +428,7 @@
 	}
 
 	let renderingData = $derived.by(() => {
-		const { basePaths, tunnels } = buildTunnels(
+		const { basePaths, tunnels, stationPoints } = buildTunnels(
 			editorState.lines,
 			editorState.routePoints,
 			editorState.anchorPoints,
@@ -439,7 +439,7 @@
 			editorState.effectiveHiddenLineIds
 		);
 		const tunnelOffsets = computeLineOffsets(tunnels, editorState.lineMap);
-		return { basePaths, tunnelOffsets };
+		return { basePaths, tunnelOffsets, stationPoints };
 	});
 </script>
 

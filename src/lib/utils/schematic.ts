@@ -183,9 +183,10 @@ export function buildTunnels(
 	anchorPoints: { lineId: number; schematicX: number; schematicY: number; order: number }[],
 	stationPosition: (stationId: number) => Point | null,
 	hiddenLineIds: Set<number>
-): { basePaths: Map<number, Point[]>; tunnels: Map<string, Tunnel> } {
+): { basePaths: Map<number, Point[]>; tunnels: Map<string, Tunnel>; stationPoints: Set<string> } {
 	const basePaths = new Map<number, Point[]>();
 	const tunnels = new Map<string, Tunnel>();
+	const stationPoints = new Set<string>();
 
 	for (const line of lines) {
 		if (!line.id || hiddenLineIds.has(line.id)) continue;
@@ -196,7 +197,10 @@ export function buildTunnels(
 		const pts: { pos: Point; order: number }[] = [];
 		for (const rp of rps) {
 			const pos = stationPosition(rp.stationId);
-			if (pos) pts.push({ pos, order: rp.order });
+			if (pos) {
+				pts.push({ pos, order: rp.order });
+				stationPoints.add(`${Math.round(pos.x)},${Math.round(pos.y)}`);
+			}
 		}
 		for (const ap of aps) {
 			pts.push({ pos: { x: ap.schematicX, y: ap.schematicY }, order: ap.order });
@@ -234,7 +238,7 @@ export function buildTunnels(
 			tunnels.get(key)!.lines.add(line.id);
 		}
 	}
-	return { basePaths, tunnels };
+	return { basePaths, tunnels, stationPoints };
 }
 
 export function computeLineOffsets(
@@ -280,13 +284,18 @@ export function computeLineOffsets(
 export function getOffsetPath(
 	basePath: Point[],
 	lineId: number,
-	lineOffsets: Map<string, Map<number, Point>>
+	lineOffsets: Map<string, Map<number, Point>>,
+	stationPoints: Set<string>
 ): Point[] {
 	if (basePath.length < 2) return basePath;
 
 	const offsetPath: Point[] = [];
 
 	for (let i = 0; i < basePath.length; i++) {
+		const isStation = stationPoints.has(
+			`${Math.round(basePath[i].x)},${Math.round(basePath[i].y)}`
+		);
+
 		if (i === 0) {
 			const k = getTunnelKey(basePath[0], basePath[1]);
 			const O = lineOffsets.get(k)?.get(lineId) ?? { x: 0, y: 0 };
@@ -302,17 +311,26 @@ export function getOffsetPath(
 			const k_next = getTunnelKey(basePath[i], basePath[i + 1]);
 			const O_next = lineOffsets.get(k_next)?.get(lineId) ?? { x: 0, y: 0 };
 
-			const A = { x: basePath[i - 1].x + O_prev.x, y: basePath[i - 1].y + O_prev.y };
-			const B = { x: basePath[i].x + O_prev.x, y: basePath[i].y + O_prev.y };
-			const C = { x: basePath[i].x + O_next.x, y: basePath[i].y + O_next.y };
-			const D = { x: basePath[i + 1].x + O_next.x, y: basePath[i + 1].y + O_next.y };
+			const B_in = { x: basePath[i].x + O_prev.x, y: basePath[i].y + O_prev.y };
+			const B_out = { x: basePath[i].x + O_next.x, y: basePath[i].y + O_next.y };
 
-			const Q = intersectLines(A, B, C, D);
-			if (Q) {
-				offsetPath.push(Q);
+			if (isStation) {
+				offsetPath.push(B_in);
+				if (Math.hypot(B_in.x - B_out.x, B_in.y - B_out.y) > 0.1) {
+					offsetPath.push(B_out);
+				}
 			} else {
-				offsetPath.push(B);
-				if (Math.hypot(B.x - C.x, B.y - C.y) > 0.1) offsetPath.push(C);
+				const A = { x: basePath[i - 1].x + O_prev.x, y: basePath[i - 1].y + O_prev.y };
+				const C = B_out;
+				const D = { x: basePath[i + 1].x + O_next.x, y: basePath[i + 1].y + O_next.y };
+
+				const Q = intersectLines(A, B_in, C, D);
+				if (Q) {
+					offsetPath.push(Q);
+				} else {
+					offsetPath.push(B_in);
+					if (Math.hypot(B_in.x - B_out.x, B_in.y - B_out.y) > 0.1) offsetPath.push(B_out);
+				}
 			}
 		}
 	}
