@@ -81,7 +81,10 @@
 			.filter((ap) => ap.lineId === line.id)
 			.sort((a, b) => a.order - b.order);
 
-		if (rps.length < 2) return;
+		if (rps.length < 2) {
+			dndItems = [];
+			return;
+		}
 
 		const items: DndItem[] = [];
 		let ai = 0;

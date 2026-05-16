@@ -4,7 +4,7 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ContextMenu, CircularProgress, LinePicker } from '$lib/components/ui';
+	import { ContextMenu, CircularProgress, LinePicker, Dialog, Button, TextField } from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import {
@@ -33,6 +33,11 @@
 
 	let ctxMenu = useContextMenu();
 	let pendingContextStationId = $state<number | null>(null);
+
+	let stationNameDialogOpen = $state(false);
+	let pendingStationName = $state('');
+	let pendingCreationSvgX = $state(0);
+	let pendingCreationSvgY = $state(0);
 
 	onMount(() => {
 		requestAnimationFrame(() => viewport.fitContent());
@@ -79,13 +84,23 @@
 
 	async function addStationAtPos(svgX: number, svgY: number) {
 		if (!editorState.project?.id) return;
+		pendingCreationSvgX = svgX;
+		pendingCreationSvgY = svgY;
+		pendingStationName = '';
+		stationNameDialogOpen = true;
+	}
+
+	async function handleConfirmStationName() {
+		const name = pendingStationName.trim();
+		if (!name || !editorState.project?.id) return;
+
 		const stationId = await StationService.createStation(
 			editorState.project.id,
-			m.new_station({ n: editorState.stations.length + 1 }),
+			name,
 			0,
 			0,
-			svgX,
-			svgY
+			pendingCreationSvgX,
+			pendingCreationSvgY
 		);
 		const pending = editorState.pendingLineInsert;
 		if (pending) {
@@ -113,6 +128,7 @@
 		editorState.selectedStationId = stationId;
 		editorState.rightTab = 'station';
 		editorState.placementMode = null;
+		stationNameDialogOpen = false;
 	}
 
 	async function placeStationAtClick(e: MouseEvent) {
@@ -430,7 +446,7 @@
 	class="relative h-full w-full overflow-hidden [background:var(--color-surface-variant)]"
 	tabindex="-1"
 	onkeydown={(e) => {
-		if (e.key === ' ' || e.key === 'Space') {
+		if ((e.key === ' ' || e.key === 'Space') && !(e.target as HTMLElement).closest('dialog')) {
 			e.preventDefault();
 			e.stopPropagation();
 			viewport.fitContent();
@@ -533,4 +549,29 @@
 			{/snippet}
 		</ContextMenu>
 	{/if}
+
+	<Dialog bind:open={stationNameDialogOpen} onclose={() => { stationNameDialogOpen = false; }}>
+		{#snippet icon()}
+			<span class="material-symbols-outlined text-blue-500">add_location</span>
+		{/snippet}
+		{#snippet title()}{m.new_station()}{/snippet}
+
+		<TextField
+			label={m.name()}
+			bind:value={pendingStationName}
+			autofocus
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.key === 'Enter') handleConfirmStationName();
+			}}
+		/>
+
+		{#snippet actions()}
+			<Button variant="text" onclick={() => { stationNameDialogOpen = false; }}>
+				{m.cancel()}
+			</Button>
+			<Button variant="filled" disabled={!pendingStationName.trim()} onclick={handleConfirmStationName}>
+				{m.create()}
+			</Button>
+		{/snippet}
+	</Dialog>
 </div>

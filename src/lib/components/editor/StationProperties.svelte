@@ -314,7 +314,6 @@
 				label={m.name()}
 				bind:value={stationName}
 				onchange={() => updateStation(stationName)}
-				autofocus
 			/>
 			<TextField
 				label={m.subtitle()}

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0-beta (2026-05-16)
+
+**EN:** Station naming dialog & anchor list fix
+
+- A dialog asks for the station name when creating one, instead of auto-naming
+- Fixed the anchor list not updating when a new line is created (showed stale data from previous line)
+- Removed autofocus on the station name field in the properties panel
+
+**FR:** Dialogue de nommage des stations & correction de la liste d'ancres
+
+- Un dialogue demande le nom de la station lors de sa création, au lieu d'un nom automatique
+- Correction : la liste d'ancres n'affichait plus les données de l'ancienne ligne après création d'une nouvelle
+- Suppression de l'autofocus sur le champ du nom dans les propriétés
+
 ## 0.12.0-beta (2026-05-16)
 
 **EN:** Compact project export (.wtpc) — GZIP-compressed files for smaller exports
