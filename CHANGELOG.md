@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.15.0-beta (2026-05-17)
+
+**EN:** User Interface Refinement & New Guide
+
+- Added a comprehensive user guide accessible from the dashboard and editor
+- Refined the projects page with a more consistent and modern look
+- Improved the beta notice with direct bug report action
+- Restructured code for better maintainability and performance
+- Extracted shared rendering utilities to ensure visual consistency
+- Improved multi-select and rubber-band selection in the editor
+
+**FR:** Affinement de l'interface & Nouveau Guide
+
+- Ajout d'un guide utilisateur complet accessible depuis le tableau de bord et l'éditeur
+- Affinement de la page des projets avec un look plus cohérent et moderne
+- Amélioration de la bannière bêta avec action directe de signalement de bug
+- Restructuration du code pour une meilleure maintenabilité et performance
+- Extraction des utilitaires de rendu partagés pour assurer la cohérence visuelle
+- Amélioration de la multi-sélection et de la sélection par rectangle dans l'éditeur
+
 ## 0.14.0-beta (2026-05-17)
 
 **EN:** Tunnel-based rendering & corner radius
