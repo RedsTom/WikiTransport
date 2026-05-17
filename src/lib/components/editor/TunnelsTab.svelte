@@ -84,7 +84,7 @@
 
 		const sortedLines = editorState.lines
 			.filter((l) => l.id != null && byLine.has(l.id))
-			.sort((a, b) => a.zIndex - b.zIndex);
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return sortedLines.map((line) => ({
 			lineId: line.id!,

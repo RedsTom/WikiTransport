@@ -439,7 +439,13 @@
 			},
 			editorState.effectiveHiddenLineIds
 		);
-		const tunnelOffsets = computeLineOffsets(tunnels, editorState.lineMap, editorState.tunnelOrder);
+		const tunnelOffsets = computeLineOffsets(
+			tunnels,
+			editorState.lineMap,
+			basePaths,
+			stationPoints,
+			editorState.tunnelOrder
+		);
 		return { basePaths, tunnels, tunnelOffsets, stationPoints };
 	});
 </script>

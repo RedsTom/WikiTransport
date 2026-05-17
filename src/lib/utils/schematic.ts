@@ -1,5 +1,5 @@
 import { GRID_SIZE, LINE_SPACING } from '$lib/constants/schematic';
-import type { Station, RoutePoint } from '$lib/types';
+import type { RoutePoint } from '$lib/types';
 
 export type Point = { x: number; y: number };
 
@@ -188,6 +188,7 @@ export function buildTunnels(
 	const tunnels = new Map<string, Tunnel>();
 	const stationPoints = new Set<string>();
 
+	// Phase 1: build merged path for each line
 	for (const line of lines) {
 		if (!line.id || hiddenLineIds.has(line.id)) continue;
 
@@ -254,21 +255,94 @@ export function buildTunnels(
 		}
 		if (dedup.length > 1) merged.push(dedup[dedup.length - 1]);
 		basePaths.set(line.id, merged);
+	}
 
-		for (let i = 0; i < merged.length - 1; i++) {
-			const u = merged[i],
-				v = merged[i + 1];
+	// Phase 2: collect every unique point from all base paths
+	const allJunctionPoints = new Map<string, Point>();
+	for (const [, path] of basePaths) {
+		for (const p of path) {
+			const key = `${Math.round(p.x)},${Math.round(p.y)}`;
+			if (!allJunctionPoints.has(key)) allJunctionPoints.set(key, p);
+		}
+	}
+
+	// Phase 3: inject junction points into each line's path
+	for (const [lineId, path] of basePaths) {
+		const newPath: Point[] = [path[0]];
+		for (let i = 0; i < path.length - 1; i++) {
+			const u = path[i];
+			const v = path[i + 1];
+
+			const toInject: Point[] = [];
+			for (const [, p] of allJunctionPoints) {
+				if (pointCoordsEqual(p, u) || pointCoordsEqual(p, v)) continue;
+
+				let alreadyIn = false;
+				for (const q of newPath) {
+					if (pointCoordsEqual(q, p)) {
+						alreadyIn = true;
+						break;
+					}
+				}
+				if (alreadyIn) continue;
+
+				if (isPointOnSegment(p, u, v)) toInject.push(p);
+			}
+
+			toInject.sort(
+				(a, b) =>
+					(a.x - u.x) * (a.x - u.x) +
+					(a.y - u.y) * (a.y - u.y) -
+					((b.x - u.x) * (b.x - u.x) + (b.y - u.y) * (b.y - u.y))
+			);
+
+			newPath.push(...toInject, v);
+		}
+		basePaths.set(lineId, newPath);
+	}
+
+	// Phase 4: create tunnels from the augmented paths
+	for (const [lineId, path] of basePaths) {
+		for (let i = 0; i < path.length - 1; i++) {
+			const u = path[i],
+				v = path[i + 1];
 			const key = getTunnelKey(u, v);
 			if (!tunnels.has(key)) tunnels.set(key, { u, v, lines: new Set() });
-			tunnels.get(key)!.lines.add(line.id);
+			tunnels.get(key)!.lines.add(lineId);
 		}
 	}
 	return { basePaths, tunnels, stationPoints };
 }
 
+function pointCoordsEqual(a: Point, b: Point): boolean {
+	return Math.round(a.x) === Math.round(b.x) && Math.round(a.y) === Math.round(b.y);
+}
+
+function isPointOnSegment(p: Point, a: Point, b: Point): boolean {
+	const px = p.x,
+		py = p.y;
+	const ax = a.x,
+		ay = a.y;
+	const bx = b.x,
+		by = b.y;
+
+	const cross = (px - ax) * (by - ay) - (py - ay) * (bx - ax);
+	if (cross !== 0) return false;
+
+	const minX = Math.min(ax, bx),
+		maxX = Math.max(ax, bx);
+	const minY = Math.min(ay, by),
+		maxY = Math.max(ay, by);
+	if (px < minX || px > maxX || py < minY || py > maxY) return false;
+
+	return true;
+}
+
 export function computeLineOffsets(
 	tunnels: Map<string, Tunnel>,
 	lineMap: Map<number, { id?: number; transitTypeId?: number }>,
+	basePaths: Map<number, Point[]>,
+	stationPoints: Set<string>,
 	tunnelOrder?: Record<string, number[]>
 ): Map<string, Map<number, Point>> {
 	const lineOffsetsInTunnel = new Map<string, Map<number, Point>>();
@@ -316,7 +390,126 @@ export function computeLineOffsets(
 		}
 		lineOffsetsInTunnel.set(key, offsets);
 	}
+
+	for (const [, path] of basePaths) {
+		const tunnelKeys: string[] = [];
+		for (let i = 0; i < path.length - 1; i++) {
+			tunnelKeys.push(getTunnelKey(path[i], path[i + 1]));
+		}
+
+		for (let i = 0; i < tunnelKeys.length; i++) {
+			const key = tunnelKeys[i];
+			const tunnelLines = tunnels.get(key)?.lines;
+			if (!tunnelLines || tunnelLines.size > 1) continue;
+
+			const start = path[i];
+			if (stationPoints.has(`${Math.round(start.x)},${Math.round(start.y)}`)) continue;
+
+			const offsets = lineOffsetsInTunnel.get(key);
+			if (!offsets) continue;
+
+			const lid = Array.from(tunnelLines)[0];
+			const cur = offsets.get(lid);
+			if (cur && (cur.x !== 0 || cur.y !== 0)) continue;
+
+			let src: Point | null = null;
+			let srcIdx = -1;
+
+			for (let j = i + 1; j < tunnelKeys.length; j++) {
+				const k = tunnelKeys[j];
+				const tl = tunnels.get(k)?.lines;
+				if (tl && tl.has(lid) && tl.size > 1) {
+					src = lineOffsetsInTunnel.get(k)?.get(lid) ?? null;
+					srcIdx = j;
+					break;
+				}
+			}
+
+			if (!src) {
+				for (let j = i - 1; j >= 0; j--) {
+					const k = tunnelKeys[j];
+					const tl = tunnels.get(k)?.lines;
+					if (tl && tl.has(lid) && tl.size > 1) {
+						src = lineOffsetsInTunnel.get(k)?.get(lid) ?? null;
+						srcIdx = j;
+						break;
+					}
+				}
+			}
+
+			if (
+				src &&
+				srcIdx >= 0 &&
+				directionChangedAt(path, i, srcIdx) &&
+				multiTunnelHasThroughLine(tunnelKeys[srcIdx], basePaths, tunnels)
+			) {
+				offsets.set(lid, src);
+			}
+		}
+	}
+
 	return lineOffsetsInTunnel;
+}
+
+/** True if any line in the multi-line tunnel passes through with the same direction */
+function multiTunnelHasThroughLine(
+	tunnelKey: string,
+	basePaths: Map<number, Point[]>,
+	tunnels: Map<string, Tunnel>
+): boolean {
+	const tunnel = tunnels.get(tunnelKey);
+	if (!tunnel || tunnel.lines.size < 2) return false;
+
+	for (const lid of tunnel.lines) {
+		const path = basePaths.get(lid);
+		if (!path || path.length < 2) continue;
+
+		for (let i = 0; i < path.length - 1; i++) {
+			if (getTunnelKey(path[i], path[i + 1]) !== tunnelKey) continue;
+
+			if (i > 0) {
+				const prevT = tunnels.get(getTunnelKey(path[i - 1], path[i]));
+				if (prevT?.lines.has(lid)) {
+					const dx1 = path[i].x - path[i - 1].x,
+						dy1 = path[i].y - path[i - 1].y;
+					const dx2 = path[i + 1].x - path[i].x,
+						dy2 = path[i + 1].y - path[i].y;
+					if (dx1 * dy2 - dy1 * dx2 === 0 && dx1 * dx2 >= 0 && dy1 * dy2 >= 0) return true;
+				}
+			}
+			if (i + 1 < path.length - 1) {
+				const nextT = tunnels.get(getTunnelKey(path[i + 1], path[i + 2]));
+				if (nextT?.lines.has(lid)) {
+					const dx1 = path[i + 1].x - path[i].x,
+						dy1 = path[i + 1].y - path[i].y;
+					const dx2 = path[i + 2].x - path[i + 1].x,
+						dy2 = path[i + 2].y - path[i + 1].y;
+					if (dx1 * dy2 - dy1 * dx2 === 0 && dx1 * dx2 >= 0 && dy1 * dy2 >= 0) return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+/** Returns true if the two adjacent tunnels go in different directions at the shared point */
+function directionChangedAt(path: Point[], idxA: number, idxB: number): boolean {
+	const isFwd = idxB > idxA;
+	const shared = path[isFwd ? idxB : idxA];
+	const into = path[isFwd ? idxB - 1 : idxA - 1];
+	const out = path[isFwd ? idxB + 1 : idxA + 1];
+
+	const dx1 = shared.x - into.x;
+	const dy1 = shared.y - into.y;
+	const dx2 = out.x - shared.x;
+	const dy2 = out.y - shared.y;
+
+	const cross = dx1 * dy2 - dy1 * dx2;
+	if (cross !== 0) return true;
+	if (dx1 * dx2 < 0 || dy1 * dy2 < 0) return true;
+
+	return false;
 }
 
 export function getOffsetPath(
