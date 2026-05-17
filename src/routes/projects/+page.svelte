@@ -8,8 +8,10 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { ProjectExportService } from '$lib/services/ProjectExportService';
 	import { ProjectImportService } from '$lib/services/ProjectImportService';
-	import { changelogs, type LocalizedChangelog } from '$lib/data/changelogs';
 	import type { Project } from '$lib/types';
+	import BetaNotice from './components/BetaNotice.svelte';
+	import ProjectCard from './components/ProjectCard.svelte';
+	import ChangelogSection from './components/ChangelogSection.svelte';
 
 	import {
 		Button,
@@ -22,23 +24,7 @@
 		DropdownMenu
 	} from '$lib/components/ui';
 
-	let expandedVersions = $state<Record<string, boolean>>({});
-
-	function toggleVersion(v: string) {
-		expandedVersions[v] = !expandedVersions[v];
-	}
-
 	let currentLocale = $derived(useLocale());
-
-	function localizeEntry(entry: LocalizedChangelog) {
-		return {
-			version: entry.version,
-			date: entry.date,
-			title: currentLocale === 'fr' ? entry.titleFr : entry.titleEn,
-			summary: currentLocale === 'fr' ? entry.summaryFr : entry.summaryEn,
-			content: currentLocale === 'fr' ? entry.contentFr : entry.contentEn
-		};
-	}
 
 	let projects = $state<Project[]>([]);
 	let projectsLoading = $state(true);
@@ -187,6 +173,18 @@
 		</a>
 
 		<div class="flex items-center gap-6">
+			<a
+				href={resolve('/guide')}
+				class="text-sm font-medium text-on-surface-variant transition-colors hover:text-primary"
+			>
+				{m.guide()}
+			</a>
+			<a
+				href={resolve('/changelogs')}
+				class="text-sm font-medium text-on-surface-variant transition-colors hover:text-primary"
+			>
+				{m.changelog()}
+			</a>
 			<div class="flex items-center gap-2">
 				{#each locales as l (l)}
 					<button
@@ -224,6 +222,8 @@
 
 	<h2 class="mb-4 text-xl text-on-surface-variant">{m.my_projects()}</h2>
 
+	<BetaNotice />
+
 	{#if projectsLoading}
 		<div class="flex items-center justify-center py-16">
 			<CircularProgress class="h-8 w-8" />
@@ -236,102 +236,12 @@
 	{:else}
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each projects as project (project.id)}
-				<div
-					class="group relative flex flex-col gap-2 rounded-xl border border-outline/20 bg-surface-variant p-4 transition-shadow hover:shadow-md"
-				>
-					<h3 class="text-lg font-bold text-on-surface">{project.name}</h3>
-					<p class="flex items-center gap-1 text-sm text-on-surface-variant">
-						<span class="material-symbols-outlined text-sm">location_city</span>
-						{project.city}
-					</p>
-					<p class="text-xs text-on-surface-variant opacity-70">
-						{new Date(project.updatedAt).toLocaleDateString()}
-					</p>
-					<div class="mt-4 flex gap-2">
-						<div class="flex-1">
-							<Button
-								variant="filled"
-								class="w-full"
-								onclick={() => goto(resolve(`/project/${project.id}`))}
-							>
-								{m.open()}
-							</Button>
-						</div>
-						<DropdownMenu
-							items={[
-								{
-									label: m.export_standard(),
-									icon: 'download',
-									action: () => handleExport(project.id!, false)
-								},
-								{
-									label: m.export_compact(),
-									icon: 'compress',
-									action: () => handleExport(project.id!, true)
-								}
-							]}
-						>
-							<IconButton>
-								<span class="material-symbols-outlined">download</span>
-							</IconButton>
-						</DropdownMenu>
-						<IconButton onclick={() => confirmDelete(project.id!)}>
-							<span class="material-symbols-outlined">delete</span>
-						</IconButton>
-					</div>
-				</div>
+				<ProjectCard {project} onexport={handleExport} onconfirmdelete={confirmDelete} />
 			{/each}
 		</div>
 	{/if}
 
-	{#if changelogs.length > 0}
-		<hr class="my-8 border-outline/10" />
-
-		<h2 class="mb-4 text-xl text-on-surface-variant">{m.changelog()}</h2>
-
-		<div class="flex flex-col gap-3">
-			{#each changelogs as entry (entry.version)}
-				{@const loc = localizeEntry(entry)}
-				<div
-					class="rounded-xl border border-outline/10 bg-surface p-4 shadow-xs transition-shadow hover:shadow-sm"
-				>
-					<div class="flex items-start justify-between gap-3">
-						<div class="flex min-w-0 items-center gap-3">
-							<span
-								class="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 font-mono text-xs text-primary"
-							>
-								{m.version_badge({ version: loc.version })}
-							</span>
-							<h3 class="truncate text-base font-semibold text-on-surface">{loc.title}</h3>
-						</div>
-						<span class="shrink-0 text-xs text-on-surface-variant">{loc.date}</span>
-					</div>
-
-					<div class="mt-3">
-						{#if expandedVersions[entry.version]}
-							<div class="text-sm leading-relaxed whitespace-pre-wrap text-on-surface">
-								{loc.content}
-							</div>
-						{:else}
-							<p class="text-sm leading-relaxed text-on-surface-variant italic">
-								{loc.summary}
-							</p>
-						{/if}
-					</div>
-
-					<button
-						class="mt-2 flex items-center gap-1 text-sm text-primary transition-opacity hover:opacity-80"
-						onclick={() => toggleVersion(entry.version)}
-					>
-						<span class="material-symbols-outlined text-base"
-							>{expandedVersions[entry.version] ? 'expand_less' : 'expand_more'}</span
-						>
-						{expandedVersions[entry.version] ? m.show_less() : m.show_more()}
-					</button>
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<ChangelogSection />
 </div>
 
 <Dialog bind:open={isDialogOpen}>

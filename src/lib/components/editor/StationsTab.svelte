@@ -13,7 +13,7 @@
 	);
 
 	function selectStation(id: number) {
-		editorState.selectedStationId = id;
+		editorState.setSelection(id);
 		editorState.selectedAnchorId = null;
 		editorState.rightTab = 'station';
 	}

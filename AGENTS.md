@@ -6,6 +6,18 @@
 
 ---
 
+## Critical Rule: Document in the Guide
+
+When adding a new feature or user-facing change, you **must** document it in the guide:
+
+1. Add a new markdown file in both `src/lib/data/guide/en/` and `src/lib/data/guide/fr/` (or update an existing section)
+2. YAML frontmatter at the top with `title`, `order`, and `updated` fields
+3. If adding a new file, define its `order` to place it in the correct position among existing sections
+4. The guide content must be user-friendly, explaining concepts, steps, and keyboard shortcuts
+5. Always update both locales
+
+---
+
 ## Project Overview
 
 WikiTransport is a web-based schematic transit map editor. Users create metro/bus/tram-style line maps with stations, anchor points, and customizable line types. Built with Svelte 5 + SvelteKit (v2), Melt UI for interactive components, and Paraglide-JS for i18n.

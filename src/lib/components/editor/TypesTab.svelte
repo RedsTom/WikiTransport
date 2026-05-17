@@ -11,14 +11,14 @@
 			await editorState.loadTransitTypes();
 			editorState.selectedTransitTypeId = newTypeId;
 			editorState.selectedLineId = null;
-			editorState.selectedStationId = null;
+			editorState.clearSelection();
 		}
 	}
 
 	function selectType(id: number) {
 		editorState.selectedTransitTypeId = id;
 		editorState.selectedLineId = null;
-		editorState.selectedStationId = null;
+		editorState.clearSelection();
 		editorState.rightTab = 'type';
 	}
 </script>

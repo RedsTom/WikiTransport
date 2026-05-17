@@ -201,7 +201,7 @@ export class EditorService {
 	 */
 	static async deleteStation(state: EditorState, id: number): Promise<void> {
 		await StationService.deleteStation(id);
-		state.selectedStationId = null;
+		state.clearSelection();
 		await state.loadStations();
 		await state.loadRoutePoints();
 	}
@@ -238,7 +238,7 @@ export class EditorService {
 	 */
 	static async deleteAnchor(state: EditorState, id: number): Promise<void> {
 		await AnchorPointService.delete(id);
-		state.selectedAnchorId = null;
+		state.clearAnchorSelection();
 		await state.loadAnchorPoints(state.activeViewId ?? undefined);
 	}
 
@@ -247,8 +247,7 @@ export class EditorService {
 	 */
 	static deselectAll(state: EditorState) {
 		state.selectedLineId = null;
-		state.selectedStationId = null;
-		state.selectedAnchorId = null;
+		state.clearSelection();
 		state.selectedTransitTypeId = null;
 	}
 }

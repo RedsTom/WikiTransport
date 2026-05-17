@@ -138,25 +138,41 @@
 		<span class="material-symbols-outlined shrink-0 text-sm text-on-surface-variant"
 			>location_on</span
 		>
-		<StationSelector
-			selectedId={editorState.selectedStationId}
-			label={m.no_station_selected()}
-			onSelect={(id) => {
-				editorState.selectedStationId = id;
-			}}
-			includeIcon={false}
-		/>
-		{#if editorState.selectedStationId !== null}
+		{#if editorState.isMultiSelecting}
+			<span class="text-xs font-medium text-primary"
+				>{editorState.selectedStationIds.length} {m.stations().toLowerCase()}</span
+			>
 			<Tooltip text={m.deselect_station()}>
 				<IconButton
 					class="shrink-0"
 					onclick={() => {
-						editorState.selectedStationId = null;
+						editorState.clearSelection();
 					}}
 				>
 					<span class="material-symbols-outlined text-sm">close</span>
 				</IconButton>
 			</Tooltip>
+		{:else}
+			<StationSelector
+				selectedId={editorState.selectedStationId}
+				label={m.no_station_selected()}
+				onSelect={(id) => {
+					editorState.setSelection(id);
+				}}
+				includeIcon={false}
+			/>
+			{#if editorState.selectedStationId !== null}
+				<Tooltip text={m.deselect_station()}>
+					<IconButton
+						class="shrink-0"
+						onclick={() => {
+							editorState.clearSelection();
+						}}
+					>
+						<span class="material-symbols-outlined text-sm">close</span>
+					</IconButton>
+				</Tooltip>
+			{/if}
 		{/if}
 	</div>
 

@@ -49,6 +49,7 @@
 	"nothing_matches": "Rien ne correspond à votre recherche.",
 	"no_stations_or_anchors": "Pas encore de stations ou d'ancres.",
 	"station": "Station",
+	"stations": "Stations",
 	"subtitle_alignment": "Alignement du sous-titre",
 	"left": "Gauche",
 	"center": "Centre",
@@ -186,9 +187,16 @@
 	"export_success": "Projet exporté avec succès !",
 	"export_standard": "Normal (.wtp)",
 	"export_compact": "Compact (.wtpc)",
+	"all_changelogs": "Voir tous les changelogs",
 	"changelog": "Changelog",
 	"show_more": "Afficher plus",
 	"show_less": "Afficher moins",
 	"version_badge": "v{version}",
-	"og_description": "Créez de magnifiques plans de transport schématiques dans votre navigateur — sans serveur, sans compte, sans tracas."
+	"og_description": "Créez de magnifiques plans de transport schématiques dans votre navigateur — sans serveur, sans compte, sans tracas.",
+	"guide": "Guide",
+	"back": "Retour",
+	"last_updated": "Dernière mise à jour",
+	"section_not_found": "Section introuvable",
+	"beta_notice": "WikiTransport est encore en bêta et peut contenir des bugs.",
+	"report_bug": "Signaler un bug"
 }

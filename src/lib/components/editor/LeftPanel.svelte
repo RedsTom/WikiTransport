@@ -5,9 +5,15 @@
 	import TypesTab from './TypesTab.svelte';
 	import StationsTab from './StationsTab.svelte';
 	import TunnelsTab from './TunnelsTab.svelte';
+	import GuidePanel from './GuidePanel.svelte';
+
+	let { width = $bindable(320) }: { width: number } = $props();
 </script>
 
-<aside class="flex w-80 shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface">
+<aside
+	class="flex shrink-0 flex-col overflow-hidden border-r border-outline/20 bg-surface"
+	style="width: {width}px"
+>
 	<div class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 px-3">
 		<h2 class="text-sm font-bold">
 			{#if editorState.leftTab === 'overview'}
@@ -18,6 +24,8 @@
 				{m.stations()}
 			{:else if editorState.leftTab === 'tunnels'}
 				{m.tunnels()}
+			{:else if editorState.leftTab === 'guide'}
+				{m.guide()}
 			{/if}
 		</h2>
 		<button class="m3-icon-button" onclick={() => (editorState.leftTab = null)}>
@@ -33,6 +41,8 @@
 			<StationsTab />
 		{:else if editorState.leftTab === 'tunnels'}
 			<TunnelsTab />
+		{:else if editorState.leftTab === 'guide'}
+			<GuidePanel />
 		{/if}
 	</div>
 </aside>
