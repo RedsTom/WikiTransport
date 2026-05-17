@@ -66,7 +66,7 @@
 
 	let groups = $derived.by<LineGroup[]>(() => {
 		const q = search.toLowerCase();
-		const { basePaths } = editorState.tunnelData;
+		const { basePaths, stationPoints } = editorState.tunnelData;
 
 		const lineHasMatch = (lineId: number): boolean => {
 			if (!q) return true;
@@ -105,10 +105,24 @@
 				if (i > 0 && i < path.length - 1) {
 					const p = path[i];
 					const ck = `${p.x},${p.y}`;
-					if (!seenCorners.has(ck)) {
-						seenCorners.add(ck);
-						items.push({ kind: 'corner', key: ck, x: p.x, y: p.y });
+					if (seenCorners.has(ck)) continue;
+					const spKey = `${Math.round(p.x)},${Math.round(p.y)}`;
+					if (stationPoints.has(spKey)) {
+						const dx1 = p.x - path[i - 1].x;
+						const dy1 = p.y - path[i - 1].y;
+						const dx2 = path[i + 1].x - p.x;
+						const dy2 = path[i + 1].y - p.y;
+						const sameDir =
+							(dy1 === 0 && dy2 === 0 && Math.sign(dx1) === Math.sign(dx2)) ||
+							(dx1 === 0 && dx2 === 0 && Math.sign(dy1) === Math.sign(dy2)) ||
+							(Math.abs(dx1) === Math.abs(dy1) &&
+								Math.abs(dx2) === Math.abs(dy2) &&
+								Math.sign(dx1) === Math.sign(dx2) &&
+								Math.sign(dy1) === Math.sign(dy2));
+						if (sameDir) continue;
 					}
+					seenCorners.add(ck);
+					items.push({ kind: 'corner', key: ck, x: p.x, y: p.y });
 				}
 			}
 

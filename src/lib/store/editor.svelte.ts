@@ -160,7 +160,7 @@ export class EditorState {
 	cornerPoints = $derived.by<
 		{ key: string; x: number; y: number; lineId: number; stationId: number | null }[]
 	>(() => {
-		const { basePaths } = this.tunnelData;
+		const { basePaths, stationPoints } = this.tunnelData;
 		const points: {
 			key: string;
 			x: number;
@@ -174,6 +174,21 @@ export class EditorState {
 				const p = path[i];
 				const key = `${p.x},${p.y}`;
 				if (seen.has(key)) continue;
+				const spKey = `${Math.round(p.x)},${Math.round(p.y)}`;
+				if (stationPoints.has(spKey)) {
+					const dx1 = p.x - path[i - 1].x;
+					const dy1 = p.y - path[i - 1].y;
+					const dx2 = path[i + 1].x - p.x;
+					const dy2 = path[i + 1].y - p.y;
+					const sameDir =
+						(dy1 === 0 && dy2 === 0 && Math.sign(dx1) === Math.sign(dx2)) ||
+						(dx1 === 0 && dx2 === 0 && Math.sign(dy1) === Math.sign(dy2)) ||
+						(Math.abs(dx1) === Math.abs(dy1) &&
+							Math.abs(dx2) === Math.abs(dy2) &&
+							Math.sign(dx1) === Math.sign(dx2) &&
+							Math.sign(dy1) === Math.sign(dy2));
+					if (sameDir) continue;
+				}
 				seen.add(key);
 				points.push({ key, x: p.x, y: p.y, lineId, stationId: null });
 			}
