@@ -412,39 +412,24 @@ export function computeLineOffsets(
 			const cur = offsets.get(lid);
 			if (cur && (cur.x !== 0 || cur.y !== 0)) continue;
 
-			let src: Point | null = null;
-			let srcIdx = -1;
-
-			for (let j = i + 1; j < tunnelKeys.length; j++) {
-				const k = tunnelKeys[j];
+			const tryPropagate = (srcIdx: number): boolean => {
+				if (srcIdx < 0 || srcIdx >= tunnelKeys.length) return false;
+				const k = tunnelKeys[srcIdx];
 				const tl = tunnels.get(k)?.lines;
-				if (tl && tl.has(lid) && tl.size > 1) {
-					src = lineOffsetsInTunnel.get(k)?.get(lid) ?? null;
-					srcIdx = j;
-					break;
+				if (!tl || !tl.has(lid) || tl.size <= 1) return false;
+				const src = lineOffsetsInTunnel.get(k)?.get(lid);
+				if (!src) return false;
+				if (
+					directionChangedAt(path, i, srcIdx) &&
+					multiTunnelHasThroughLine(tunnelKeys[srcIdx], basePaths, tunnels)
+				) {
+					offsets.set(lid, src);
+					return true;
 				}
-			}
+				return false;
+			};
 
-			if (!src) {
-				for (let j = i - 1; j >= 0; j--) {
-					const k = tunnelKeys[j];
-					const tl = tunnels.get(k)?.lines;
-					if (tl && tl.has(lid) && tl.size > 1) {
-						src = lineOffsetsInTunnel.get(k)?.get(lid) ?? null;
-						srcIdx = j;
-						break;
-					}
-				}
-			}
-
-			if (
-				src &&
-				srcIdx >= 0 &&
-				directionChangedAt(path, i, srcIdx) &&
-				multiTunnelHasThroughLine(tunnelKeys[srcIdx], basePaths, tunnels)
-			) {
-				offsets.set(lid, src);
-			}
+			if (tryPropagate(i + 1) || tryPropagate(i - 1)) continue;
 		}
 	}
 
