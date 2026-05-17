@@ -3,17 +3,19 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Tooltip, IconButton } from '$lib/components/ui';
 
-	function toggle(tab: 'general' | 'type' | 'line' | 'station') {
+	function toggle(tab: 'general' | 'type' | 'line' | 'station' | 'tunnel') {
 		if (tab === 'type' && !editorState.selectedTransitTypeId) return;
 		if (tab === 'line' && !editorState.selectedLineId) return;
 		if (tab === 'station' && !editorState.selectedStationId && !editorState.selectedAnchorId)
 			return;
+		if (tab === 'tunnel' && !editorState.selectedTunnelKey) return;
 		editorState.rightTab = editorState.rightTab === tab ? null : tab;
 	}
 
 	let hasType = $derived(!!editorState.selectedTransitTypeId);
 	let hasLine = $derived(!!editorState.selectedLineId);
 	let hasStation = $derived(!!editorState.selectedStationId || !!editorState.selectedAnchorId);
+	let hasTunnel = $derived(!!editorState.selectedTunnel);
 </script>
 
 <aside
@@ -60,6 +62,17 @@
 				: ''}
 		>
 			<span class="material-symbols-outlined">location_on</span>
+		</IconButton>
+	</Tooltip>
+	<Tooltip text={m.tunnel()}>
+		<IconButton
+			disabled={!hasTunnel}
+			onclick={() => toggle('tunnel')}
+			class={editorState.rightTab === 'tunnel'
+				? '!bg-secondary-container !text-on-secondary-container'
+				: ''}
+		>
+			<span class="material-symbols-outlined">linear_scale</span>
 		</IconButton>
 	</Tooltip>
 </aside>

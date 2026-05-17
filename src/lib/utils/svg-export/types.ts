@@ -18,6 +18,8 @@ export interface ExportData {
 	viewStations: ViewStation[];
 	hiddenLineIds: number[];
 	hiddenStationIds: number[];
+	tunnelOrder?: Record<string, number[]>;
+	cornerRadii?: Record<string, number>;
 }
 
 export interface ExportOptions {

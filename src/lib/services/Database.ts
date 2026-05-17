@@ -7,7 +7,9 @@ import type {
 	RoutePoint,
 	AnchorPoint,
 	View,
-	ViewStation
+	ViewStation,
+	TunnelOrderEntry,
+	CornerRadiusEntry
 } from '../types';
 
 export class TransitDatabase extends Dexie {
@@ -19,11 +21,13 @@ export class TransitDatabase extends Dexie {
 	anchorPoints!: Table<AnchorPoint, number>;
 	views!: Table<View, number>;
 	viewStations!: Table<ViewStation, number>;
+	tunnelOrders!: Table<TunnelOrderEntry, number>;
+	cornerRadii!: Table<CornerRadiusEntry, number>;
 
 	constructor() {
 		super('TransitDB');
 
-		this.version(6).stores({
+		this.version(8).stores({
 			projects: '++id, name, updatedAt',
 			transitTypes: '++id, projectId',
 			lines: '++id, projectId, transitTypeId, zIndex',
@@ -31,7 +35,9 @@ export class TransitDatabase extends Dexie {
 			routePoints: '++id, lineId, stationId, order',
 			anchorPoints: '++id, lineId, order, viewId',
 			views: '++id, projectId',
-			viewStations: '++id, viewId, [viewId+stationId]'
+			viewStations: '++id, viewId, [viewId+stationId]',
+			tunnelOrders: '++id, projectId, [projectId+viewId]',
+			cornerRadii: '++id, projectId, [projectId+viewId]'
 		});
 	}
 }

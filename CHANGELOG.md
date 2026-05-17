@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.0-beta (2026-05-17)
+
+**EN:** Tunnel-based rendering & corner radius
+
+- Complete line rendering overhaul with tunnel-aware offsets and segment ordering
+- Per-view corner radius on path angle nodes with slider and reset
+- Corner properties panel (selectable from the segment list)
+- Geometry utilities extracted to a dedicated module
+
+**FR:** Rendu basé sur les tunnels et coins arrondis
+
+- Refonte complète du rendu des lignes avec décalages par tunnel et ordre des segments
+- Rayon d'arrondi par vue sur les nœuds d'angle du tracé avec curseur et réinitialisation
+- Panneau de propriétés d'angle (sélectionnable depuis la liste des segments)
+- Extraction des utilitaires de géométrie dans un module dédié
+
 ## 0.13.0-beta (2026-05-16)
 
 **EN:** Station naming dialog & anchor list fix
