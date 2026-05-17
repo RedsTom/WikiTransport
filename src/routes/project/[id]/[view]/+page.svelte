@@ -27,6 +27,48 @@
 	let isGlobal = $derived(viewParam === 'global');
 	let isLoading = $state(true);
 
+	let leftPanelWidth = $state(320);
+	let rightPanelWidth = $state(320);
+	let resizing = $state<'left' | 'right' | null>(null);
+
+	function startResize(side: 'left' | 'right') {
+		return (e: MouseEvent) => {
+			e.preventDefault();
+			resizing = side;
+		};
+	}
+
+	function handleResizeMouseMove(e: MouseEvent) {
+		if (!resizing) return;
+		if (resizing === 'left') {
+			const newWidth = Math.max(200, Math.min(600, e.clientX - 44));
+			leftPanelWidth = newWidth;
+		} else {
+			const newWidth = Math.max(200, Math.min(600, window.innerWidth - e.clientX - 44));
+			rightPanelWidth = newWidth;
+		}
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+	}
+
+	function handleResizeMouseUp() {
+		if (!resizing) return;
+		resizing = null;
+		document.body.style.cursor = '';
+		document.body.style.userSelect = '';
+	}
+
+	$effect(() => {
+		if (resizing) {
+			window.addEventListener('mousemove', handleResizeMouseMove);
+			window.addEventListener('mouseup', handleResizeMouseUp);
+			return () => {
+				window.removeEventListener('mousemove', handleResizeMouseMove);
+				window.removeEventListener('mouseup', handleResizeMouseUp);
+			};
+		}
+	});
+
 	function handleTogglePlacement() {
 		if (editorState.placementMode === 'station') {
 			editorState.placementMode = null;
@@ -43,23 +85,35 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
+	async function handleKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
 		if (target.matches('input, textarea, select, [contenteditable]')) return;
 		if (e.key === 'Escape') {
 			if (editorState.placementMode) {
 				editorState.placementMode = null;
 				editorState.pendingLineInsert = null;
-			} else if (editorState.selectedAnchorId) {
-				editorState.selectedAnchorId = null;
+			} else if (editorState.isMultiSelecting || editorState.selectedAnchorId) {
+				editorState.clearSelection();
 			} else if (editorState.selectedStationId) {
-				editorState.selectedStationId = null;
+				editorState.clearSelection();
 			} else if (editorState.selectedLineId) {
 				editorState.selectedLineId = null;
 			}
 		}
 		if (e.key === 'Delete' || e.key === 'Backspace') {
-			if (editorState.selectedStationId) {
+			if (editorState.isMultiSelecting) {
+				e.preventDefault();
+				const stationIds = [...editorState.selectedStationIds];
+				const anchorIds = [...editorState.selectedAnchorIds];
+				editorState.clearSelection();
+				for (const sid of stationIds) {
+					await StationService.deleteStation(sid);
+				}
+				for (const aid of anchorIds) {
+					await AnchorPointService.delete(aid);
+				}
+				await EditorService.reloadAll(editorState);
+			} else if (editorState.selectedStationId) {
 				e.preventDefault();
 				editorState.stationToDelete = editorState.selectedStationId;
 				editorState.deleteStationOpen = true;
@@ -76,7 +130,7 @@
 		if (e.key === 'd' || e.key === 'D') {
 			e.preventDefault();
 			editorState.selectedLineId = null;
-			editorState.selectedStationId = null;
+			editorState.clearSelection();
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
 		}
@@ -93,7 +147,7 @@
 						nextIndex = e.shiftKey ? (cur - 1 + rps.length) % rps.length : (cur + 1) % rps.length;
 					}
 				}
-				editorState.selectedStationId = rps[nextIndex].stationId;
+				editorState.setSelection(rps[nextIndex].stationId);
 				editorState.rightTab = 'station';
 			}
 		}
@@ -184,7 +238,16 @@
 		<div class="flex flex-1 overflow-hidden" tabindex="-1" onkeydown={handleKeydown}>
 			<LeftTabs />
 			{#if editorState.leftTab !== null}
-				<LeftPanel />
+				<LeftPanel bind:width={leftPanelWidth} />
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+				<div
+					class="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-primary active:bg-primary"
+					onmousedown={startResize('left')}
+					role="separator"
+					aria-orientation="vertical"
+					aria-label="Resize left panel"
+					tabindex="-1"
+				></div>
 			{/if}
 
 			<main
@@ -224,7 +287,16 @@
 			</main>
 
 			{#if editorState.rightTab !== null}
-				<RightPanel />
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+				<div
+					class="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-primary active:bg-primary"
+					onmousedown={startResize('right')}
+					role="separator"
+					aria-orientation="vertical"
+					aria-label="Resize right panel"
+					tabindex="-1"
+				></div>
+				<RightPanel bind:width={rightPanelWidth} />
 			{/if}
 			<RightTabs />
 		</div>

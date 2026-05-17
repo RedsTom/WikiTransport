@@ -1,7 +1,7 @@
 {
 	"name": "wikitransport",
 	"private": true,
-	"version": "0.14.0-beta",
+	"version": "0.15.0-beta",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -47,6 +47,8 @@
 		"@floating-ui/dom": "^1.7.6",
 		"dexie": "^4.4.2",
 		"jszip": "^3.10.1",
-		"svelte-dnd-action": "^0.9.69"
+		"marked": "^18.0.3",
+		"svelte-dnd-action": "^0.9.69",
+		"svelte-markdown": "^0.4.1"
 	}
 }

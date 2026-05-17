@@ -36,13 +36,15 @@ export class EditorState {
 	);
 	isSwitchingView = $state(false);
 
-	leftTab = $state<'overview' | 'types' | 'stations' | 'tunnels' | null>(null);
+	leftTab = $state<'overview' | 'types' | 'stations' | 'tunnels' | 'guide' | null>(null);
 	rightTab = $state<'general' | 'type' | 'line' | 'station' | 'tunnel' | 'corner' | null>(null);
 
 	selectedTransitTypeId = $state<number | null>(null);
 	selectedLineId = $state<number | null>(null);
 	selectedStationId = $state<number | null>(null);
+	selectedStationIds = $state<number[]>([]);
 	selectedAnchorId = $state<number | null>(null);
+	selectedAnchorIds = $state<number[]>([]);
 	selectedTunnelKey = $state<string | null>(null);
 	selectedCornerKey = $state<string | null>(null);
 	hoveredAnchorId = $state<number | null>(null);
@@ -366,6 +368,82 @@ export class EditorState {
 		ViewService.update(view.id!, { hiddenStationIds: ids });
 	}
 
+	/* Station multi-selection */
+
+	setSelection(id: number | null) {
+		this.selectedStationId = id;
+		this.selectedStationIds = id !== null ? [id] : [];
+	}
+
+	addToSelection(id: number) {
+		if (!this.selectedStationIds.includes(id)) {
+			this.selectedStationIds = [...this.selectedStationIds, id];
+		}
+		this.selectedStationId = id;
+	}
+
+	removeFromSelection(id: number) {
+		this.selectedStationIds = this.selectedStationIds.filter((sid) => sid !== id);
+		this.selectedStationId =
+			this.selectedStationIds.length > 0
+				? this.selectedStationIds[this.selectedStationIds.length - 1]
+				: null;
+	}
+
+	toggleSelection(id: number) {
+		if (this.selectedStationIds.includes(id)) {
+			this.removeFromSelection(id);
+		} else {
+			this.addToSelection(id);
+		}
+	}
+
+	clearSelection() {
+		this.selectedStationIds = [];
+		this.selectedStationId = null;
+		this.selectedAnchorIds = [];
+		this.selectedAnchorId = null;
+	}
+
+	get isMultiSelecting(): boolean {
+		return this.selectedStationIds.length > 1 || this.selectedAnchorIds.length > 1;
+	}
+
+	/* Anchor multi-selection */
+
+	setAnchorSelection(id: number | null) {
+		this.selectedAnchorId = id;
+		this.selectedAnchorIds = id !== null ? [id] : [];
+	}
+
+	addAnchorToSelection(id: number) {
+		if (!this.selectedAnchorIds.includes(id)) {
+			this.selectedAnchorIds = [...this.selectedAnchorIds, id];
+		}
+		this.selectedAnchorId = id;
+	}
+
+	removeAnchorFromSelection(id: number) {
+		this.selectedAnchorIds = this.selectedAnchorIds.filter((aid) => aid !== id);
+		this.selectedAnchorId =
+			this.selectedAnchorIds.length > 0
+				? this.selectedAnchorIds[this.selectedAnchorIds.length - 1]
+				: null;
+	}
+
+	toggleAnchorSelection(id: number) {
+		if (this.selectedAnchorIds.includes(id)) {
+			this.removeAnchorFromSelection(id);
+		} else {
+			this.addAnchorToSelection(id);
+		}
+	}
+
+	clearAnchorSelection() {
+		this.selectedAnchorIds = [];
+		this.selectedAnchorId = null;
+	}
+
 	reset() {
 		this.project = null;
 		this.transitTypes = [];
@@ -381,7 +459,9 @@ export class EditorState {
 		this.selectedTransitTypeId = null;
 		this.selectedLineId = null;
 		this.selectedStationId = null;
+		this.selectedStationIds = [];
 		this.selectedAnchorId = null;
+		this.selectedAnchorIds = [];
 		this.selectedTunnelKey = null;
 		this.selectedCornerKey = null;
 		this.hoveredTunnelKey = null;

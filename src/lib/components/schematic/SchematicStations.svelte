@@ -2,7 +2,7 @@
 	import { editorState } from '$lib/store/editor.svelte';
 	import { measureText } from '$lib/utils/textMeasure';
 	import { getLabelLayout } from '$lib/utils/schematic';
-	import { getBadgeLayout } from '$lib/utils/svg-export';
+	import { getBadgeLayout } from '$lib/utils/svg-export/badge-layout';
 	import { POINT_RADIUS, DIR_CFG } from '$lib/constants/schematic';
 	import type { IconShape } from '$lib/types';
 	import SchematicBadges from './SchematicBadges.svelte';
@@ -30,7 +30,7 @@
 		!editorState.isGlobalView && editorState.effectiveHiddenStationIds.has(station.id!)}
 	{#if !isHidden}
 		{@const pos = editorState.stationPosition(station)}
-		{@const isSelected = editorState.selectedStationId === station.id}
+		{@const isSelected = editorState.selectedStationIds.includes(station.id!)}
 		{@const labelDir = editorState.stationLabelDirection(station)}
 		{@const labelAnchor = editorState.stationLabelAnchor(station)}
 		{@const dCfg = DIR_CFG[labelDir] ?? DIR_CFG.E}

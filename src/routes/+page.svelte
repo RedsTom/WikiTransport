@@ -18,6 +18,18 @@
 			{m.app_title()}
 		</span>
 		<div class="flex items-center gap-4">
+			<a
+				href={resolve('/guide')}
+				class="text-sm font-medium text-on-surface-variant transition-colors hover:text-primary"
+			>
+				{m.guide()}
+			</a>
+			<a
+				href={resolve('/changelogs')}
+				class="text-sm font-medium text-on-surface-variant transition-colors hover:text-primary"
+			>
+				{m.changelog()}
+			</a>
 			<div class="flex items-center gap-2">
 				{#each locales as l (l)}
 					<button

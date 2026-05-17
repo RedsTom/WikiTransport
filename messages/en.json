@@ -49,6 +49,7 @@
 	"nothing_matches": "Nothing matches your search.",
 	"no_stations_or_anchors": "No stations or anchors yet.",
 	"station": "Station",
+	"stations": "Stations",
 	"subtitle_alignment": "Subtitle alignment",
 	"left": "Left",
 	"center": "Center",
@@ -187,9 +188,16 @@
 	"export_success": "Project exported successfully!",
 	"export_standard": "Normal (.wtp)",
 	"export_compact": "Compact (.wtpc)",
+	"all_changelogs": "View all changelogs",
 	"changelog": "Changelog",
 	"show_more": "Show more",
 	"show_less": "Show less",
 	"version_badge": "v{version}",
-	"og_description": "Create beautiful schematic transit maps in your browser — no server, no account, no fuss."
+	"og_description": "Create beautiful schematic transit maps in your browser — no server, no account, no fuss.",
+	"guide": "Guide",
+	"back": "Back",
+	"last_updated": "Last updated",
+	"section_not_found": "Section not found",
+	"beta_notice": "WikiTransport is still in beta and may contain bugs.",
+	"report_bug": "Report a bug"
 }

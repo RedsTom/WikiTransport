@@ -70,7 +70,7 @@
 			);
 			await editorState.loadLines();
 			editorState.selectedLineId = newLineId;
-			editorState.selectedStationId = null;
+			editorState.clearSelection();
 			editorState.selectedTransitTypeId = null;
 		}
 	}
@@ -159,7 +159,7 @@
 
 	function selectStationOnLine(stationId: number, lineId: number) {
 		editorState.selectedLineId = lineId;
-		editorState.selectedStationId = stationId;
+		editorState.setSelection(stationId);
 		editorState.selectedAnchorId = null;
 		editorState.rightTab = 'station';
 	}
@@ -167,7 +167,7 @@
 	function selectType(id: number) {
 		editorState.selectedTransitTypeId = id;
 		editorState.selectedLineId = null;
-		editorState.selectedStationId = null;
+		editorState.clearSelection();
 		editorState.rightTab = 'type';
 	}
 

@@ -9,6 +9,8 @@
 	import TunnelProperties from './TunnelProperties.svelte';
 	import CornerProperties from './CornerProperties.svelte';
 
+	let { width = $bindable(320) }: { width: number } = $props();
+
 	let selectedLine = $derived(editorState.lines.find((l) => l.id === editorState.selectedLineId));
 	let selectedStation = $derived(
 		editorState.stations.find((s) => s.id === editorState.selectedStationId)
@@ -25,7 +27,10 @@
 	let hasTunnel = $derived(!!editorState.selectedTunnel);
 </script>
 
-<aside class="flex w-80 shrink-0 flex-col border-l border-outline/20 bg-surface">
+<aside
+	class="flex shrink-0 flex-col border-l border-outline/20 bg-surface"
+	style="width: {width}px"
+>
 	<div class="flex h-14 shrink-0 items-center justify-between border-b border-outline/20 px-3">
 		<h2 class="text-sm font-bold">
 			{#if editorState.rightTab === 'general'}

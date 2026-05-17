@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Tooltip, IconButton } from '$lib/components/ui';
 
-	function toggle(tab: 'overview' | 'types' | 'stations' | 'tunnels') {
+	function toggle(tab: 'overview' | 'types' | 'stations' | 'tunnels' | 'guide') {
 		editorState.leftTab = editorState.leftTab === tab ? null : tab;
 	}
 </script>
@@ -51,4 +51,16 @@
 			<span class="material-symbols-outlined">linear_scale</span>
 		</IconButton>
 	</Tooltip>
+	<div class="mt-auto flex flex-col items-center gap-2 pb-2">
+		<Tooltip text={m.guide()}>
+			<IconButton
+				onclick={() => toggle('guide')}
+				class={editorState.leftTab === 'guide'
+					? '!bg-secondary-container !text-on-secondary-container'
+					: ''}
+			>
+				<span class="material-symbols-outlined">help</span>
+			</IconButton>
+		</Tooltip>
+	</div>
 </aside>

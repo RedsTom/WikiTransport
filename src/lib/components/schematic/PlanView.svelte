@@ -14,6 +14,7 @@
 	} from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import {
 		screenToSvg,
 		screenToSvgRaw,
@@ -28,6 +29,7 @@
 	import SchematicLines from './SchematicLines.svelte';
 	import SchematicStations from './SchematicStations.svelte';
 	import SchematicAnchors from './SchematicAnchors.svelte';
+	import SchematicSelectionRect from './SchematicSelectionRect.svelte';
 
 	let svgEl = $state<SVGSVGElement | null>(null);
 	let viewport = useViewport(() => svgEl);
@@ -37,6 +39,12 @@
 	let didDragStation = false;
 	let dragStartScreenX = 0;
 	let dragStartScreenY = 0;
+	let dragStartSvgPos = $state({ x: 0, y: 0 });
+	let dragStartPositions = new SvelteMap<number, { x: number; y: number }>();
+
+	let isRubberBanding = $state(false);
+	let rubberBandStart = $state({ x: 0, y: 0 });
+	let selectionRect = $state({ x: 0, y: 0, width: 0, height: 0 });
 
 	let ctxMenu = useContextMenu();
 	let pendingContextStationId = $state<number | null>(null);
@@ -70,10 +78,18 @@
 			const lineEl = target.closest('[data-line]') as SVGElement;
 			const lineId = Number(lineEl.getAttribute('data-line'));
 			editorState.selectedLineId = lineId;
-			editorState.selectedStationId = null;
+			editorState.clearSelection();
 			editorState.selectedAnchorId = null;
 			editorState.selectedTransitTypeId = null;
 			editorState.rightTab = 'line';
+			return;
+		}
+
+		if (e.shiftKey) {
+			const rawPos = screenToSvgRaw(e, svgEl!);
+			isRubberBanding = true;
+			rubberBandStart = { x: rawPos.x, y: rawPos.y };
+			selectionRect = { x: rawPos.x, y: rawPos.y, width: 0, height: 0 };
 			return;
 		}
 
@@ -83,9 +99,25 @@
 	function startDragAnchor(e: MouseEvent, id: number) {
 		if (editorState.placementMode) return;
 		e.stopPropagation();
+		if (e.ctrlKey || e.metaKey || e.shiftKey) {
+			editorState.toggleAnchorSelection(id);
+			return;
+		}
+		editorState.clearSelection();
+		editorState.setAnchorSelection(id);
 		draggedAnchorId = id;
-		editorState.selectedAnchorId = id;
-		editorState.selectedStationId = null;
+		didDragStation = false;
+		dragStartScreenX = e.clientX;
+		dragStartScreenY = e.clientY;
+		const svgPos = screenToSvg(e, svgEl!);
+		dragStartSvgPos = { x: svgPos.x, y: svgPos.y };
+		dragStartPositions = new SvelteMap();
+		for (const aid of editorState.selectedAnchorIds) {
+			const ap = editorState.anchorPoints.find((a) => a.id === aid);
+			if (ap) {
+				dragStartPositions.set(aid, { x: ap.schematicX, y: ap.schematicY });
+			}
+		}
 		editorState.selectedTransitTypeId = null;
 	}
 
@@ -132,7 +164,7 @@
 		}
 		await editorState.loadStations();
 		await editorState.loadRoutePoints();
-		editorState.selectedStationId = stationId;
+		editorState.setSelection(stationId);
 		editorState.rightTab = 'station';
 		editorState.placementMode = null;
 		stationNameDialogOpen = false;
@@ -235,7 +267,7 @@
 				label: m.edit_station(),
 				icon: 'edit',
 				action: () => {
-					editorState.selectedStationId = stationId;
+					editorState.setSelection(stationId);
 					editorState.rightTab = 'station';
 				}
 			},
@@ -273,8 +305,7 @@
 			const anchorId = Number(target.getAttribute('data-anchor-id'));
 			const anchor = editorState.anchorPoints.find((a) => a.id === anchorId);
 			if (!anchor) return;
-			editorState.selectedAnchorId = anchorId;
-			editorState.selectedStationId = null;
+			editorState.setAnchorSelection(anchorId);
 			ctxMenu.show(e, [
 				{
 					label: m.edit_anchor(),
@@ -345,34 +376,56 @@
 
 	function handleMouseMove(e: MouseEvent) {
 		const svg = e.currentTarget as SVGSVGElement;
-		if (draggedStationId !== null) {
+		if (isRubberBanding) {
+			const rawPos = screenToSvgRaw(e, svgEl!);
+			const x = Math.min(rubberBandStart.x, rawPos.x);
+			const y = Math.min(rubberBandStart.y, rawPos.y);
+			const w = Math.abs(rawPos.x - rubberBandStart.x);
+			const h = Math.abs(rawPos.y - rubberBandStart.y);
+			selectionRect = { x, y, width: w, height: h };
+			return;
+		}
+		if (draggedStationId !== null || draggedAnchorId !== null) {
 			if (!didDragStation) {
 				const dx = e.clientX - dragStartScreenX;
 				const dy = e.clientY - dragStartScreenY;
 				if (dx * dx + dy * dy < 16) return;
 				didDragStation = true;
 			}
-			const station = editorState.stations.find((s) => s.id === draggedStationId);
-			if (station) {
-				const pos = screenToSvg(e, svg);
-				station.schematicX = pos.x;
-				station.schematicY = pos.y;
-				if (!editorState.isGlobalView && editorState.activeViewId !== null) {
-					const vs = editorState.viewStations.find(
-						(vs) => vs.viewId === editorState.activeViewId && vs.stationId === station.id
-					);
-					if (vs) {
-						vs.schematicX = pos.x;
-						vs.schematicY = pos.y;
+			const pos = screenToSvg(e, svg);
+			const deltaX = pos.x - dragStartSvgPos.x;
+			const deltaY = pos.y - dragStartSvgPos.y;
+			for (const sid of editorState.selectedStationIds) {
+				const st = editorState.stations.find((s) => s.id === sid);
+				if (st) {
+					const orig = dragStartPositions.get(sid);
+					if (orig) {
+						st.schematicX = orig.x + deltaX;
+						st.schematicY = orig.y + deltaY;
+					}
+					if (!editorState.isGlobalView && editorState.activeViewId !== null) {
+						const vs = editorState.viewStations.find(
+							(vs) => vs.viewId === editorState.activeViewId && vs.stationId === sid
+						);
+						if (vs) {
+							const origVs = dragStartPositions.get(sid);
+							if (origVs) {
+								vs.schematicX = origVs.x + deltaX;
+								vs.schematicY = origVs.y + deltaY;
+							}
+						}
 					}
 				}
 			}
-		} else if (draggedAnchorId !== null) {
-			const anchor = editorState.anchorPoints.find((a) => a.id === draggedAnchorId);
-			if (anchor) {
-				const pos = screenToSvg(e, svg);
-				anchor.schematicX = pos.x;
-				anchor.schematicY = pos.y;
+			for (const aid of editorState.selectedAnchorIds) {
+				const ap = editorState.anchorPoints.find((a) => a.id === aid);
+				if (ap) {
+					const orig = dragStartPositions.get(aid);
+					if (orig) {
+						ap.schematicX = orig.x + deltaX;
+						ap.schematicY = orig.y + deltaY;
+					}
+				}
 			}
 		} else {
 			viewport.movePan(e.clientX, e.clientY);
@@ -381,35 +434,87 @@
 
 	async function handleMouseUp() {
 		viewport.stopPan();
-		if (draggedStationId !== null) {
+		if (isRubberBanding) {
+			isRubberBanding = false;
+			const rect = selectionRect;
+			if (rect.width > 4 || rect.height > 4) {
+				const selStationIds: number[] = [];
+				for (const st of editorState.stations) {
+					if (!st.id) continue;
+					if (editorState.effectiveHiddenStationIds.has(st.id)) continue;
+					const pos = editorState.stationPosition(st);
+					if (
+						pos.x >= rect.x &&
+						pos.x <= rect.x + rect.width &&
+						pos.y >= rect.y &&
+						pos.y <= rect.y + rect.height
+					) {
+						selStationIds.push(st.id);
+					}
+				}
+				const selAnchorIds: number[] = [];
+				const hiddenLineIds = editorState.effectiveHiddenLineIds;
+				for (const ap of editorState.anchorPoints) {
+					if (!ap.id) continue;
+					if (hiddenLineIds.has(ap.lineId)) continue;
+					if (
+						ap.schematicX >= rect.x &&
+						ap.schematicX <= rect.x + rect.width &&
+						ap.schematicY >= rect.y &&
+						ap.schematicY <= rect.y + rect.height
+					) {
+						selAnchorIds.push(ap.id);
+					}
+				}
+				if (selStationIds.length > 0) {
+					editorState.selectedStationIds = selStationIds;
+					editorState.selectedStationId = selStationIds[selStationIds.length - 1];
+				} else {
+					editorState.clearSelection();
+				}
+				if (selAnchorIds.length > 0) {
+					editorState.selectedAnchorIds = selAnchorIds;
+					editorState.selectedAnchorId = selAnchorIds[selAnchorIds.length - 1];
+				} else {
+					editorState.clearAnchorSelection();
+				}
+			} else {
+				editorState.clearSelection();
+			}
+			selectionRect = { x: 0, y: 0, width: 0, height: 0 };
+			return;
+		}
+		if (draggedStationId !== null || draggedAnchorId !== null) {
 			if (didDragStation) {
-				const station = editorState.stations.find((s) => s.id === draggedStationId);
-				if (station) {
-					if (editorState.isGlobalView) {
-						await StationService.updateStation(station.id!, {
-							schematicX: station.schematicX,
-							schematicY: station.schematicY
+				for (const sid of editorState.selectedStationIds) {
+					const st = editorState.stations.find((s) => s.id === sid);
+					if (st) {
+						if (editorState.isGlobalView) {
+							await StationService.updateStation(st.id!, {
+								schematicX: st.schematicX,
+								schematicY: st.schematicY
+							});
+						} else if (editorState.activeViewId !== null) {
+							await EditorService.updateViewStationPosition(
+								editorState,
+								st.id!,
+								st.schematicX,
+								st.schematicY
+							);
+						}
+					}
+				}
+				for (const aid of editorState.selectedAnchorIds) {
+					const ap = editorState.anchorPoints.find((a) => a.id === aid);
+					if (ap) {
+						await AnchorPointService.update(ap.id!, {
+							schematicX: ap.schematicX,
+							schematicY: ap.schematicY
 						});
-					} else if (editorState.activeViewId !== null) {
-						await EditorService.updateViewStationPosition(
-							editorState,
-							station.id!,
-							station.schematicX,
-							station.schematicY
-						);
 					}
 				}
 			}
 			draggedStationId = null;
-		}
-		if (draggedAnchorId !== null) {
-			const anchor = editorState.anchorPoints.find((a) => a.id === draggedAnchorId);
-			if (anchor) {
-				await AnchorPointService.update(anchor.id!, {
-					schematicX: anchor.schematicX,
-					schematicY: anchor.schematicY
-				});
-			}
 			draggedAnchorId = null;
 		}
 	}
@@ -417,12 +522,34 @@
 	function startDragStation(e: MouseEvent, id: number) {
 		if (editorState.placementMode) return;
 		e.stopPropagation();
+		if (e.ctrlKey || e.metaKey || e.shiftKey) {
+			editorState.toggleSelection(id);
+			editorState.rightTab = 'station';
+			return;
+		}
+		if (!editorState.selectedStationIds.includes(id)) {
+			editorState.clearSelection();
+			editorState.setSelection(id);
+		}
 		draggedStationId = id;
 		didDragStation = false;
 		dragStartScreenX = e.clientX;
 		dragStartScreenY = e.clientY;
-		editorState.selectedStationId = id;
-		editorState.selectedAnchorId = null;
+		const svgPos = screenToSvg(e, svgEl!);
+		dragStartSvgPos = { x: svgPos.x, y: svgPos.y };
+		dragStartPositions = new SvelteMap();
+		for (const sid of editorState.selectedStationIds) {
+			const st = editorState.stations.find((s) => s.id === sid);
+			if (st) {
+				dragStartPositions.set(sid, { x: st.schematicX, y: st.schematicY });
+			}
+		}
+		for (const aid of editorState.selectedAnchorIds) {
+			const ap = editorState.anchorPoints.find((a) => a.id === aid);
+			if (ap) {
+				dragStartPositions.set(aid, { x: ap.schematicX, y: ap.schematicY });
+			}
+		}
 		editorState.selectedTransitTypeId = null;
 		editorState.rightTab = 'station';
 	}
@@ -446,7 +573,7 @@
 			stationPoints,
 			editorState.tunnelOrder
 		);
-		const multiLineTunnels = new Set<string>();
+		const multiLineTunnels = new SvelteSet<string>();
 		for (const [tunnelKey, tunnel] of tunnels) {
 			if (tunnel.lines.size > 1) multiLineTunnels.add(tunnelKey);
 		}
@@ -543,6 +670,14 @@
 				pointer-events="none"
 			/>
 			<circle {cx} {cy} r="4" fill="rgba(100, 200, 255, 0.9)" pointer-events="none" />
+		{/if}
+		{#if isRubberBanding}
+			<SchematicSelectionRect
+				x={selectionRect.x}
+				y={selectionRect.y}
+				width={selectionRect.width}
+				height={selectionRect.height}
+			/>
 		{/if}
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />

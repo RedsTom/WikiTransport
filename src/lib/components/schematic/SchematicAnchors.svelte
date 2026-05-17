@@ -12,7 +12,7 @@
 	{@const isHiddenAnchor =
 		!editorState.isGlobalView && editorState.effectiveHiddenLineIds.has(ap.lineId)}
 	{#if !isHiddenAnchor}
-		{@const isSelected = editorState.selectedAnchorId === ap.id}
+		{@const isSelected = editorState.selectedAnchorIds.includes(ap.id!)}
 		{@const isHovered = editorState.hoveredAnchorId === ap.id}
 		<polygon
 			points="-5,0 0,-5 5,0 0,5"
