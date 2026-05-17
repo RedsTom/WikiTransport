@@ -16,15 +16,11 @@
 	import {
 		Button,
 		Fab,
-		IconButton,
 		Dialog,
 		TextField,
 		NativeSelect,
-		CircularProgress,
-		DropdownMenu
+		CircularProgress
 	} from '$lib/components/ui';
-
-	let currentLocale = $derived(useLocale());
 
 	let projects = $state<Project[]>([]);
 	let projectsLoading = $state(true);

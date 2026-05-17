@@ -1,17 +1,15 @@
 <script lang="ts">
-	import { SvelteMap } from 'svelte/reactivity';
+	import { SvelteSet } from 'svelte/reactivity';
 	import * as m from '$lib/paraglide/messages.js';
 	import { editorState } from '$lib/store/editor.svelte';
 
 	let search = $state('');
-	let collapsed = $state<Set<number>>(new Set());
+	let collapsed = new SvelteSet<number>();
 	let initialCollapsedSet = $state(false);
 
 	$effect(() => {
 		if (initialCollapsedSet || groups.length === 0) return;
-		const next = new Set<number>();
-		for (const g of groups) next.add(g.lineId);
-		collapsed = next;
+		for (const g of groups) collapsed.add(g.lineId);
 		initialCollapsedSet = true;
 	});
 
@@ -26,13 +24,11 @@
 	}
 
 	function toggleCollapse(lineId: number) {
-		const next = new Set(collapsed);
-		if (next.has(lineId)) {
-			next.delete(lineId);
+		if (collapsed.has(lineId)) {
+			collapsed.delete(lineId);
 		} else {
-			next.add(lineId);
+			collapsed.add(lineId);
 		}
-		collapsed = next;
 	}
 
 	function stationNameAt(x: number, y: number): string | null {
@@ -81,7 +77,7 @@
 		return sortedLines.map((line) => {
 			const path = basePaths.get(line.id!)!;
 			const items: ListItem[] = [];
-			const seenCorners = new Set<string>();
+			const seenCorners = new SvelteSet<string>();
 
 			for (let i = 0; i < path.length; i++) {
 				if (i < path.length - 1) {
@@ -175,7 +171,7 @@
 					</span>
 				</button>
 				{#if !collapsed.has(group.lineId)}
-					{#each group.items as item (item.key + '-' + group.lineId)}
+					{#each group.items as item (group.lineId + '-' + item.key)}
 						{#if item.kind === 'segment'}
 							<button
 								class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-surface-variant/60 {editorState.selectedTunnelKey ===

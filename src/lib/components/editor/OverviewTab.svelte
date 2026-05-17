@@ -146,6 +146,36 @@
 		await editorState.loadLines();
 	}
 
+	function buildLineContextMenu(lineId: number): ContextMenuItem[] {
+		return [
+			{
+				label: m.edit_line(),
+				icon: 'edit',
+				action: () => selectLine(lineId)
+			},
+			...(!editorState.isGlobalView
+				? [
+						{
+							label: editorState.effectiveHiddenLineIds.has(lineId) ? m.show_line() : m.hide_line(),
+							icon: editorState.effectiveHiddenLineIds.has(lineId)
+								? 'visibility'
+								: 'visibility_off',
+							action: () => EditorService.toggleLineVisibility(editorState, lineId)
+						}
+					]
+				: []),
+			{ separator: true, label: '', action: () => {} },
+			{
+				label: m.delete_line(),
+				icon: 'delete',
+				action: () => {
+					editorState.lineToDelete = lineId;
+					editorState.deleteLineOpen = true;
+				}
+			}
+		];
+	}
+
 	function toggleLineCollapse(id: number) {
 		if (collapsedLines.has(id)) collapsedLines.delete(id);
 		else collapsedLines.add(id);
@@ -193,37 +223,6 @@
 				action: () => {
 					editorState.selectedTransitTypeId = typeId;
 					deleteTypeConfirmOpen = true;
-				}
-			}
-		];
-	}
-
-	function buildLineContextMenu(lineId: number): ContextMenuItem[] {
-		const line = editorState.lines.find((l) => l.id === lineId);
-		return [
-			{
-				label: m.edit_line(),
-				icon: 'edit',
-				action: () => selectLine(lineId)
-			},
-			...(!editorState.isGlobalView
-				? [
-						{
-							label: editorState.effectiveHiddenLineIds.has(lineId) ? m.show_line() : m.hide_line(),
-							icon: editorState.effectiveHiddenLineIds.has(lineId)
-								? 'visibility'
-								: 'visibility_off',
-							action: () => EditorService.toggleLineVisibility(editorState, lineId)
-						}
-					]
-				: []),
-			{ separator: true, label: '', action: () => {} },
-			{
-				label: m.delete_line(),
-				icon: 'delete',
-				action: () => {
-					editorState.lineToDelete = lineId;
-					editorState.deleteLineOpen = true;
 				}
 			}
 		];
