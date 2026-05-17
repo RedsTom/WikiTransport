@@ -74,32 +74,34 @@ export function buildTunnels(
 				dedup.push(p);
 			}
 		}
-		const merged: Point[] = [dedup[0]];
-		for (let i = 1; i < dedup.length - 1; i++) {
-			const curr = dedup[i];
-			const isStation = stationPoints.has(`${Math.round(curr.x)},${Math.round(curr.y)}`);
-			if (isStation) {
+		if (dedup.length > 0) {
+			const merged: Point[] = [dedup[0]];
+			for (let i = 1; i < dedup.length - 1; i++) {
+				const curr = dedup[i];
+				const isStation = stationPoints.has(`${Math.round(curr.x)},${Math.round(curr.y)}`);
+				if (isStation) {
+					merged.push(curr);
+					continue;
+				}
+				const prev = merged[merged.length - 1];
+				const next = dedup[i + 1];
+				const dx1 = curr.x - prev.x,
+					dy1 = curr.y - prev.y;
+				const dx2 = next.x - curr.x,
+					dy2 = next.y - curr.y;
+				const sameDir =
+					(dy1 === 0 && dy2 === 0 && Math.sign(dx1) === Math.sign(dx2)) ||
+					(dx1 === 0 && dx2 === 0 && Math.sign(dy1) === Math.sign(dy2)) ||
+					(Math.abs(dx1) === Math.abs(dy1) &&
+						Math.abs(dx2) === Math.abs(dy2) &&
+						Math.sign(dx1) === Math.sign(dx2) &&
+						Math.sign(dy1) === Math.sign(dy2));
+				if (sameDir) continue;
 				merged.push(curr);
-				continue;
 			}
-			const prev = merged[merged.length - 1];
-			const next = dedup[i + 1];
-			const dx1 = curr.x - prev.x,
-				dy1 = curr.y - prev.y;
-			const dx2 = next.x - curr.x,
-				dy2 = next.y - curr.y;
-			const sameDir =
-				(dy1 === 0 && dy2 === 0 && Math.sign(dx1) === Math.sign(dx2)) ||
-				(dx1 === 0 && dx2 === 0 && Math.sign(dy1) === Math.sign(dy2)) ||
-				(Math.abs(dx1) === Math.abs(dy1) &&
-					Math.abs(dx2) === Math.abs(dy2) &&
-					Math.sign(dx1) === Math.sign(dx2) &&
-					Math.sign(dy1) === Math.sign(dy2));
-			if (sameDir) continue;
-			merged.push(curr);
+			if (dedup.length > 1) merged.push(dedup[dedup.length - 1]);
+			basePaths.set(line.id, merged);
 		}
-		if (dedup.length > 1) merged.push(dedup[dedup.length - 1]);
-		basePaths.set(line.id, merged);
 	}
 
 	// Phase 2: collect every unique point from all base paths, tracking source lines
