@@ -72,7 +72,7 @@
 				? '!bg-secondary-container !text-on-secondary-container'
 				: ''}
 		>
-			<span class="material-symbols-outlined">layers</span>
+			<span class="material-symbols-outlined">linear_scale</span>
 		</IconButton>
 	</Tooltip>
 </aside>

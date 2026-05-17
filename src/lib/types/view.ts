@@ -6,7 +6,6 @@ export interface View {
 	name: string;
 	hiddenLineIds: number[];
 	hiddenStationIds: number[];
-	tunnelOrder?: Record<string, number[]>;
 }
 
 export interface ViewStation {

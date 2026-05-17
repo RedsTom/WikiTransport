@@ -30,6 +30,7 @@
 			basePaths: Map<number, Point[]>;
 			tunnelOffsets: Map<string, Map<number, Point>>;
 			stationPoints: Set<string>;
+			multiLineTunnels: Set<string>;
 		};
 	} = $props();
 
@@ -71,7 +72,7 @@
 >
 	<rect x={bounds.minX} y={bounds.minY} width={cw} height={ch} fill="#f8f8f8" />
 	<g id="lines">
-		<ExportLines {data} {isGlobal} {renderingData} />
+		<ExportLines {data} {renderingData} />
 	</g>
 	<g id="stations">
 		<ExportStations {data} {isGlobal} />

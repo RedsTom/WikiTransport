@@ -5,10 +5,24 @@
 
 	let search = $state('');
 	let collapsed = $state<Set<number>>(new Set());
+	let initialCollapsedSet = $state(false);
+
+	$effect(() => {
+		if (initialCollapsedSet || groups.length === 0) return;
+		const next = new Set<number>();
+		for (const g of groups) next.add(g.lineId);
+		collapsed = next;
+		initialCollapsedSet = true;
+	});
 
 	function selectSegment(key: string) {
 		editorState.selectedTunnelKey = key;
 		editorState.rightTab = 'tunnel';
+	}
+
+	function selectCorner(key: string) {
+		editorState.selectedCornerKey = key;
+		editorState.rightTab = 'corner';
 	}
 
 	function toggleCollapse(lineId: number) {
@@ -31,65 +45,75 @@
 		return null;
 	}
 
-	type SegmentEntry = {
-		key: string;
-		x1: number;
-		y1: number;
-		x2: number;
-		y2: number;
-		name1: string | null;
-		name2: string | null;
-		lineIds: number[];
-	};
+	type ListItem =
+		| {
+				kind: 'segment';
+				key: string;
+				x1: number;
+				y1: number;
+				x2: number;
+				y2: number;
+				name1: string | null;
+				name2: string | null;
+				lineIds: number[];
+		  }
+		| { kind: 'corner'; key: string; x: number; y: number };
 
 	type LineGroup = {
 		lineId: number;
-		segments: SegmentEntry[];
+		items: ListItem[];
 	};
 
 	let groups = $derived.by<LineGroup[]>(() => {
 		const q = search.toLowerCase();
-		const segments = editorState.tunnelInfo.filter((t) => {
+		const { basePaths } = editorState.tunnelData;
+
+		const lineHasMatch = (lineId: number): boolean => {
 			if (!q) return true;
-			for (const lid of t.lineIds) {
-				const line = editorState.lineMap.get(lid);
-				if (line && line.name.toLowerCase().includes(q)) return true;
-			}
-			return false;
-		});
-
-		const byLine = new SvelteMap<number, SegmentEntry[]>();
-
-		for (const seg of segments) {
-			const [p1, p2] = [
-				seg.key.split(';')[0].split(',').map(Number),
-				seg.key.split(';')[1].split(',').map(Number)
-			];
-			const entry: SegmentEntry = {
-				key: seg.key,
-				x1: p1[0],
-				y1: p1[1],
-				x2: p2[0],
-				y2: p2[1],
-				name1: stationNameAt(p1[0], p1[1]),
-				name2: stationNameAt(p2[0], p2[1]),
-				lineIds: [...seg.lineIds]
-			};
-			for (const lid of seg.lineIds) {
-				const arr = byLine.get(lid) ?? [];
-				arr.push(entry);
-				byLine.set(lid, arr);
-			}
-		}
+			const line = editorState.lineMap.get(lineId);
+			return line != null && line.name.toLowerCase().includes(q);
+		};
 
 		const sortedLines = editorState.lines
-			.filter((l) => l.id != null && byLine.has(l.id))
+			.filter((l) => l.id != null && basePaths.has(l.id) && lineHasMatch(l.id))
 			.sort((a, b) => a.name.localeCompare(b.name));
 
-		return sortedLines.map((line) => ({
-			lineId: line.id!,
-			segments: byLine.get(line.id!)!
-		}));
+		return sortedLines.map((line) => {
+			const path = basePaths.get(line.id!)!;
+			const items: ListItem[] = [];
+			const seenCorners = new Set<string>();
+
+			for (let i = 0; i < path.length; i++) {
+				if (i < path.length - 1) {
+					const u = path[i];
+					const v = path[i + 1];
+					const segKey = `${u.x},${u.y};${v.x},${v.y}`;
+					const tunnel = editorState.tunnelData.tunnels.get(segKey);
+					items.push({
+						kind: 'segment',
+						key: segKey,
+						x1: u.x,
+						y1: u.y,
+						x2: v.x,
+						y2: v.y,
+						name1: stationNameAt(u.x, u.y),
+						name2: stationNameAt(v.x, v.y),
+						lineIds: tunnel ? Array.from(tunnel.lines) : [line.id!]
+					});
+				}
+
+				if (i > 0 && i < path.length - 1) {
+					const p = path[i];
+					const ck = `${p.x},${p.y}`;
+					if (!seenCorners.has(ck)) {
+						seenCorners.add(ck);
+						items.push({ kind: 'corner', key: ck, x: p.x, y: p.y });
+					}
+				}
+			}
+
+			return { lineId: line.id!, items };
+		});
 	});
 </script>
 
@@ -133,36 +157,63 @@
 						{line?.name ?? ''}
 					</span>
 					<span class="ml-auto text-xs text-on-surface-variant/60">
-						{group.segments.length}
+						{group.items.length}
 					</span>
 				</button>
 				{#if !collapsed.has(group.lineId)}
-					{#each group.segments as seg (seg.key + '-' + group.lineId)}
-						<button
-							class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-surface-variant/60 {editorState.selectedTunnelKey ===
-							seg.key
-								? 'bg-secondary-container text-on-secondary-container'
-								: ''}"
-							onclick={() => selectSegment(seg.key)}
-							onmouseenter={() => (editorState.hoveredTunnelKey = seg.key)}
-							onmouseleave={() => (editorState.hoveredTunnelKey = null)}
-						>
-							<span class="truncate text-xs">
-								{seg.name1 ?? `(${seg.x1},${seg.y1})`} → {seg.name2 ?? `(${seg.x2},${seg.y2})`}
-							</span>
-							<div class="ml-auto flex items-center gap-0.5">
-								{#each seg.lineIds.filter((lid) => lid !== group.lineId) as lid}
-									{@const otherLine = editorState.lineMap.get(lid)}
-									{#if otherLine}
-										<span
-											class="block h-2.5 w-2.5 shrink-0 rounded-full"
-											style="background:{otherLine.color}"
-											title={otherLine.name}
-										></span>
-									{/if}
-								{/each}
-							</div>
-						</button>
+					{#each group.items as item (item.key + '-' + group.lineId)}
+						{#if item.kind === 'segment'}
+							<button
+								class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-surface-variant/60 {editorState.selectedTunnelKey ===
+								item.key
+									? 'bg-secondary-container text-on-secondary-container'
+									: ''}"
+								onclick={() => selectSegment(item.key)}
+								onmouseenter={() => (editorState.hoveredTunnelKey = item.key)}
+								onmouseleave={() => (editorState.hoveredTunnelKey = null)}
+							>
+								<span class="material-symbols-outlined text-sm text-on-surface-variant/60"
+									>linear_scale</span
+								>
+								<span class="truncate text-xs">
+									{item.name1 ?? `(${item.x1},${item.y1})`} → {item.name2 ??
+										`(${item.x2},${item.y2})`}
+								</span>
+								<div class="ml-auto flex items-center gap-0.5">
+									{#each item.lineIds.filter((lid) => lid !== group.lineId) as lid}
+										{@const otherLine = editorState.lineMap.get(lid)}
+										{#if otherLine}
+											<span
+												class="block h-2.5 w-2.5 shrink-0 rounded-full"
+												style="background:{otherLine.color}"
+												title={otherLine.name}
+											></span>
+										{/if}
+									{/each}
+								</div>
+							</button>
+						{:else}
+							{@const radius = editorState.cornerRadii[item.key] ?? 0}
+							<button
+								class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-surface-variant/60 {editorState.selectedCornerKey ===
+								item.key
+									? 'bg-secondary-container text-on-secondary-container'
+									: ''}"
+								onclick={() => selectCorner(item.key)}
+								onmouseenter={() => (editorState.hoveredCornerKey = item.key)}
+								onmouseleave={() => (editorState.hoveredCornerKey = null)}
+							>
+								<span class="material-symbols-outlined text-sm text-on-surface-variant/60"
+									>trip_origin</span
+								>
+								<span class="truncate text-xs">
+									({item.x}, {item.y})
+								</span>
+								<span class="ml-auto text-xs text-on-surface-variant/60">
+									{radius > 0 ? `${radius}px` : '—'}
+								</span>
+							</button>
+						{/if}
 					{/each}
 				{/if}
 			</div>

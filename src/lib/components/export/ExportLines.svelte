@@ -6,11 +6,9 @@
 
 	let {
 		data,
-		isGlobal,
 		renderingData
 	}: {
 		data: ExportData;
-		isGlobal: boolean;
 		renderingData: {
 			basePaths: Map<number, Point[]>;
 			tunnelOffsets: Map<string, Map<number, Point>>;
@@ -24,16 +22,18 @@
 	{@const isHidden = !line.id || hiddenLineIds.has(line.id)}
 	{#if !isHidden}
 		{@const basePath = renderingData.basePaths.get(line.id!) ?? []}
-		{@const offsetPath = getOffsetPath(
+		{@const { offsetPath, roundAt } = getOffsetPath(
 			basePath,
 			line.id!,
 			renderingData.tunnelOffsets,
-			renderingData.stationPoints
+			renderingData.stationPoints,
+			undefined,
+			data.cornerRadii
 		)}
 		{#if offsetPath.length > 1}
 			{@const dashAttr = scaleDashPattern(line.dashPattern, line.strokeWidth ?? LINE_WIDTH)}
 			<path
-				d={createPathFromPoints(offsetPath)}
+				d={createPathFromPoints(offsetPath, roundAt)}
 				fill="none"
 				stroke={line.color}
 				stroke-width={line.strokeWidth ?? LINE_WIDTH}

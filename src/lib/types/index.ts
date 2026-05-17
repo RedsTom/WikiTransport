@@ -6,3 +6,5 @@ export type { RoutePoint, Direction } from './route-point';
 export type { AnchorPoint } from './anchor-point';
 export type { View, ViewStation } from './view';
 export type { IconShape, InterchangeBadgeMode, InterchangeBadgeDirection } from './interchange';
+export type { TunnelOrderEntry } from './tunnel-order';
+export type { CornerRadiusEntry } from './corner-radius';

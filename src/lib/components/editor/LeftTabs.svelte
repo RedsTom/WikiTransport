@@ -18,7 +18,7 @@
 				? '!bg-secondary-container !text-on-secondary-container'
 				: ''}
 		>
-			<span class="material-symbols-outlined">dashboard</span>
+			<span class="material-symbols-outlined">map</span>
 		</IconButton>
 	</Tooltip>
 	<Tooltip text={m.line_types()}>
@@ -48,7 +48,7 @@
 				? '!bg-secondary-container !text-on-secondary-container'
 				: ''}
 		>
-			<span class="material-symbols-outlined">layers</span>
+			<span class="material-symbols-outlined">linear_scale</span>
 		</IconButton>
 	</Tooltip>
 </aside>

@@ -19,15 +19,17 @@
 	{@const isHidden = editorState.effectiveHiddenLineIds.has(line.id!)}
 	{#if !isHidden}
 		{@const basePath = renderingData.basePaths.get(line.id!) ?? []}
-		{@const offsetPath = getOffsetPath(
+		{@const { offsetPath, roundAt } = getOffsetPath(
 			basePath,
 			line.id!,
 			renderingData.tunnelOffsets,
-			renderingData.stationPoints
+			renderingData.stationPoints,
+			undefined,
+			editorState.cornerRadii
 		)}
 		{#if offsetPath.length > 1}
 			<path
-				d={createPathFromPoints(offsetPath)}
+				d={createPathFromPoints(offsetPath, roundAt)}
 				fill="none"
 				stroke={line.color}
 				stroke-width={line.strokeWidth ?? LINE_WIDTH}

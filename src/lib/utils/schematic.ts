@@ -257,16 +257,20 @@ export function buildTunnels(
 		basePaths.set(line.id, merged);
 	}
 
-	// Phase 2: collect every unique point from all base paths
+	// Phase 2: collect every unique point from all base paths, tracking source lines
 	const allJunctionPoints = new Map<string, Point>();
-	for (const [, path] of basePaths) {
+	const pointSourceLines = new Map<string, Set<number>>();
+	for (const [lineId, path] of basePaths) {
 		for (const p of path) {
 			const key = `${Math.round(p.x)},${Math.round(p.y)}`;
 			if (!allJunctionPoints.has(key)) allJunctionPoints.set(key, p);
+			if (!pointSourceLines.has(key)) pointSourceLines.set(key, new Set());
+			pointSourceLines.get(key)!.add(lineId);
 		}
 	}
 
-	// Phase 3: inject junction points into each line's path
+	// Phase 3: inject junction points into each line's path, but only when
+	// the source line runs alongside the segment (has another point on it).
 	for (const [lineId, path] of basePaths) {
 		const newPath: Point[] = [path[0]];
 		for (let i = 0; i < path.length - 1; i++) {
@@ -274,7 +278,7 @@ export function buildTunnels(
 			const v = path[i + 1];
 
 			const toInject: Point[] = [];
-			for (const [, p] of allJunctionPoints) {
+			for (const [pKey, p] of allJunctionPoints) {
 				if (pointCoordsEqual(p, u) || pointCoordsEqual(p, v)) continue;
 
 				let alreadyIn = false;
@@ -286,7 +290,26 @@ export function buildTunnels(
 				}
 				if (alreadyIn) continue;
 
-				if (isPointOnSegment(p, u, v)) toInject.push(p);
+				if (!isPointOnSegment(p, u, v)) continue;
+
+				const sources = pointSourceLines.get(pKey);
+				if (!sources) continue;
+
+				let hasCompanion = false;
+				for (const srcLineId of sources) {
+					const srcPath = basePaths.get(srcLineId);
+					if (!srcPath) continue;
+					for (const q of srcPath) {
+						if (pointCoordsEqual(q, p)) continue;
+						if (isPointOnSegment(q, u, v)) {
+							hasCompanion = true;
+							break;
+						}
+					}
+					if (hasCompanion) break;
+				}
+
+				if (hasCompanion) toInject.push(p);
 			}
 
 			toInject.sort(
@@ -501,11 +524,14 @@ export function getOffsetPath(
 	basePath: Point[],
 	lineId: number,
 	lineOffsets: Map<string, Map<number, Point>>,
-	stationPoints: Set<string>
-): Point[] {
-	if (basePath.length < 2) return basePath;
+	stationPoints: Set<string>,
+	multiLineTunnels?: Set<string>,
+	cornerRadii?: Record<string, number>
+): { offsetPath: Point[]; roundAt: Map<number, number> } {
+	if (basePath.length < 2) return { offsetPath: basePath, roundAt: new Map() };
 
 	const offsetPath: Point[] = [];
+	const roundAt: Map<number, number> = new Map();
 
 	for (let i = 0; i < basePath.length; i++) {
 		const isStation = stationPoints.has(
@@ -530,16 +556,19 @@ export function getOffsetPath(
 			const B_in = { x: basePath[i].x + O_prev.x, y: basePath[i].y + O_prev.y };
 			const B_out = { x: basePath[i].x + O_next.x, y: basePath[i].y + O_next.y };
 
-			if (isStation) {
-				offsetPath.push(B_in);
-				if (Math.hypot(B_in.x - B_out.x, B_in.y - B_out.y) > 0.1) {
-					offsetPath.push(B_out);
-				}
-			} else {
-				const A = { x: basePath[i - 1].x + O_prev.x, y: basePath[i - 1].y + O_prev.y };
-				const C = B_out;
-				const D = { x: basePath[i + 1].x + O_next.x, y: basePath[i + 1].y + O_next.y };
+			const crx = Math.round(basePath[i].x);
+			const cry = Math.round(basePath[i].y);
+			const cr = cornerRadii?.[`${crx},${cry}`] ?? 0;
 
+			const A = { x: basePath[i - 1].x + O_prev.x, y: basePath[i - 1].y + O_prev.y };
+			const C = B_out;
+			const D = { x: basePath[i + 1].x + O_next.x, y: basePath[i + 1].y + O_next.y };
+
+			if (cr > 0) {
+				const idx = offsetPath.length;
+				roundAt.set(idx, cr);
+			}
+			if (cr > 0 || !isStation) {
 				const Q = intersectLines(A, B_in, C, D);
 				if (Q) {
 					offsetPath.push(Q);
@@ -547,15 +576,51 @@ export function getOffsetPath(
 					offsetPath.push(B_in);
 					if (Math.hypot(B_in.x - B_out.x, B_in.y - B_out.y) > 0.1) offsetPath.push(B_out);
 				}
+			} else {
+				offsetPath.push(B_in);
+				if (Math.hypot(B_in.x - B_out.x, B_in.y - B_out.y) > 0.1) {
+					offsetPath.push(B_out);
+				}
 			}
 		}
 	}
-	return offsetPath;
+	return { offsetPath, roundAt };
 }
 
-export function createPathFromPoints(coords: Point[]): string {
+export function createPathFromPoints(coords: Point[], roundAt?: Map<number, number>): string {
 	if (coords.length === 0) return '';
+	const hasRounding = roundAt && roundAt.size > 0;
+	if (coords.length < 3 || !hasRounding) {
+		let path = `M ${coords[0].x} ${coords[0].y}`;
+		for (let i = 1; i < coords.length; i++) path += ` L ${coords[i].x} ${coords[i].y}`;
+		return path;
+	}
+
 	let path = `M ${coords[0].x} ${coords[0].y}`;
-	for (let i = 1; i < coords.length; i++) path += ` L ${coords[i].x} ${coords[i].y}`;
+	for (let i = 1; i < coords.length - 1; i++) {
+		const prev = coords[i - 1];
+		const curr = coords[i];
+		const next = coords[i + 1];
+		const cr = roundAt!.get(i);
+		if (cr != null && cr > 0) {
+			const dx1 = curr.x - prev.x;
+			const dy1 = curr.y - prev.y;
+			const dx2 = next.x - curr.x;
+			const dy2 = next.y - curr.y;
+			const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+			const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+			if (len1 >= 0.1 && len2 >= 0.1) {
+				const r = Math.min(cr, len1 * 0.5, len2 * 0.5);
+				const p1x = curr.x - (dx1 / len1) * r;
+				const p1y = curr.y - (dy1 / len1) * r;
+				const p2x = curr.x + (dx2 / len2) * r;
+				const p2y = curr.y + (dy2 / len2) * r;
+				path += ` L ${+p1x.toFixed(1)} ${+p1y.toFixed(1)} Q ${curr.x} ${curr.y} ${+p2x.toFixed(1)} ${+p2y.toFixed(1)}`;
+				continue;
+			}
+		}
+		path += ` L ${curr.x} ${curr.y}`;
+	}
+	path += ` L ${coords[coords.length - 1].x} ${coords[coords.length - 1].y}`;
 	return path;
 }

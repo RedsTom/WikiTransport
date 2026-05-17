@@ -7,6 +7,7 @@
 	import TypeProperties from './TypeProperties.svelte';
 	import ProjectProperties from './ProjectProperties.svelte';
 	import TunnelProperties from './TunnelProperties.svelte';
+	import CornerProperties from './CornerProperties.svelte';
 
 	let selectedLine = $derived(editorState.lines.find((l) => l.id === editorState.selectedLineId));
 	let selectedStation = $derived(
@@ -37,6 +38,8 @@
 				{m.station()}
 			{:else if editorState.rightTab === 'tunnel'}
 				{m.tunnel()}
+			{:else if editorState.rightTab === 'corner'}
+				{m.corner_rounding()}
 			{/if}
 		</h2>
 		<button class="m3-icon-button" onclick={() => (editorState.rightTab = null)}>
@@ -56,6 +59,8 @@
 			<StationProperties />
 		{:else if editorState.rightTab === 'tunnel' && hasTunnel}
 			<TunnelProperties />
+		{:else if editorState.rightTab === 'corner' && editorState.selectedCorner}
+			<CornerProperties />
 		{/if}
 	</div>
 </aside>

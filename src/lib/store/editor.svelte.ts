@@ -17,6 +17,8 @@ import { StationService } from '../services/StationService';
 import { TransitTypeService } from '../services/TransitTypeService';
 import { AnchorPointService } from '../services/AnchorPointService';
 import { ViewService } from '../services/ViewService';
+import { TunnelOrderService } from '../services/TunnelOrderService';
+import { CornerRadiusService } from '../services/CornerRadiusService';
 
 export class EditorState {
 	project = $state<Project | null>(null);
@@ -35,15 +37,17 @@ export class EditorState {
 	isSwitchingView = $state(false);
 
 	leftTab = $state<'overview' | 'types' | 'stations' | 'tunnels' | null>(null);
-	rightTab = $state<'general' | 'type' | 'line' | 'station' | 'tunnel' | null>(null);
+	rightTab = $state<'general' | 'type' | 'line' | 'station' | 'tunnel' | 'corner' | null>(null);
 
 	selectedTransitTypeId = $state<number | null>(null);
 	selectedLineId = $state<number | null>(null);
 	selectedStationId = $state<number | null>(null);
 	selectedAnchorId = $state<number | null>(null);
 	selectedTunnelKey = $state<string | null>(null);
+	selectedCornerKey = $state<string | null>(null);
 	hoveredAnchorId = $state<number | null>(null);
 	hoveredTunnelKey = $state<string | null>(null);
+	hoveredCornerKey = $state<string | null>(null);
 
 	placementMode = $state<'station' | 'anchor' | null>(null);
 	pendingLineInsert = $state<{ refStationId: number; before: boolean } | null>(null);
@@ -116,8 +120,8 @@ export class EditorState {
 		for (const [, arr] of map) arr.sort((a, b) => a.order - b.order);
 		return map;
 	});
-	tunnelInfo = $derived.by<{ key: string; lineIds: number[] }[]>(() => {
-		const { tunnels } = buildTunnels(
+	tunnelData = $derived.by(() => {
+		return buildTunnels(
 			this.lines,
 			this.routePoints,
 			this.anchorPoints,
@@ -127,7 +131,10 @@ export class EditorState {
 			},
 			this.effectiveHiddenLineIds
 		);
-		return Array.from(tunnels.entries()).map(([key, tunnel]) => ({
+	});
+
+	tunnelInfo = $derived.by<{ key: string; lineIds: number[] }[]>(() => {
+		return Array.from(this.tunnelData.tunnels.entries()).map(([key, tunnel]) => ({
 			key,
 			lineIds: Array.from(tunnel.lines)
 		}));
@@ -137,26 +144,107 @@ export class EditorState {
 		return this.tunnelInfo.find((t) => t.key === this.selectedTunnelKey) ?? null;
 	}
 
-	globalTunnelOrder = $state<Record<string, number[]>>({});
-
-	get tunnelOrder(): Record<string, number[]> {
-		const viewOrder = this.activeView?.tunnelOrder;
-		if (!viewOrder) return { ...this.globalTunnelOrder };
-		return { ...this.globalTunnelOrder, ...viewOrder };
-	}
-
 	tunnelOrderVersion = $state(0);
 
-	setTunnelOrder(key: string, lineIds: number[]) {
-		const view = this.activeView;
-		if (view) {
-			const order = { ...(view.tunnelOrder ?? {}), [key]: lineIds };
-			view.tunnelOrder = order;
-			ViewService.update(view.id!, { tunnelOrder: order });
-		} else {
-			this.globalTunnelOrder = { ...this.globalTunnelOrder, [key]: lineIds };
+	tunnelOrderCache = $state<Record<string, number[]>>({});
+	cornerRadiiCache = $state<Record<string, number>>({});
+
+	get tunnelOrder(): Record<string, number[]> {
+		return this.tunnelOrderCache;
+	}
+
+	get cornerRadii(): Record<string, number> {
+		return this.cornerRadiiCache;
+	}
+
+	cornerPoints = $derived.by<
+		{ key: string; x: number; y: number; lineId: number; stationId: number | null }[]
+	>(() => {
+		const { basePaths } = this.tunnelData;
+		const points: {
+			key: string;
+			x: number;
+			y: number;
+			lineId: number;
+			stationId: number | null;
+		}[] = [];
+		const seen = new SvelteSet<string>();
+		for (const [lineId, path] of basePaths) {
+			for (let i = 1; i < path.length - 1; i++) {
+				const p = path[i];
+				const key = `${p.x},${p.y}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+				points.push({ key, x: p.x, y: p.y, lineId, stationId: null });
+			}
 		}
+		points.sort((a, b) => a.key.localeCompare(b.key));
+		return points;
+	});
+
+	get selectedCorner(): {
+		key: string;
+		x: number;
+		y: number;
+		lineId: number;
+		stationId: number | null;
+	} | null {
+		return this.cornerPoints.find((c) => c.key === this.selectedCornerKey) ?? null;
+	}
+
+	async loadTunnelOrders() {
+		if (!this.project?.id) return;
+		const projectId = this.project.id;
+		const entries = this.isGlobalView
+			? await TunnelOrderService.getGlobal(projectId)
+			: this.activeViewId != null
+				? await TunnelOrderService.getForView(projectId, this.activeViewId)
+				: [];
+		const orderMap: Record<string, number[]> = {};
+		for (const e of entries) {
+			orderMap[e.tunnelKey] = e.lineIds;
+		}
+		this.tunnelOrderCache = orderMap;
+	}
+
+	async setTunnelOrder(key: string, lineIds: number[]) {
+		if (!this.project?.id) return;
+		const projectId = this.project.id;
+		const viewId = this.isGlobalView ? undefined : (this.activeViewId ?? undefined);
+		await TunnelOrderService.set(projectId, key, lineIds, viewId);
+		this.tunnelOrderCache = { ...this.tunnelOrderCache, [key]: lineIds };
 		this.tunnelOrderVersion++;
+	}
+
+	async loadCornerRadii() {
+		if (!this.project?.id) return;
+		const projectId = this.project.id;
+		const entries = this.isGlobalView
+			? await CornerRadiusService.getGlobal(projectId)
+			: this.activeViewId != null
+				? await CornerRadiusService.getForView(projectId, this.activeViewId)
+				: [];
+		const map: Record<string, number> = {};
+		for (const e of entries) {
+			map[`${e.x},${e.y}`] = e.radius;
+		}
+		this.cornerRadiiCache = map;
+	}
+
+	async setCornerRadius(key: string, radius: number | undefined) {
+		if (!this.project?.id) return;
+		const projectId = this.project.id;
+		const viewId = this.isGlobalView ? undefined : (this.activeViewId ?? undefined);
+		const [x, y] = key.split(',').map(Number);
+		if (radius !== undefined) {
+			await CornerRadiusService.set(projectId, x, y, radius, viewId);
+			this.cornerRadiiCache = { ...this.cornerRadiiCache, [key]: radius };
+		} else {
+			await CornerRadiusService.remove(projectId, x, y, viewId);
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { [key]: _, ...rest } = this.cornerRadiiCache;
+			this.cornerRadiiCache = rest;
+		}
 	}
 
 	/* eslint-enable svelte/prefer-svelte-reactivity */
@@ -280,9 +368,12 @@ export class EditorState {
 		this.selectedStationId = null;
 		this.selectedAnchorId = null;
 		this.selectedTunnelKey = null;
+		this.selectedCornerKey = null;
 		this.hoveredTunnelKey = null;
-		this.globalTunnelOrder = {};
+		this.hoveredCornerKey = null;
 		this.tunnelOrderVersion = 0;
+		this.tunnelOrderCache = {};
+		this.cornerRadiiCache = {};
 		this.placementMode = null;
 		this.hiddenLineIds = new SvelteSet<number>();
 		this.stationToDelete = null;

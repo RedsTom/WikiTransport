@@ -149,6 +149,7 @@ export function buildRenderingData(
 	basePaths: Map<number, Point[]>;
 	tunnelOffsets: Map<string, Map<number, Point>>;
 	stationPoints: Set<string>;
+	multiLineTunnels: Set<string>;
 } {
 	const hiddenLineIds = new Set(data.hiddenLineIds);
 	const { basePaths, tunnels, stationPoints } = buildTunnels(
@@ -170,5 +171,9 @@ export function buildRenderingData(
 		stationPoints,
 		data.tunnelOrder
 	);
-	return { basePaths, tunnelOffsets, stationPoints };
+	const multiLineTunnels = new Set<string>();
+	for (const [tunnelKey, tunnel] of tunnels) {
+		if (tunnel.lines.size > 1) multiLineTunnels.add(tunnelKey);
+	}
+	return { basePaths, tunnelOffsets, stationPoints, multiLineTunnels };
 }

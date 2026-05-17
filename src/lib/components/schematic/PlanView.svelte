@@ -446,7 +446,11 @@
 			stationPoints,
 			editorState.tunnelOrder
 		);
-		return { basePaths, tunnels, tunnelOffsets, stationPoints };
+		const multiLineTunnels = new Set<string>();
+		for (const [tunnelKey, tunnel] of tunnels) {
+			if (tunnel.lines.size > 1) multiLineTunnels.add(tunnelKey);
+		}
+		return { basePaths, tunnels, tunnelOffsets, stationPoints, multiLineTunnels };
 	});
 </script>
 
@@ -526,6 +530,19 @@
 				stroke-linecap="round"
 				pointer-events="none"
 			/>
+		{/if}
+		{#if editorState.hoveredCornerKey}
+			{@const [cx, cy] = editorState.hoveredCornerKey.split(',').map(Number)}
+			<circle
+				{cx}
+				{cy}
+				r="14"
+				fill="rgba(100, 200, 255, 0.15)"
+				stroke="rgba(100, 200, 255, 0.6)"
+				stroke-width="3"
+				pointer-events="none"
+			/>
+			<circle {cx} {cy} r="4" fill="rgba(100, 200, 255, 0.9)" pointer-events="none" />
 		{/if}
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
