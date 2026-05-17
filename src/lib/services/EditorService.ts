@@ -4,6 +4,8 @@ import type { Station, ViewStation } from '$lib/types';
 import { StationService } from './StationService';
 import { LineService } from './LineService';
 import { ViewService } from './ViewService';
+import { TunnelOrderService } from './TunnelOrderService';
+import { CornerRadiusService } from './CornerRadiusService';
 import { ViewStationService } from './ViewStationService';
 import { AnchorPointService } from './AnchorPointService';
 
@@ -22,6 +24,8 @@ export class EditorService {
 		await state.loadRoutePoints();
 		await state.loadAnchorPoints(state.activeViewId ?? undefined);
 		await state.loadViews();
+		await state.loadTunnelOrders();
+		await state.loadCornerRadii();
 	}
 
 	/**
@@ -35,6 +39,7 @@ export class EditorService {
 			state.viewStations = [];
 		}
 		await state.loadAnchorPoints(viewId ?? undefined);
+		await state.loadTunnelOrders();
 	}
 
 	/**
@@ -64,6 +69,16 @@ export class EditorService {
 		const globalAnchors = await AnchorPointService.getAllForView();
 		for (const ap of globalAnchors) {
 			await AnchorPointService.create(ap.lineId, ap.schematicX, ap.schematicY, ap.order, viewId);
+		}
+
+		const globalOrders = await TunnelOrderService.getGlobal(projectId);
+		for (const entry of globalOrders) {
+			await TunnelOrderService.set(projectId, entry.tunnelKey, entry.lineIds, viewId);
+		}
+
+		const globalCorners = await CornerRadiusService.getGlobal(projectId);
+		for (const entry of globalCorners) {
+			await CornerRadiusService.set(projectId, entry.x, entry.y, entry.radius, viewId);
 		}
 
 		await state.loadViews();

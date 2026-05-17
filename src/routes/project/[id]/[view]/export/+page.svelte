@@ -11,6 +11,7 @@
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
 	import { ViewService } from '$lib/services/ViewService';
 	import { ViewStationService } from '$lib/services/ViewStationService';
+	import { editorState } from '$lib/store/editor.svelte';
 	import { CircularProgress, IconButton, Button } from '$lib/components/ui';
 	import { generateExportSvg, buildExportSvgForPreview } from '$lib/utils/svg-export';
 	import type { ExportData, ExportOptions } from '$lib/utils/svg-export';
@@ -220,7 +221,9 @@
 				transitTypes,
 				viewStations,
 				hiddenLineIds,
-				hiddenStationIds
+				hiddenStationIds,
+				tunnelOrder: editorState.tunnelOrder,
+				cornerRadii: editorState.cornerRadii
 			};
 
 			isLoading = false;

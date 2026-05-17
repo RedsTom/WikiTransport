@@ -7,7 +7,6 @@ import type {
 	InterchangeBadgeDirection
 } from '$lib/types';
 import type { ExportData } from './types';
-import { buildLineOffsets as buildLineOffsetsCore } from '$lib/utils/schematic';
 import {
 	BADGE_SIZE,
 	BADGE_GAP,
@@ -120,19 +119,6 @@ export function stationAnchorDy(
 	return vs?.anchorDy ?? station.anchorDy ?? 14;
 }
 
-export function buildLineOffsets(
-	data: ExportData,
-	isGlobal: boolean
-): Map<number, Map<string, { x: number; y: number }>> {
-	return buildLineOffsetsCore(
-		data.stations,
-		data.routePoints,
-		data.lines,
-		new Set(data.hiddenLineIds),
-		(s) => stationPos(s, data.viewStations, isGlobal)
-	);
-}
-
 export function getInterchangeHiddenLineIds(data: ExportData): Set<number> {
 	const hiddenLineIds = new Set(data.hiddenLineIds);
 	const visibleLineIds = new Set(
@@ -151,4 +137,43 @@ export function getInterchangeHiddenLineIds(data: ExportData): Set<number> {
 
 export function getTransitType(line: Line, data: ExportData): TransitType | undefined {
 	return data.transitTypes.find((t) => t.id === line.transitTypeId);
+}
+
+import { buildTunnels, computeLineOffsets } from '$lib/utils/schematic';
+import type { Point } from '$lib/utils/schematic';
+
+export function buildRenderingData(
+	data: ExportData,
+	isGlobal: boolean
+): {
+	basePaths: Map<number, Point[]>;
+	tunnelOffsets: Map<string, Map<number, Point>>;
+	stationPoints: Set<string>;
+	multiLineTunnels: Set<string>;
+} {
+	const hiddenLineIds = new Set(data.hiddenLineIds);
+	const { basePaths, tunnels, stationPoints } = buildTunnels(
+		data.lines,
+		data.routePoints,
+		data.anchorPoints,
+		(id) => {
+			const s = data.stations.find((st) => st.id === id);
+			return s ? stationPos(s, data.viewStations, isGlobal) : null;
+		},
+		hiddenLineIds
+	);
+	const lineMap = new Map<number, { id?: number; transitTypeId?: number }>();
+	for (const l of data.lines) if (l.id != null) lineMap.set(l.id, l);
+	const tunnelOffsets = computeLineOffsets(
+		tunnels,
+		lineMap,
+		basePaths,
+		stationPoints,
+		data.tunnelOrder
+	);
+	const multiLineTunnels = new Set<string>();
+	for (const [tunnelKey, tunnel] of tunnels) {
+		if (tunnel.lines.size > 1) multiLineTunnels.add(tunnelKey);
+	}
+	return { basePaths, tunnelOffsets, stationPoints, multiLineTunnels };
 }

@@ -4,7 +4,14 @@
 	import { EditorService } from '$lib/services/EditorService';
 	import { StationService } from '$lib/services/StationService';
 	import { AnchorPointService } from '$lib/services/AnchorPointService';
-	import { ContextMenu, CircularProgress, LinePicker, Dialog, Button, TextField } from '$lib/components/ui';
+	import {
+		ContextMenu,
+		CircularProgress,
+		LinePicker,
+		Dialog,
+		Button,
+		TextField
+	} from '$lib/components/ui';
 	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import { onMount } from 'svelte';
 	import {
@@ -12,7 +19,7 @@
 		screenToSvgRaw,
 		distToSegment,
 		closestPointOnSegment,
-		buildSegmentTopology,
+		buildTunnels,
 		computeLineOffsets
 	} from '$lib/utils/schematic';
 	import { useViewport } from '$lib/utils/useViewport.svelte';
@@ -420,24 +427,31 @@
 		editorState.rightTab = 'station';
 	}
 
-	let segmentTopology = $derived(
-		buildSegmentTopology(
+	let renderingData = $derived.by(() => {
+		void editorState.tunnelOrderVersion;
+		const { basePaths, tunnels, stationPoints } = buildTunnels(
+			editorState.lines,
 			editorState.routePoints,
-			editorState.lines,
-			editorState.effectiveHiddenLineIds,
-			editorState.lineMap
-		)
-	);
-
-	let lineOffsets = $derived(
-		computeLineOffsets(
-			segmentTopology,
-			editorState.stationMap,
-			(s) => editorState.stationPosition(s),
-			editorState.lines,
+			editorState.anchorPoints,
+			(id) => {
+				const s = editorState.stationMap.get(id);
+				return s ? editorState.stationPosition(s) : null;
+			},
 			editorState.effectiveHiddenLineIds
-		)
-	);
+		);
+		const tunnelOffsets = computeLineOffsets(
+			tunnels,
+			editorState.lineMap,
+			basePaths,
+			stationPoints,
+			editorState.tunnelOrder
+		);
+		const multiLineTunnels = new Set<string>();
+		for (const [tunnelKey, tunnel] of tunnels) {
+			if (tunnel.lines.size > 1) multiLineTunnels.add(tunnelKey);
+		}
+		return { basePaths, tunnels, tunnelOffsets, stationPoints, multiLineTunnels };
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -480,7 +494,56 @@
 			viewBoxWidth={viewport.viewBoxWidth}
 			viewBoxHeight={viewport.viewBoxHeight}
 		/>
-		<SchematicLines {lineOffsets} />
+		<SchematicLines {renderingData} />
+		{#if editorState.hoveredTunnelKey}
+			{@const tunnel = renderingData.tunnels.get(editorState.hoveredTunnelKey)}
+			{@const x1 = tunnel
+				? tunnel.u.x
+				: Number(editorState.hoveredTunnelKey.split(';')[0].split(',')[0])}
+			{@const y1 = tunnel
+				? tunnel.u.y
+				: Number(editorState.hoveredTunnelKey.split(';')[0].split(',')[1])}
+			{@const x2 = tunnel
+				? tunnel.v.x
+				: Number(editorState.hoveredTunnelKey.split(';')[1].split(',')[0])}
+			{@const y2 = tunnel
+				? tunnel.v.y
+				: Number(editorState.hoveredTunnelKey.split(';')[1].split(',')[1])}
+			{@const dx = x2 - x1}
+			{@const dy = y2 - y1}
+			{@const len = Math.sqrt(dx * dx + dy * dy)}
+			{@const nx = len > 0 ? (-dy / len) * 18 : 0}
+			{@const ny = len > 0 ? (dx / len) * 18 : 0}
+			<path
+				d="M {x1 + nx} {y1 + ny} L {x2 + nx} {y2 + ny} M {x1 - nx} {y1 - ny} L {x2 - nx} {y2 - ny}"
+				fill="none"
+				stroke="rgba(100, 200, 255, 0.35)"
+				stroke-width="24"
+				stroke-linecap="round"
+				pointer-events="none"
+			/>
+			<path
+				d="M {x1} {y1} L {x2} {y2}"
+				fill="none"
+				stroke="rgba(100, 200, 255, 0.9)"
+				stroke-width="5"
+				stroke-linecap="round"
+				pointer-events="none"
+			/>
+		{/if}
+		{#if editorState.hoveredCornerKey}
+			{@const [cx, cy] = editorState.hoveredCornerKey.split(',').map(Number)}
+			<circle
+				{cx}
+				{cy}
+				r="14"
+				fill="rgba(100, 200, 255, 0.15)"
+				stroke="rgba(100, 200, 255, 0.6)"
+				stroke-width="3"
+				pointer-events="none"
+			/>
+			<circle {cx} {cy} r="4" fill="rgba(100, 200, 255, 0.9)" pointer-events="none" />
+		{/if}
 		<SchematicStations onstartdragstation={startDragStation} />
 		<SchematicAnchors onstartdraganchor={startDragAnchor} />
 	</svg>
@@ -550,7 +613,12 @@
 		</ContextMenu>
 	{/if}
 
-	<Dialog bind:open={stationNameDialogOpen} onclose={() => { stationNameDialogOpen = false; }}>
+	<Dialog
+		bind:open={stationNameDialogOpen}
+		onclose={() => {
+			stationNameDialogOpen = false;
+		}}
+	>
 		{#snippet icon()}
 			<span class="material-symbols-outlined text-blue-500">add_location</span>
 		{/snippet}
@@ -566,10 +634,19 @@
 		/>
 
 		{#snippet actions()}
-			<Button variant="text" onclick={() => { stationNameDialogOpen = false; }}>
+			<Button
+				variant="text"
+				onclick={() => {
+					stationNameDialogOpen = false;
+				}}
+			>
 				{m.cancel()}
 			</Button>
-			<Button variant="filled" disabled={!pendingStationName.trim()} onclick={handleConfirmStationName}>
+			<Button
+				variant="filled"
+				disabled={!pendingStationName.trim()}
+				onclick={handleConfirmStationName}
+			>
 				{m.create()}
 			</Button>
 		{/snippet}

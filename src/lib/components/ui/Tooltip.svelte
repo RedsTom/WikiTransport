@@ -63,6 +63,7 @@
 		margin: 0;
 		z-index: 100;
 		padding: 0.25rem 0.625rem;
+		text-transform: none;
 		border-radius: var(--radius-sm, 4px);
 		background: var(--color-on-surface, #1a1a2e);
 		color: var(--color-surface, #ffffff);
