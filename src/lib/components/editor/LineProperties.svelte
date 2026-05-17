@@ -8,13 +8,12 @@
 	import type { Line } from '$lib/types';
 	import { DND_DROP_TARGET_STYLE } from '$lib/constants/schematic';
 
-	import { Button, TextField, Dialog, Slider, IconButton, NumberInput } from '$lib/components/ui';
+	import { Button, TextField, Dialog, IconButton, NumberInput } from '$lib/components/ui';
 
 	const flipDurationMs = 200;
 
 	let lineName = $state('');
 	let lineColor = $state('#000000');
-	let lineStrokeWidth = $state(6);
 	let lineDashPattern = $state('');
 	let lineZIndex = $state(0);
 
@@ -24,7 +23,6 @@
 		if (selectedLine) {
 			lineName = selectedLine.name;
 			lineColor = selectedLine.color;
-			lineStrokeWidth = selectedLine.strokeWidth ?? 6;
 			lineDashPattern = selectedLine.dashPattern ?? '';
 			lineZIndex = selectedLine.zIndex;
 		}
